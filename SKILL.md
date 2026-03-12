@@ -70,3 +70,4 @@ python3 scripts/detect_font.py deck.pptx --json
 ```
 
 Load `references/pptxgenjs-helpers.md` if you need the helper API summary or dependency details.
+If you are maintaining this skill itself, not just using it to build decks, see `references/maintenance-workflow.md` for the local development, validation, and Codex sync loop.
