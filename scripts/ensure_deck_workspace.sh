@@ -239,12 +239,16 @@ if [[ "$PACKAGE_JSON_PRESENT" == true ]] && \
    [[ "$VENV_PYTHON_PRESENT" == true ]] && \
    [[ "$PYTHON_PACKAGES_PRESENT" == true ]] && \
    [[ "$SYSTEM_TOOLS_PRESENT" == true ]]; then
-  WORKSPACE_READY=true
+   WORKSPACE_READY=true
 fi
 
 BOOTSTRAP_COMPLETE=false
 if [[ "$HELPERS_PRESENT" == true ]] && [[ "$VALIDATE_WRAPPER_PRESENT" == true ]] && [[ "$PACKAGE_JSON_PRESENT" == true ]]; then
   BOOTSTRAP_COMPLETE=true
+fi
+
+if [[ "$WORKSPACE_READY" != true ]]; then
+  add_suggestion "Run \`bash \"$SKILL_ROOT/scripts/repair_deck_workspace.sh\" \"$DECK_DIR\"\` to auto-fix deck-local dependencies and refresh workspace state."
 fi
 
 {
