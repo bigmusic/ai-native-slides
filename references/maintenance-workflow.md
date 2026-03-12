@@ -35,7 +35,7 @@ Do not commit deck outputs or local runtime artifacts here:
 1. Edit the skill in this repository.
 2. Run `scripts/bootstrap_deck_workspace.sh <deck-workspace>` when the deck workspace needs helper updates or a fresh `validate-local.sh`.
 3. Run `scripts/ensure_deck_workspace.sh <deck-workspace>` for a cheap preflight check and refresh `.ai-native-slides/state.json`.
-4. If the workspace is missing only deck-local dependencies, run `scripts/repair_deck_workspace.sh <deck-workspace>`.
+4. If the workspace is missing only deck-local dependencies, use `scripts/repair_deck_workspace.sh <deck-workspace>`. When `pnpm` is involved, treat it as human-in-the-loop and have the user run it locally.
 5. Validate behavior using a separate deck workspace.
 6. Sync this repository into the local Codex skills directory.
 7. Restart Codex so the updated installed skill is reloaded.
@@ -51,7 +51,7 @@ Typical loop:
 1. Update this skill repo.
 2. Run `scripts/bootstrap_deck_workspace.sh <deck-workspace>` so the deck gets the current helper assets and validation wrapper.
 3. Run `scripts/ensure_deck_workspace.sh <deck-workspace>` to refresh the workspace state and spot missing dependencies quickly.
-4. If the workspace is missing only local dependencies, run `scripts/repair_deck_workspace.sh <deck-workspace>`.
+4. If the workspace is missing only local dependencies, use `scripts/repair_deck_workspace.sh <deck-workspace>`. When `pnpm` is involved, have the user run the repair locally.
 5. Use the current deck workspace to build and validate a deck.
 6. Fix any gaps in skill instructions or bundled resources.
 7. Run `scripts/sync_to_codex.sh`.
@@ -120,6 +120,7 @@ Recommended use:
 - run `bootstrap_deck_workspace.sh` the first time or after skill-side helper/template changes
 - run `ensure_deck_workspace.sh` on later visits to the same workspace
 - run `repair_deck_workspace.sh` when `ensure` reports missing deck-local dependencies that can be fixed safely
+- when `repair` needs `pnpm install`, treat that step as human-in-the-loop and have the user execute it in their own terminal
 - use the `missing`, `warnings`, and `suggestions` fields in `state.json` to decide whether the workspace needs repair
 
 ## Notes
