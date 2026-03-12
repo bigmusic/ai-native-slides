@@ -33,11 +33,12 @@ Do not commit deck outputs or local runtime artifacts here:
 ## Development Loop
 
 1. Edit the skill in this repository.
-2. Validate behavior using a separate deck workspace.
-3. Sync this repository into the local Codex skills directory.
-4. Restart Codex so the updated installed skill is reloaded.
-5. Run a real deck task with `$ai-native-slides`.
-6. If the workflow is correct, commit and push this repository.
+2. Run `scripts/bootstrap_deck_workspace.sh <deck-workspace>` when the deck workspace needs helper updates or a fresh `validate-local.sh`.
+3. Validate behavior using a separate deck workspace.
+4. Sync this repository into the local Codex skills directory.
+5. Restart Codex so the updated installed skill is reloaded.
+6. Run a real deck task with `$ai-native-slides`.
+7. If the workflow is correct, commit and push this repository.
 
 ## Example Validation Loop
 
@@ -46,11 +47,12 @@ Use a separate deck workspace for real validation. The workspace should contain 
 Typical loop:
 
 1. Update this skill repo.
-2. Use the current deck workspace to build and validate a deck.
-3. Fix any gaps in skill instructions or bundled resources.
-4. Run `scripts/sync_to_codex.sh`.
-5. Restart Codex.
-6. Trigger `$ai-native-slides` on the next deck task and confirm the new behavior.
+2. Run `scripts/bootstrap_deck_workspace.sh <deck-workspace>` so the deck gets the current helper assets and validation wrapper.
+3. Use the current deck workspace to build and validate a deck.
+4. Fix any gaps in skill instructions or bundled resources.
+5. Run `scripts/sync_to_codex.sh`.
+6. Restart Codex.
+7. Trigger `$ai-native-slides` on the next deck task and confirm the new behavior.
 
 ## Local Install / Update
 
@@ -73,6 +75,21 @@ or, if `CODEX_HOME` is unset:
 ```
 
 After syncing, restart Codex to ensure the updated skill is picked up.
+
+## Deck Bootstrap
+
+Use the bootstrap script to prepare a deck workspace:
+
+```bash
+./scripts/bootstrap_deck_workspace.sh /path/to/deck
+```
+
+This does two things:
+
+- copies `assets/pptxgenjs_helpers/` into the deck workspace
+- writes `validate-local.sh` that uses the deck's own `.venv/bin/python` to execute the installed skill's validation scripts
+
+With this workflow, deck-local `scripts/` and `references/` are optional. They can be removed once the deck workspace has switched to the generated `validate-local.sh`.
 
 ## Notes
 

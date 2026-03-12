@@ -15,6 +15,7 @@ Keep this skill folder reusable: put helpers, scripts, assets, and references he
 ## Bundled Resources
 
 - `assets/pptxgenjs_helpers/`: Copy this folder into the deck workspace and import it locally instead of reimplementing helper logic.
+- `scripts/bootstrap_deck_workspace.sh`: Copy helper assets into a deck workspace and write a local `validate-local.sh` wrapper that uses the installed skill's validation scripts.
 - `scripts/render_slides.py`: Rasterize a `.pptx` or `.pdf` to per-slide PNGs.
 - `scripts/slides_test.py`: Detect content that overflows the slide canvas.
 - `scripts/create_montage.py`: Build a contact-sheet style montage of rendered slides.
@@ -26,9 +27,9 @@ Keep this skill folder reusable: put helpers, scripts, assets, and references he
 
 1. Inspect the request and determine whether you are creating a new deck, recreating an existing deck, or editing one.
 2. Set the slide size up front. Default to 16:9 (`LAYOUT_WIDE`) unless the source material clearly uses another aspect ratio.
-3. Copy `assets/pptxgenjs_helpers/` into the working directory and import the helpers from there.
+3. Run `scripts/bootstrap_deck_workspace.sh <deck-workspace>` or manually copy `assets/pptxgenjs_helpers/` into the working directory and import the helpers from there.
 4. Build the deck in JavaScript with an explicit theme font, stable spacing, and editable PowerPoint-native elements when practical.
-5. Run the bundled scripts from this skill directory or copy the needed ones into the task workspace. Render the result with `render_slides.py`, review the PNGs, and fix layout issues before delivery.
+5. Prefer running the bundled validation scripts from the installed skill directory with the deck's own `.venv/bin/python`. Only copy Python validation scripts into the deck workspace if you intentionally want a fully vendored deck.
 6. Run `slides_test.py` for overflow checks when slide edges are tight or the deck is dense.
 7. Deliver the `.pptx`, the authoring `.js`, and any generated assets that are required to rebuild the deck.
 
@@ -53,20 +54,31 @@ Keep this skill folder reusable: put helpers, scripts, assets, and references he
 
 ## Validation Commands
 
-Examples below assume you copied the needed scripts into the working directory. If not, invoke the same script paths relative to this skill folder.
+Examples below assume the deck uses the installed skill's validation scripts and the deck's own Python environment.
+
+```bash
+# Initialize a deck workspace once
+bash ~/.codex/skills/ai-native-slides/scripts/bootstrap_deck_workspace.sh /path/to/deck
+```
 
 ```bash
 # Render slides to PNGs for review
-python3 scripts/render_slides.py deck.pptx --output_dir rendered
+./.venv/bin/python ~/.codex/skills/ai-native-slides/scripts/render_slides.py deck.pptx --output_dir rendered
+```
 
+```bash
 # Build a montage for quick scanning
-python3 scripts/create_montage.py --input_dir rendered --output_file montage.png
+./.venv/bin/python ~/.codex/skills/ai-native-slides/scripts/create_montage.py --input_dir rendered --output_file montage.png
+```
 
+```bash
 # Check for overflow beyond the original slide canvas
-python3 scripts/slides_test.py deck.pptx
+./.venv/bin/python ~/.codex/skills/ai-native-slides/scripts/slides_test.py deck.pptx
+```
 
+```bash
 # Detect missing or substituted fonts
-python3 scripts/detect_font.py deck.pptx --json
+./.venv/bin/python ~/.codex/skills/ai-native-slides/scripts/detect_font.py deck.pptx --json
 ```
 
 Load `references/pptxgenjs-helpers.md` if you need the helper API summary or dependency details.
