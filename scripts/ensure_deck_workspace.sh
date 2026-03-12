@@ -102,9 +102,9 @@ add_suggestion() {
   SUGGESTIONS+=("$1")
 }
 
-MISSING_ITEMS=()
-WARNINGS=()
-SUGGESTIONS=()
+declare -a MISSING_ITEMS=()
+declare -a WARNINGS=()
+declare -a SUGGESTIONS=()
 
 SKILL_REVISION="$(
   git -C "$SKILL_ROOT" rev-parse --short HEAD 2>/dev/null || \

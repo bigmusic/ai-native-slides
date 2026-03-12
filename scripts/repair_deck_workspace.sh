@@ -14,9 +14,16 @@ DECK_DIR="$(cd "$1" && pwd)"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILL_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 STATE_FILE="${DECK_DIR}/.ai-native-slides/state.json"
+WORKSPACE_STATE_DIR="${DECK_DIR}/.ai-native-slides"
 PACKAGE_JSON="${DECK_DIR}/package.json"
 NODE_MODULES_DIR="${DECK_DIR}/node_modules"
 VENV_PYTHON="${DECK_DIR}/.venv/bin/python"
+
+export UV_CACHE_DIR="${AI_NATIVE_SLIDES_UV_CACHE_DIR:-${WORKSPACE_STATE_DIR}/uv-cache}"
+export UV_PYTHON_CACHE_DIR="${AI_NATIVE_SLIDES_UV_PYTHON_CACHE_DIR:-${WORKSPACE_STATE_DIR}/uv-python-cache}"
+export UV_PYTHON_INSTALL_DIR="${AI_NATIVE_SLIDES_UV_PYTHON_INSTALL_DIR:-${WORKSPACE_STATE_DIR}/uv-python-install}"
+
+mkdir -p "$WORKSPACE_STATE_DIR" "$UV_CACHE_DIR" "$UV_PYTHON_CACHE_DIR" "$UV_PYTHON_INSTALL_DIR"
 
 require_command() {
   local command_name="$1"
