@@ -37,9 +37,19 @@ SKILL_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 HELPERS_SRC="${SKILL_ROOT}/assets/pptxgenjs_helpers"
 HELPERS_DEST="${DECK_DIR}/assets/pptxgenjs_helpers"
 VALIDATE_DEST="${DECK_DIR}/validate-local.sh"
+PACKAGE_TEMPLATE="${SKILL_ROOT}/assets/templates/package.json"
+PACKAGE_DEST="${DECK_DIR}/package.json"
+STATE_DIR="${DECK_DIR}/.ai-native-slides"
 
-mkdir -p "${DECK_DIR}/assets"
+mkdir -p "${DECK_DIR}/assets" "${STATE_DIR}"
 rsync -a --delete "${HELPERS_SRC}/" "${HELPERS_DEST}/"
+
+if [[ ! -e "${PACKAGE_DEST}" ]] && [[ -f "${PACKAGE_TEMPLATE}" ]]; then
+  cp "${PACKAGE_TEMPLATE}" "${PACKAGE_DEST}"
+  echo "Wrote ${PACKAGE_DEST}"
+elif [[ -e "${PACKAGE_DEST}" ]]; then
+  echo "Kept existing ${PACKAGE_DEST}"
+fi
 
 if [[ -e "${VALIDATE_DEST}" && "${FORCE}" -ne 1 ]]; then
   echo "Skipped existing ${VALIDATE_DEST}. Re-run with --force to replace it."
@@ -59,6 +69,7 @@ FONT_JSON_PATH="$OUTPUT_DIR/font-report.json"
 MONTAGE_PATH="$OUTPUT_DIR/montage.png"
 SKILL_DIR="${AI_NATIVE_SLIDES_SKILL_DIR:-$HOME/.codex/skills/ai-native-slides}"
 SKILL_SCRIPTS_DIR="$SKILL_DIR/scripts"
+STATE_FILE="$ROOT_DIR/.ai-native-slides/state.json"
 
 if [[ ! -x "$VENV_PYTHON" ]]; then
   echo "Missing deck venv python: $VENV_PYTHON" >&2
@@ -68,6 +79,11 @@ fi
 if [[ ! -d "$SKILL_SCRIPTS_DIR" ]]; then
   echo "Missing installed skill scripts: $SKILL_SCRIPTS_DIR" >&2
   echo "Set AI_NATIVE_SLIDES_SKILL_DIR or sync the skill into ~/.codex/skills/ai-native-slides." >&2
+  exit 1
+fi
+
+if ! bash "$SKILL_SCRIPTS_DIR/ensure_deck_workspace.sh" "$ROOT_DIR" --quiet; then
+  echo "Workspace preflight failed. See $STATE_FILE." >&2
   exit 1
 fi
 
@@ -89,6 +105,7 @@ cat <<REPORT > "$REPORT_PATH"
 - Workspace: $ROOT_DIR
 - TMPDIR: $TMPDIR
 - Skill dir: $SKILL_DIR
+- Workspace state: $STATE_FILE
 
 REPORT
 
@@ -175,4 +192,4 @@ EOF
 fi
 
 echo "Synced helper assets to ${HELPERS_DEST}"
-echo "Deck workspace bootstrap complete."
+bash "${SCRIPT_DIR}/ensure_deck_workspace.sh" "${DECK_DIR}"

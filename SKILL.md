@@ -15,7 +15,9 @@ Keep this skill folder reusable: put helpers, scripts, assets, and references he
 ## Bundled Resources
 
 - `assets/pptxgenjs_helpers/`: Copy this folder into the deck workspace and import it locally instead of reimplementing helper logic.
+- `assets/templates/package.json`: Minimal deck template written by bootstrap when a new workspace does not already have `package.json`.
 - `scripts/bootstrap_deck_workspace.sh`: Copy helper assets into a deck workspace and write a local `validate-local.sh` wrapper that uses the installed skill's validation scripts.
+- `scripts/ensure_deck_workspace.sh`: Run a cheap preflight check for deck-local dependencies and write `.ai-native-slides/state.json` with the latest workspace status.
 - `scripts/render_slides.py`: Rasterize a `.pptx` or `.pdf` to per-slide PNGs.
 - `scripts/slides_test.py`: Detect content that overflows the slide canvas.
 - `scripts/create_montage.py`: Build a contact-sheet style montage of rendered slides.
@@ -27,11 +29,12 @@ Keep this skill folder reusable: put helpers, scripts, assets, and references he
 
 1. Inspect the request and determine whether you are creating a new deck, recreating an existing deck, or editing one.
 2. Set the slide size up front. Default to 16:9 (`LAYOUT_WIDE`) unless the source material clearly uses another aspect ratio.
-3. Run `scripts/bootstrap_deck_workspace.sh <deck-workspace>` or manually copy `assets/pptxgenjs_helpers/` into the working directory and import the helpers from there.
-4. Build the deck in JavaScript with an explicit theme font, stable spacing, and editable PowerPoint-native elements when practical.
-5. Prefer running the bundled validation scripts from the installed skill directory with the deck's own `.venv/bin/python`. Only copy Python validation scripts into the deck workspace if you intentionally want a fully vendored deck.
-6. Run `slides_test.py` for overflow checks when slide edges are tight or the deck is dense.
-7. Deliver the `.pptx`, the authoring `.js`, and any generated assets that are required to rebuild the deck.
+3. Run `scripts/bootstrap_deck_workspace.sh <deck-workspace>` once per workspace. This syncs helper assets, writes `validate-local.sh`, optionally writes a minimal `package.json`, and records workspace state.
+4. Re-run `scripts/ensure_deck_workspace.sh <deck-workspace>` for cheap preflight checks when reusing an existing deck workspace. Read `.ai-native-slides/state.json` if the workspace is incomplete.
+5. Build the deck in JavaScript with an explicit theme font, stable spacing, and editable PowerPoint-native elements when practical.
+6. Prefer running the bundled validation scripts from the installed skill directory with the deck's own `.venv/bin/python`. Only copy Python validation scripts into the deck workspace if you intentionally want a fully vendored deck.
+7. Run `slides_test.py` for overflow checks when slide edges are tight or the deck is dense.
+8. Deliver the `.pptx`, the authoring `.js`, and any generated assets that are required to rebuild the deck.
 
 ## Authoring Rules
 
@@ -62,6 +65,11 @@ bash ~/.codex/skills/ai-native-slides/scripts/bootstrap_deck_workspace.sh /path/
 ```
 
 ```bash
+# Run a cheap workspace preflight check and refresh state
+bash ~/.codex/skills/ai-native-slides/scripts/ensure_deck_workspace.sh /path/to/deck
+```
+
+```bash
 # Render slides to PNGs for review
 ./.venv/bin/python ~/.codex/skills/ai-native-slides/scripts/render_slides.py deck.pptx --output_dir rendered
 ```
@@ -82,4 +90,5 @@ bash ~/.codex/skills/ai-native-slides/scripts/bootstrap_deck_workspace.sh /path/
 ```
 
 Load `references/pptxgenjs-helpers.md` if you need the helper API summary or dependency details.
+Use `.ai-native-slides/state.json` in the deck workspace as the machine-readable record of the last bootstrap / ensure check.
 If you are maintaining this skill itself, not just using it to build decks, see `references/maintenance-workflow.md` for the local development, validation, and Codex sync loop.
