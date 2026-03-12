@@ -167,7 +167,7 @@ if [[ -f "$DECK_JS" ]]; then DECK_JS_PRESENT=true; else
 fi
 
 BUILD_SCRIPT_PRESENT=false
-if [[ -f "$PACKAGE_JSON" ]] && rg -q '"build"[[:space:]]*:' "$PACKAGE_JSON"; then
+if [[ -f "$PACKAGE_JSON" ]] && grep -Eq '"build"[[:space:]]*:' "$PACKAGE_JSON"; then
   BUILD_SCRIPT_PRESENT=true
 else
   if [[ -f "$PACKAGE_JSON" ]]; then
@@ -287,31 +287,37 @@ fi
   echo "    \"workspace_signature\": \"$(json_escape "$DEST_HELPERS_SIGNATURE")\""
   echo "  },"
   echo "  \"missing\": ["
-  for i in "${!MISSING_ITEMS[@]}"; do
-    suffix=","
-    if [[ "$i" -eq $((${#MISSING_ITEMS[@]} - 1)) ]]; then
-      suffix=""
-    fi
-    echo "    \"$(json_escape "${MISSING_ITEMS[$i]}")\"${suffix}"
-  done
+  if [[ "${#MISSING_ITEMS[@]}" -gt 0 ]]; then
+    for i in "${!MISSING_ITEMS[@]}"; do
+      suffix=","
+      if [[ "$i" -eq $((${#MISSING_ITEMS[@]} - 1)) ]]; then
+        suffix=""
+      fi
+      echo "    \"$(json_escape "${MISSING_ITEMS[$i]}")\"${suffix}"
+    done
+  fi
   echo "  ],"
   echo "  \"warnings\": ["
-  for i in "${!WARNINGS[@]}"; do
-    suffix=","
-    if [[ "$i" -eq $((${#WARNINGS[@]} - 1)) ]]; then
-      suffix=""
-    fi
-    echo "    \"$(json_escape "${WARNINGS[$i]}")\"${suffix}"
-  done
+  if [[ "${#WARNINGS[@]}" -gt 0 ]]; then
+    for i in "${!WARNINGS[@]}"; do
+      suffix=","
+      if [[ "$i" -eq $((${#WARNINGS[@]} - 1)) ]]; then
+        suffix=""
+      fi
+      echo "    \"$(json_escape "${WARNINGS[$i]}")\"${suffix}"
+    done
+  fi
   echo "  ],"
   echo "  \"suggestions\": ["
-  for i in "${!SUGGESTIONS[@]}"; do
-    suffix=","
-    if [[ "$i" -eq $((${#SUGGESTIONS[@]} - 1)) ]]; then
-      suffix=""
-    fi
-    echo "    \"$(json_escape "${SUGGESTIONS[$i]}")\"${suffix}"
-  done
+  if [[ "${#SUGGESTIONS[@]}" -gt 0 ]]; then
+    for i in "${!SUGGESTIONS[@]}"; do
+      suffix=","
+      if [[ "$i" -eq $((${#SUGGESTIONS[@]} - 1)) ]]; then
+        suffix=""
+      fi
+      echo "    \"$(json_escape "${SUGGESTIONS[$i]}")\"${suffix}"
+    done
+  fi
   echo "  ]"
   echo "}"
 } > "$STATE_FILE"
@@ -329,12 +335,16 @@ if [[ "$JSON_ONLY" -eq 0 ]]; then
   else
     echo "Workspace incomplete: ${DECK_DIR}" >&2
     echo "State file: ${STATE_FILE}" >&2
-    for item in "${MISSING_ITEMS[@]}"; do
-      echo "- Missing: ${item}" >&2
-    done
-    for item in "${WARNINGS[@]}"; do
-      echo "- Warning: ${item}" >&2
-    done
+    if [[ "${#MISSING_ITEMS[@]}" -gt 0 ]]; then
+      for item in "${MISSING_ITEMS[@]}"; do
+        echo "- Missing: ${item}" >&2
+      done
+    fi
+    if [[ "${#WARNINGS[@]}" -gt 0 ]]; then
+      for item in "${WARNINGS[@]}"; do
+        echo "- Warning: ${item}" >&2
+      done
+    fi
     if [[ "${#SUGGESTIONS[@]}" -gt 0 ]]; then
       echo "Suggested next steps:" >&2
       for item in "${SUGGESTIONS[@]}"; do
