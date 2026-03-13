@@ -56,6 +56,8 @@ PROJECT_METADATA_FILE="$(project_metadata_path "$PROJECT_DIR")"
 PACKAGE_JSON="${PROJECT_DIR}/package.json"
 TSCONFIG_JSON="${PROJECT_DIR}/tsconfig.json"
 SRC_MAIN_TS="${PROJECT_DIR}/src/main.ts"
+BUILD_DECK_TS="${PROJECT_DIR}/src/buildDeck.ts"
+PRESENTATION_MODEL_TS="${PROJECT_DIR}/src/presentationModel.ts"
 TESTS_DIR="${PROJECT_DIR}/tests"
 RUN_PROJECT_SCRIPT="${PROJECT_DIR}/run-project.sh"
 VALIDATE_SCRIPT="${PROJECT_DIR}/validate-local.sh"
@@ -195,12 +197,19 @@ if [[ -f "$TSCONFIG_JSON" ]]; then TSCONFIG_PRESENT=true; else
   add_suggestion "Run \`bash \"$SKILL_ROOT/scripts/bootstrap_deck_workspace.sh\" \"$PROJECT_DIR\"\` to scaffold the project tsconfig."
 fi
 
-TESTS_PRESENT=false
+BUILD_DECK_PRESENT=false
+if [[ -f "$BUILD_DECK_TS" ]]; then
+  BUILD_DECK_PRESENT=true
+fi
+
+PRESENTATION_MODEL_PRESENT=false
+if [[ -f "$PRESENTATION_MODEL_TS" ]]; then
+  PRESENTATION_MODEL_PRESENT=true
+fi
+
+CONTENT_TESTS_PRESENT=false
 if [[ -d "$TESTS_DIR" ]] && find "$TESTS_DIR" -type f \( -name '*.test.ts' -o -name '*.spec.ts' \) | grep -q .; then
-  TESTS_PRESENT=true
-else
-  add_missing "tests directory does not contain any TypeScript test files"
-  add_suggestion "Add at least one \`*.test.ts\` file under \`tests/\` so the project has a fast regression loop."
+  CONTENT_TESTS_PRESENT=true
 fi
 
 ROOT_PACKAGE_PRESENT=false
@@ -270,8 +279,7 @@ if [[ "$ROOT_DETECTED" == true ]] && \
    [[ "$RUNNER_PRESENT" == true ]] && \
    [[ "$VALIDATE_WRAPPER_PRESENT" == true ]] && \
    [[ "$DECK_ENTRY_PRESENT" == true ]] && \
-   [[ "$TSCONFIG_PRESENT" == true ]] && \
-   [[ "$TESTS_PRESENT" == true ]]; then
+   [[ "$TSCONFIG_PRESENT" == true ]]; then
   PROJECT_READY=true
 fi
 
@@ -281,9 +289,18 @@ if [[ "$PROJECT_METADATA_PRESENT" == true ]] && \
    [[ "$RUNNER_PRESENT" == true ]] && \
    [[ "$VALIDATE_WRAPPER_PRESENT" == true ]] && \
    [[ "$DECK_ENTRY_PRESENT" == true ]] && \
-   [[ "$TSCONFIG_PRESENT" == true ]] && \
-   [[ "$TESTS_PRESENT" == true ]]; then
+   [[ "$TSCONFIG_PRESENT" == true ]]; then
   BOOTSTRAP_COMPLETE=true
+fi
+
+CONTENT_READY=false
+if [[ "$BUILD_DECK_PRESENT" == true ]] && \
+   [[ "$PRESENTATION_MODEL_PRESENT" == true ]] && \
+   [[ "$CONTENT_TESTS_PRESENT" == true ]]; then
+  CONTENT_READY=true
+else
+  add_warning "project content files have not been generated yet"
+  add_suggestion "Generate \`src/buildDeck.ts\`, \`src/presentationModel.ts\`, and at least one \`tests/*.test.ts\` file from the user's prompt before running the full build/test/validate loop."
 fi
 
 {
@@ -298,6 +315,7 @@ fi
   echo "  \"state_file\": \"$(json_escape "$STATE_FILE")\","
   echo "  \"bootstrap_complete\": ${BOOTSTRAP_COMPLETE},"
   echo "  \"project_ready\": ${PROJECT_READY},"
+  echo "  \"content_ready\": ${CONTENT_READY},"
   echo "  \"status\": {"
   echo "    \"root_detected\": ${ROOT_DETECTED},"
   echo "    \"root_ready\": ${ROOT_READY},"
@@ -308,12 +326,14 @@ fi
   echo "    \"typecheck_script_present\": ${TYPECHECK_SCRIPT_PRESENT},"
   echo "    \"test_script_present\": ${TEST_SCRIPT_PRESENT},"
   echo "    \"validate_script_present\": ${VALIDATE_SCRIPT_PRESENT},"
-  echo "    \"runner_present\": ${RUNNER_PRESENT},"
-  echo "    \"validate_wrapper_present\": ${VALIDATE_WRAPPER_PRESENT},"
-  echo "    \"deck_entry_present\": ${DECK_ENTRY_PRESENT},"
-  echo "    \"tsconfig_present\": ${TSCONFIG_PRESENT},"
-  echo "    \"tests_present\": ${TESTS_PRESENT},"
-  echo "    \"root_package_present\": ${ROOT_PACKAGE_PRESENT},"
+    echo "    \"runner_present\": ${RUNNER_PRESENT},"
+    echo "    \"validate_wrapper_present\": ${VALIDATE_WRAPPER_PRESENT},"
+    echo "    \"deck_entry_present\": ${DECK_ENTRY_PRESENT},"
+    echo "    \"tsconfig_present\": ${TSCONFIG_PRESENT},"
+    echo "    \"build_deck_present\": ${BUILD_DECK_PRESENT},"
+    echo "    \"presentation_model_present\": ${PRESENTATION_MODEL_PRESENT},"
+    echo "    \"content_tests_present\": ${CONTENT_TESTS_PRESENT},"
+    echo "    \"root_package_present\": ${ROOT_PACKAGE_PRESENT},"
   echo "    \"root_biome_present\": ${ROOT_BIOME_PRESENT},"
   echo "    \"root_tsconfig_base_present\": ${ROOT_TSCONFIG_BASE_PRESENT},"
   echo "    \"root_helpers_present\": ${ROOT_HELPERS_PRESENT},"
@@ -368,8 +388,24 @@ fi
 
 if [[ "$PROJECT_READY" == true ]]; then
   if [[ "$QUIET" -ne 1 ]]; then
-    echo "Project ready: $PROJECT_DIR"
+    if [[ "$CONTENT_READY" == true ]]; then
+      echo "Project ready: $PROJECT_DIR"
+    else
+      echo "Project scaffold ready: $PROJECT_DIR"
+      echo "Deck content files still need to be generated from the user's prompt."
+    fi
     echo "State file: $STATE_FILE"
+    if [[ "${#WARNINGS[@]}" -gt 0 ]]; then
+      for item in "${WARNINGS[@]}"; do
+        echo "- Warning: $item"
+      done
+    fi
+    if [[ "${#SUGGESTIONS[@]}" -gt 0 ]]; then
+      echo "Suggested next steps:"
+      for item in "${SUGGESTIONS[@]}"; do
+        echo "- $item"
+      done
+    fi
   fi
   exit 0
 fi

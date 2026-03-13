@@ -41,8 +41,10 @@ assert_not_project_dir "$DECK_ROOT" "$SCRIPT_DIR"
 
 ROOT_TEMPLATE_DIR="${SKILL_ROOT}/assets/root_templates"
 ROOT_GITIGNORE_TEMPLATE="${ROOT_TEMPLATE_DIR}/.gitignore"
+ROOT_NPMRC_TEMPLATE="${ROOT_TEMPLATE_DIR}/.npmrc"
 ROOT_PACKAGE_TEMPLATE="${ROOT_TEMPLATE_DIR}/package.json"
 ROOT_GITIGNORE_DEST="${DECK_ROOT}/.gitignore"
+ROOT_NPMRC_DEST="${DECK_ROOT}/.npmrc"
 ROOT_PACKAGE_JSON="${DECK_ROOT}/package.json"
 HELPERS_SRC="${SKILL_ROOT}/assets/pptxgenjs_helpers"
 HELPERS_DEST="${DECK_ROOT}/assets/pptxgenjs_helpers"
@@ -73,6 +75,10 @@ fi
 
 if [[ -f "$ROOT_GITIGNORE_TEMPLATE" ]]; then
   copy_rule_file "$ROOT_GITIGNORE_TEMPLATE" "$ROOT_GITIGNORE_DEST"
+fi
+
+if [[ -f "$ROOT_NPMRC_TEMPLATE" ]]; then
+  copy_rule_file "$ROOT_NPMRC_TEMPLATE" "$ROOT_NPMRC_DEST"
 fi
 
 if [[ -f "$BIOME_TEMPLATE" ]]; then

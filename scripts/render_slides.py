@@ -16,6 +16,19 @@ from zipfile import ZipFile
 from pdf2image import convert_from_path, pdfinfo_from_path
 
 EMU_PER_INCH: int = 914_400
+POWERPOINT_EXTENSIONS = (".pptx", ".ppsx", ".potx", ".pptm", ".ppsm", ".potm")
+
+
+def _running_in_codex_shell() -> bool:
+    return os.environ.get("CODEX_SHELL") == "1" or bool(os.environ.get("CODEX_THREAD_ID"))
+
+
+def _require_local_terminal_for_soffice() -> None:
+    if _running_in_codex_shell():
+        raise SystemExit(
+            "LibreOffice-backed validation is human-in-the-loop inside Codex. "
+            "Re-run the render-dependent validation from a local terminal."
+        )
 
 
 def calc_dpi_via_ooxml(input_path: str, max_w_px: int, max_h_px: int) -> int:
@@ -170,6 +183,7 @@ def convert_to_pdf(
     convert_tmp_dir: str,
     stem: str,
 ) -> str:
+    _require_local_terminal_for_soffice()
     bin_path = shutil.which("soffice") or shutil.which("libreoffice") or "soffice"
     failures: list[str] = []
 
@@ -343,7 +357,7 @@ def main() -> None:
 
     input_path = abspath(expanduser(args.input_path))
     out_dir = abspath(expanduser(args.output_dir)) if args.output_dir else splitext(input_path)[0]
-    if input_path.lower().endswith((".pptx", ".ppsx", ".potx", ".pptm", ".ppsm", ".potm")):
+    if input_path.lower().endswith(POWERPOINT_EXTENSIONS):
         dpi = calc_dpi_via_ooxml(input_path, args.width, args.height)
     else:
         dpi = calc_dpi_via_pdf(input_path, args.width, args.height)

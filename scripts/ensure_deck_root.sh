@@ -49,6 +49,7 @@ ROOT_METADATA_FILE="$(root_metadata_path "$DECK_ROOT")"
 HELPERS_SRC="${SKILL_ROOT}/assets/pptxgenjs_helpers"
 HELPERS_DEST="${DECK_ROOT}/assets/pptxgenjs_helpers"
 PACKAGE_JSON="${DECK_ROOT}/package.json"
+NPMRC_FILE="${DECK_ROOT}/.npmrc"
 PNPM_LOCK="${DECK_ROOT}/pnpm-lock.yaml"
 BIOME_CONFIG="${DECK_ROOT}/biome.jsonc"
 TSCONFIG_BASE="${DECK_ROOT}/tsconfig.base.json"
@@ -153,6 +154,22 @@ if [[ -f "$PACKAGE_JSON" ]]; then PACKAGE_JSON_PRESENT=true; else
   add_suggestion "Run \`bash \"$SKILL_ROOT/scripts/bootstrap_deck_root.sh\" \"$DECK_ROOT\"\` to scaffold the shared root package."
 fi
 
+NPMRC_PRESENT=false
+if [[ -f "$NPMRC_FILE" ]]; then NPMRC_PRESENT=true; else
+  add_missing "root .npmrc is missing"
+  add_suggestion "Run \`bash \"$SKILL_ROOT/scripts/bootstrap_deck_root.sh\" \"$DECK_ROOT\" --force\` to restore the deck-root pnpm store config."
+fi
+
+LOCAL_PNPM_STORE_CONFIGURED=false
+if [[ -f "$NPMRC_FILE" ]] && grep -Eq '^[[:space:]]*store-dir[[:space:]]*=[[:space:]]*\.pnpm-store[[:space:]]*$' "$NPMRC_FILE"; then
+  LOCAL_PNPM_STORE_CONFIGURED=true
+else
+  if [[ "$NPMRC_PRESENT" == true ]]; then
+    add_missing "root .npmrc does not configure \`store-dir=.pnpm-store\`"
+    add_suggestion "Run \`bash \"$SKILL_ROOT/scripts/bootstrap_deck_root.sh\" \"$DECK_ROOT\" --force\` to restore the deck-root pnpm store config."
+  fi
+fi
+
 PNPM_LOCK_PRESENT=false
 if [[ -f "$PNPM_LOCK" ]]; then PNPM_LOCK_PRESENT=true; else
   add_warning "pnpm-lock.yaml is missing at the deck root"
@@ -203,13 +220,13 @@ if [[ -d "$NODE_MODULES_DIR/pptxgenjs" ]] && \
   NODE_DEPS_PRESENT=true
 else
   add_missing "shared Node dependencies are not fully installed in root node_modules"
-  add_suggestion "Run \`cd \"$DECK_ROOT\" && pnpm install\` from a local terminal (human-in-the-loop in Codex)."
+  add_suggestion "Run \`cd \"$DECK_ROOT\" && pnpm install\` from a local terminal (human-in-the-loop in Codex; uses the deck-root \`.pnpm-store/\` configured in \`.npmrc\`)."
 fi
 
 VENV_PYTHON_PRESENT=false
 if [[ -x "$VENV_PYTHON" ]]; then VENV_PYTHON_PRESENT=true; else
   add_missing "shared Python environment is missing at .venv/bin/python"
-  add_suggestion "Run \`cd \"$DECK_ROOT\" && uv venv --python 3.12 .venv\`."
+  add_suggestion "Run \`cd \"$DECK_ROOT\" && UV_CACHE_DIR=.uv-cache uv venv --python 3.12 .venv\` to keep uv cache inside the deck root."
 fi
 
 PYTHON_PACKAGES_PRESENT=false
@@ -218,7 +235,7 @@ if [[ -x "$VENV_PYTHON" ]] && "$VENV_PYTHON" -c "import PIL, pdf2image, pptx, nu
 else
   if [[ -x "$VENV_PYTHON" ]]; then
     add_missing "shared Python packages are incomplete"
-    add_suggestion "Run \`cd \"$DECK_ROOT\" && uv pip install --python .venv/bin/python Pillow pdf2image python-pptx numpy\`."
+    add_suggestion "Run \`cd \"$DECK_ROOT\" && UV_CACHE_DIR=.uv-cache uv pip install --python .venv/bin/python Pillow pdf2image python-pptx numpy\` to keep uv cache inside the deck root."
   fi
 fi
 
@@ -230,6 +247,8 @@ fi
 ROOT_READY=false
 if [[ "$ROOT_METADATA_PRESENT" == true ]] && \
    [[ "$PACKAGE_JSON_PRESENT" == true ]] && \
+   [[ "$NPMRC_PRESENT" == true ]] && \
+   [[ "$LOCAL_PNPM_STORE_CONFIGURED" == true ]] && \
    [[ "$BIOME_PRESENT" == true ]] && \
    [[ "$TSCONFIG_BASE_PRESENT" == true ]] && \
    [[ "$HELPERS_PRESENT" == true ]] && \
@@ -243,6 +262,8 @@ fi
 BOOTSTRAP_COMPLETE=false
 if [[ "$ROOT_METADATA_PRESENT" == true ]] && \
    [[ "$PACKAGE_JSON_PRESENT" == true ]] && \
+   [[ "$NPMRC_PRESENT" == true ]] && \
+   [[ "$LOCAL_PNPM_STORE_CONFIGURED" == true ]] && \
    [[ "$BIOME_PRESENT" == true ]] && \
    [[ "$TSCONFIG_BASE_PRESENT" == true ]] && \
    [[ "$HELPERS_PRESENT" == true ]]; then
@@ -266,6 +287,8 @@ fi
   echo "  \"status\": {"
   echo "    \"root_metadata_present\": ${ROOT_METADATA_PRESENT},"
   echo "    \"package_json_present\": ${PACKAGE_JSON_PRESENT},"
+  echo "    \"npmrc_present\": ${NPMRC_PRESENT},"
+  echo "    \"local_pnpm_store_configured\": ${LOCAL_PNPM_STORE_CONFIGURED},"
   echo "    \"pnpm_lock_present\": ${PNPM_LOCK_PRESENT},"
   echo "    \"biome_present\": ${BIOME_PRESENT},"
   echo "    \"tsconfig_base_present\": ${TSCONFIG_BASE_PRESENT},"

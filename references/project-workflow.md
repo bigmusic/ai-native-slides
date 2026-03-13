@@ -10,8 +10,11 @@ Use one shared deck root and one project directory per deck:
 
 ```text
 <deck-root>/
+  .npmrc
   package.json
   pnpm-lock.yaml
+  .pnpm-store/
+  .uv-cache/
   node_modules/
   .venv/
   biome.jsonc
@@ -34,6 +37,7 @@ Use one shared deck root and one project directory per deck:
 ```
 
 The root owns the runtime. Each project owns only its content, thin wrappers, metadata, and outputs.
+The deck root `.npmrc` pins `store-dir=.pnpm-store`, so shared `pnpm install` traffic stays inside that deck root instead of writing to a host-global store. Shared `uv` commands should likewise use `UV_CACHE_DIR=.uv-cache`, and `repair_deck_root.sh` now does that automatically.
 
 ## Script Roles
 
@@ -60,11 +64,13 @@ Template-managed files are copied from `assets/templates/` and can be refreshed 
 - `validate-local.sh`
 - `src/main.ts`
 
-Starter templates are copied only when missing and become project content after that:
+Prompt-generated project content is created after scaffold initialization, based on the user's deck request:
 
 - `src/buildDeck.ts`
 - `src/presentationModel.ts`
 - `tests/buildDeck.test.ts`
+
+Optional content starter references live under `assets/content_starters/`. They are not copied automatically during scaffold initialization.
 
 Project metadata records these boundaries in `.ai-native-slides/project.json`.
 
@@ -122,14 +128,17 @@ pnpm validate
 
 ## Human-In-The-Loop Steps
 
-Shared runtime installation uses `pnpm install` at the deck root. In sandboxed Codex sessions, treat that install step as human-in-the-loop and run it from a local terminal, even if the rest of the bootstrap or ensure flow ran inside Codex.
+Shared runtime installation uses `pnpm install` at the deck root. The bootstrap now writes `.npmrc` with `store-dir=.pnpm-store`, so that install stays inside the deck root. In sandboxed Codex sessions, `repair_deck_root.sh` still treats that install as human-in-the-loop and tells the user to run it from a local terminal.
+Shared Python environment setup uses `uv`, with cache pinned to `.uv-cache/` under the deck root so the venv bootstrap does not rely on a host-global uv cache.
 
-Render-dependent validation uses LibreOffice. If `soffice` aborts inside a sandboxed Codex session, treat that as human-in-the-loop rather than as a deck-content failure.
+Render-dependent validation uses LibreOffice. In Codex sessions, the validation scripts intentionally block LibreOffice-backed steps before launching `soffice` and report them as human-in-the-loop instead of trying to run them inside Codex.
 
 Expected behavior in sandbox:
 
 - when root preflight reports missing shared Node dependencies, the next action is to run `pnpm install` from a local terminal
-- the report surfaces the failing `soffice` command and exit code
+- that install uses the deck-root `.pnpm-store/` configured in `.npmrc`
+- shared `uv` commands use the deck-root `.uv-cache/`
+- LibreOffice-backed sections are marked human-in-the-loop before `soffice` is launched
 - the validation summary says `INCOMPLETE (human-in-the-loop required)`
 - render-dependent downstream steps are marked `SKIPPED`
 - the next action is to rerun `pnpm validate` from a local terminal

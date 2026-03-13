@@ -89,6 +89,10 @@ declare -a SKIPPED_TITLES=()
 LAST_EXIT_CODE=0
 LAST_OUTPUT_TEXT=""
 
+running_in_codex_shell() {
+  [[ "${CODEX_SHELL:-}" == "1" ]] || [[ -n "${CODEX_THREAD_ID:-}" ]]
+}
+
 if [[ ! -x "$RUN_PROJECT_SCRIPT" ]]; then
   echo "Missing project runner script: $RUN_PROJECT_SCRIPT" >&2
   exit 1
@@ -143,7 +147,7 @@ cat <<REPORT > "$REPORT_PATH"
 - PPTX: $PPTX_PATH
 - Root state: $ROOT_STATE_FILE
 - Project state: $PROJECT_STATE_FILE
-- Human-in-the-loop note: if LibreOffice \`soffice\` aborts in a sandboxed Codex session, rerun the render-dependent steps from your own terminal.
+- Human-in-the-loop note: LibreOffice-backed steps are intentionally blocked inside Codex and must be rerun from a local terminal.
 
 REPORT
 
@@ -182,6 +186,19 @@ append_skipped_section() {
   } >> "$REPORT_PATH"
 }
 
+append_blocked_section() {
+  local title="$1"
+  local reason="$2"
+
+  {
+    echo "## $title"
+    echo
+    echo "- Status: HUMAN-IN-THE-LOOP"
+    echo "- Reason: $reason"
+    echo
+  } >> "$REPORT_PATH"
+}
+
 record_failure() {
   local title="$1"
   FAILED_STEPS=$((FAILED_STEPS + 1))
@@ -204,6 +221,7 @@ looks_like_human_in_loop_blocker() {
   local text="$1"
   [[ "$text" == *"Abort trap: 6"* ]] || \
   [[ "$text" == *"LibreOffice appears to have aborted"* ]] || \
+  [[ "$text" == *"LibreOffice-backed validation is human-in-the-loop inside Codex."* ]] || \
   [[ "$text" == *"Re-run the render-dependent validation from a local terminal."* ]]
 }
 
@@ -272,45 +290,69 @@ if ! run_step_with_classification "Build Deck" \
   :
 fi
 
-if run_step_with_classification "Render Slides" \
-  "$VENV_PYTHON" "$SKILL_SCRIPTS_DIR/render_slides.py" \
-  "$PPTX_PATH" \
-  --output_dir "$RENDERED_DIR"; then
-  run_step_with_classification "Overflow Check" \
-    "$VENV_PYTHON" "$SKILL_SCRIPTS_DIR/slides_test.py" \
-    "$PPTX_PATH"
+if running_in_codex_shell; then
+  append_blocked_section \
+    "Render Slides" \
+    "LibreOffice-backed validation is human-in-the-loop inside Codex. Re-run \`pnpm validate\` from a local terminal to launch \`soffice\`."
+  record_blocked "Render Slides"
 
-  run_step_with_classification "Build Montage" \
-    "$VENV_PYTHON" "$SKILL_SCRIPTS_DIR/create_montage.py" \
-    --input_dir "$RENDERED_DIR" \
-    --output_file "$MONTAGE_PATH"
+  append_skipped_section \
+    "Overflow Check" \
+    "Skipped because Render Slides is human-in-the-loop inside Codex. Re-run \`pnpm validate\` from a local terminal to complete the LibreOffice-dependent checks."
+  record_skipped "Overflow Check"
+
+  append_skipped_section \
+    "Build Montage" \
+    "Skipped because Render Slides did not produce slide images inside Codex. Re-run \`pnpm validate\` from a local terminal to generate the montage."
+  record_skipped "Build Montage"
 else
-  if looks_like_human_in_loop_blocker "$LAST_OUTPUT_TEXT"; then
-    append_skipped_section \
-      "Overflow Check" \
-      "Skipped because Render Slides is human-in-the-loop in this sandbox. Re-run \`pnpm validate\` from a local terminal to complete the LibreOffice-dependent checks."
-    record_skipped "Overflow Check"
+  if run_step_with_classification "Render Slides" \
+    "$VENV_PYTHON" "$SKILL_SCRIPTS_DIR/render_slides.py" \
+    "$PPTX_PATH" \
+    --output_dir "$RENDERED_DIR"; then
+    run_step_with_classification "Overflow Check" \
+      "$VENV_PYTHON" "$SKILL_SCRIPTS_DIR/slides_test.py" \
+      "$PPTX_PATH"
 
-    append_skipped_section \
-      "Build Montage" \
-      "Skipped because Render Slides did not produce slide images in this sandbox. Re-run \`pnpm validate\` from a local terminal to generate the montage."
-    record_skipped "Build Montage"
+    run_step_with_classification "Build Montage" \
+      "$VENV_PYTHON" "$SKILL_SCRIPTS_DIR/create_montage.py" \
+      --input_dir "$RENDERED_DIR" \
+      --output_file "$MONTAGE_PATH"
   else
-    append_skipped_section \
-      "Overflow Check" \
-      "Skipped because Render Slides failed, so overflow inspection had no rendered input to inspect."
-    record_skipped "Overflow Check"
+    if looks_like_human_in_loop_blocker "$LAST_OUTPUT_TEXT"; then
+      append_skipped_section \
+        "Overflow Check" \
+        "Skipped because Render Slides is human-in-the-loop in this sandbox. Re-run \`pnpm validate\` from a local terminal to complete the LibreOffice-dependent checks."
+      record_skipped "Overflow Check"
 
-    append_skipped_section \
-      "Build Montage" \
-      "Skipped because Render Slides failed, so no rendered slide images were available."
-    record_skipped "Build Montage"
+      append_skipped_section \
+        "Build Montage" \
+        "Skipped because Render Slides did not produce slide images in this sandbox. Re-run \`pnpm validate\` from a local terminal to generate the montage."
+      record_skipped "Build Montage"
+    else
+      append_skipped_section \
+        "Overflow Check" \
+        "Skipped because Render Slides failed, so overflow inspection had no rendered input to inspect."
+      record_skipped "Overflow Check"
+
+      append_skipped_section \
+        "Build Montage" \
+        "Skipped because Render Slides failed, so no rendered slide images were available."
+      record_skipped "Build Montage"
+    fi
   fi
 fi
 
-if ! run_step_with_classification "Detect Font" \
-  /bin/bash -lc "'$VENV_PYTHON' '$SKILL_SCRIPTS_DIR/detect_font.py' '$PPTX_PATH' --json | tee '$FONT_JSON_PATH'"; then
-  :
+if running_in_codex_shell; then
+  append_blocked_section \
+    "Detect Font" \
+    "Font detection exports the deck through LibreOffice and is human-in-the-loop inside Codex. Re-run \`pnpm validate\` from a local terminal."
+  record_blocked "Detect Font"
+else
+  if ! run_step_with_classification "Detect Font" \
+    /bin/bash -lc "set -o pipefail; '$VENV_PYTHON' '$SKILL_SCRIPTS_DIR/detect_font.py' '$PPTX_PATH' --json | tee '$FONT_JSON_PATH'"; then
+    :
+  fi
 fi
 
 {

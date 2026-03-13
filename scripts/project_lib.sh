@@ -133,7 +133,7 @@ write_project_metadata() {
     "validate-local.sh"
     "src/main.ts"
   )
-  local starter_template_files=(
+  local prompt_generated_files=(
     "src/buildDeck.ts"
     "src/presentationModel.ts"
     "tests/buildDeck.test.ts"
@@ -169,8 +169,8 @@ write_project_metadata() {
     echo "  \"template_managed_files\": ["
     json_write_string_array_items "    " "${template_managed_files[@]}"
     echo "  ],"
-    echo "  \"starter_template_files\": ["
-    json_write_string_array_items "    " "${starter_template_files[@]}"
+    echo "  \"prompt_generated_files\": ["
+    json_write_string_array_items "    " "${prompt_generated_files[@]}"
     echo "  ],"
     echo "  \"project_content_dirs\": ["
     json_write_string_array_items "    " "${project_content_dirs[@]}"

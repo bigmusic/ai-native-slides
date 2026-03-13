@@ -12,6 +12,7 @@ Use PptxGenJS for slide authoring. Do not use `python-pptx` for deck generation 
 Keep work in a task-local directory. Only copy final artifacts to the requested destination after rendering and validation pass.
 Keep this skill folder reusable: put helpers, scripts, assets, and references here, but keep generated decks and validation outputs in separate task workspaces.
 For ongoing work, prefer a parent deck root that contains one project directory per PPT under `projects/<slug>/`. The shared runtime and shared config live at the deck root; each project directory keeps only project-scoped source, tests, metadata, wrappers, and outputs.
+The deck root bootstrap now also writes a root-local `.npmrc` with `store-dir=.pnpm-store` so shared `pnpm` installs stay inside the deck root instead of reusing a host-global store. The repair flow also pins `uv` cache to `.uv-cache/` under the same deck root.
 
 ## Primary Entry Points
 
@@ -20,18 +21,20 @@ For ongoing work, prefer a parent deck root that contains one project directory 
 - `scripts/repair_deck_root.sh` and `scripts/repair_deck_workspace.sh`: repair shared runtime or project-scoped bootstrap files.
 - `scripts/clean_deck_project.sh`: remove legacy generated directories such as old `rendered/` folders or project-local `node_modules/.vite*`.
 - `assets/pptxgenjs_helpers/`: shared helper code copied into the deck root.
-- `assets/templates/`: project-scoped templates, wrappers, and starter files.
+- `assets/templates/`: project-scaffold templates and wrappers copied into each project.
+- `assets/content_starters/`: optional reference starters for prompt-generated deck content.
 
 ## Workflow
 
 1. Inspect the request and determine whether you are creating a new deck, recreating an existing deck, or editing one.
 2. Set the slide size up front. Default to 16:9 (`LAYOUT_WIDE`) unless the source material clearly uses another aspect ratio.
 3. For long-lived work, initialize a project directory under a parent deck root with `scripts/init_deck_project.sh <deck-root> <project-name>`.
-4. Re-run `scripts/ensure_deck_workspace.sh <project-dir>` when reusing an existing project. Read `.ai-native-slides/state.json` if the project is incomplete.
-5. Repair missing runtime or project bootstrap files with the corresponding `repair_*` script. In Codex sessions, treat any step that runs `pnpm install` as human-in-the-loop, including `repair_deck_root.sh` and the root-repair portion of `repair_deck_workspace.sh`; have the user run those steps in a local terminal. Treat LibreOffice render steps the same way when sandboxing blocks them.
-6. Build the deck in TypeScript with explicit fonts, stable spacing, and editable PowerPoint-native elements when practical.
-7. Use `pnpm lint`, `pnpm typecheck`, `pnpm test`, and `pnpm build` as the fast local loop. Prefer `pnpm validate` only when you need full render, font, and overflow checks.
-8. Deliver the `.pptx`, the authoring `.ts`, and any generated assets required to rebuild the deck.
+4. Re-run `scripts/ensure_deck_workspace.sh <project-dir>` when reusing an existing project. Read `.ai-native-slides/state.json` to tell apart scaffold readiness from missing project content.
+5. Repair missing runtime or project bootstrap files with the corresponding `repair_*` script. In Codex sessions, `repair_deck_root.sh` and the root-repair portion of `repair_deck_workspace.sh` must stop before `pnpm install`; have the user run that install from a local terminal. LibreOffice-backed validation is also human-in-the-loop in Codex: the validation scripts intentionally block `soffice` there and require a local-terminal rerun.
+6. After the scaffold is ready, generate `src/buildDeck.ts`, `src/presentationModel.ts`, and project tests from the user's prompt.
+7. Build the deck in TypeScript with explicit fonts, stable spacing, and editable PowerPoint-native elements when practical.
+8. Use `pnpm lint`, `pnpm typecheck`, `pnpm test`, and `pnpm build` as the fast local loop. Prefer `pnpm validate` only when you need full render, font, and overflow checks.
+9. Deliver the `.pptx`, the authoring `.ts`, and any generated assets required to rebuild the deck.
 
 ## Load Next
 

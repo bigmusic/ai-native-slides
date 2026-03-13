@@ -76,7 +76,7 @@ if [[ "$bootstrap_exit" -ne 0 ]]; then
 fi
 
 cat <<EOF
-Project initialized: $PROJECT_DIR
+Project scaffold initialized: $PROJECT_DIR
 Template-managed files:
 - .gitignore
 - package.json
@@ -86,7 +86,7 @@ Template-managed files:
 - validate-local.sh
 - src/main.ts
 
-Starter template files:
+Generate these project-content files next from the user's prompt:
 - src/buildDeck.ts
 - src/presentationModel.ts
 - tests/buildDeck.test.ts

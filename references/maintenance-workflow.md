@@ -42,16 +42,17 @@ Do not commit deck outputs or local runtime artifacts here:
 
 1. Edit the skill in this repository.
 2. Create or identify a project directory under `projects/<slug>/`. For a new deck, prefer `scripts/init_deck_project.sh <deck-root> <project-name>`.
-3. Run `scripts/bootstrap_deck_root.sh <deck-root>` when the shared runtime root needs fresh helpers or shared config.
-4. Run `scripts/bootstrap_deck_workspace.sh <project-dir>` when the project needs starter files or a fresh `validate-local.sh`.
-5. Run `scripts/ensure_deck_root.sh <deck-root>` and `scripts/ensure_deck_workspace.sh <project-dir>` for cheap preflight checks and refreshed state.
-6. If the shared root is missing runtime dependencies, use `scripts/repair_deck_root.sh <deck-root>`. If the project is missing project-scoped files, use `scripts/repair_deck_workspace.sh <project-dir>`. Treat any `pnpm install` step as human-in-the-loop in Codex sessions and have the user run it from a local terminal.
-7. If project preflight reports legacy generated directories such as `rendered/` or `node_modules/.vite*`, remove them with `scripts/clean_deck_project.sh <project-dir>`.
-8. Validate behavior using a separate project directory.
-9. If your installed skill path is not already a symlink to this repository, sync this repository into the local Codex skills directory with `scripts/sync_to_codex.sh`.
-10. Restart Codex so the updated installed skill is reloaded.
-11. Run a real deck task with `$ai-native-slides`.
-12. If the workflow is correct, commit and push this repository.
+3. Run `scripts/bootstrap_deck_root.sh <deck-root>` when the shared runtime root needs fresh helpers or shared config. This now also restores the deck-root `.npmrc` that pins `store-dir=.pnpm-store`.
+4. Run `scripts/bootstrap_deck_workspace.sh <project-dir>` when the project needs scaffold files or a fresh `validate-local.sh`.
+5. Generate project content (`src/buildDeck.ts`, `src/presentationModel.ts`, tests) from the user's prompt after scaffold init succeeds.
+6. Run `scripts/ensure_deck_root.sh <deck-root>` and `scripts/ensure_deck_workspace.sh <project-dir>` for cheap preflight checks and refreshed state.
+7. If the shared root is missing runtime dependencies, use `scripts/repair_deck_root.sh <deck-root>`. If the project is missing project-scaffold files, use `scripts/repair_deck_workspace.sh <project-dir>`. In Codex sessions, `repair_deck_root.sh` now stops before `pnpm install` and tells the user to run that install from a local terminal. The same repair flow keeps `uv` cache inside `<deck-root>/.uv-cache`.
+8. If project preflight reports legacy generated directories such as `rendered/` or `node_modules/.vite*`, remove them with `scripts/clean_deck_project.sh <project-dir>`.
+9. Validate behavior using a separate project directory.
+10. If your installed skill path is not already a symlink to this repository, sync this repository into the local Codex skills directory with `scripts/sync_to_codex.sh`.
+11. Restart Codex so the updated installed skill is reloaded.
+12. Run a real deck task with `$ai-native-slides`.
+13. If the workflow is correct, commit and push this repository.
 
 ## Example Validation Loop
 
@@ -61,18 +62,19 @@ Typical loop:
 
 1. Update this skill repo.
 2. Run `scripts/init_deck_project.sh <deck-root> <project-name>` for a fresh or existing project, or pick an existing `projects/<slug>/` directory.
-3. Run `scripts/bootstrap_deck_root.sh <deck-root>` so the shared runtime root gets the current helper assets and shared config.
-4. Run `scripts/bootstrap_deck_workspace.sh <project-dir>` so the project gets the current starter files and validation wrapper.
-5. Run `scripts/ensure_deck_root.sh <deck-root>` and `scripts/ensure_deck_workspace.sh <project-dir>` to refresh state and spot missing dependencies quickly.
-6. If the shared root is missing runtime dependencies, use `scripts/repair_deck_root.sh <deck-root>`. If the project is missing project-scoped files, use `scripts/repair_deck_workspace.sh <project-dir>`. Treat any `pnpm install` step as human-in-the-loop in Codex sessions and have the user run the repair from a local terminal.
-7. If project preflight reports legacy generated directories such as `rendered/` or `node_modules/.vite*`, remove them with `scripts/clean_deck_project.sh <project-dir>`.
-8. Use the current project directory to run `pnpm lint`, `pnpm typecheck`, `pnpm test`, and `pnpm build`.
-9. Run render-dependent validation (`render_slides.py`, `slides_test.py`, `create_montage.py`, `detect_font.py`).
-10. If `soffice` aborts in the sandbox during render-dependent validation, treat that part as human-in-the-loop and have the user run it in their own terminal.
-11. Fix any gaps in skill instructions or bundled resources.
-12. If your installed skill path is not already a symlink to this repository, run `scripts/sync_to_codex.sh`.
-13. Restart Codex.
-14. Trigger `$ai-native-slides` on the next deck task and confirm the new behavior.
+3. Run `scripts/bootstrap_deck_root.sh <deck-root>` so the shared runtime root gets the current helper assets, shared config, and deck-root `.npmrc`.
+4. Run `scripts/bootstrap_deck_workspace.sh <project-dir>` so the project gets the current scaffold files and validation wrapper.
+5. Generate project content (`src/buildDeck.ts`, `src/presentationModel.ts`, tests) from the user's prompt.
+6. Run `scripts/ensure_deck_root.sh <deck-root>` and `scripts/ensure_deck_workspace.sh <project-dir>` to refresh state and spot missing dependencies quickly.
+7. If the shared root is missing runtime dependencies, use `scripts/repair_deck_root.sh <deck-root>`. If the project is missing project-scaffold files, use `scripts/repair_deck_workspace.sh <project-dir>`. In Codex sessions, `repair_deck_root.sh` now stops before `pnpm install` and tells the user to run the root-local-store install from a local terminal. Its `uv` steps use `<deck-root>/.uv-cache`.
+8. If project preflight reports legacy generated directories such as `rendered/` or `node_modules/.vite*`, remove them with `scripts/clean_deck_project.sh <project-dir>`.
+9. Use the current project directory to run `pnpm lint`, `pnpm typecheck`, `pnpm test`, and `pnpm build`.
+10. Run render-dependent validation (`render_slides.py`, `slides_test.py`, `create_montage.py`, `detect_font.py`).
+11. In Codex sessions, LibreOffice-backed validation is intentionally blocked before `soffice` launches. Treat that part as human-in-the-loop and have the user run it in their own terminal.
+12. Fix any gaps in skill instructions or bundled resources.
+13. If your installed skill path is not already a symlink to this repository, run `scripts/sync_to_codex.sh`.
+14. Restart Codex.
+15. Trigger `$ai-native-slides` on the next deck task and confirm the new behavior.
 
 ## Local Install / Update
 

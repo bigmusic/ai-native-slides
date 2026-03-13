@@ -96,7 +96,13 @@ copy_rule_file() {
   echo "Wrote ${dest}"
 }
 
-mkdir -p "${DECK_DIR}/assets" "${STATE_DIR}"
+mkdir -p \
+  "${DECK_DIR}/assets" \
+  "${DECK_DIR}/src" \
+  "${DECK_DIR}/tests" \
+  "${DECK_DIR}/output" \
+  "${DECK_DIR}/tmp" \
+  "${STATE_DIR}"
 
 set +e
 bash "${SCRIPT_DIR}/bootstrap_deck_root.sh" "${DECK_ROOT}"
