@@ -78,6 +78,18 @@ from functools import lru_cache
 from os.path import abspath, basename, exists, expanduser, join, splitext
 from zipfile import ZipFile
 
+
+def _running_in_codex_shell() -> bool:
+    return os.environ.get("CODEX_SHELL") == "1" or bool(os.environ.get("CODEX_THREAD_ID"))
+
+
+def _require_local_terminal_for_soffice() -> None:
+    if _running_in_codex_shell():
+        raise SystemExit(
+            "LibreOffice-backed validation is human-in-the-loop inside Codex. "
+            "Re-run the render-dependent validation from a local terminal."
+        )
+
 STYLE_TOKENS = [
     "regular",
     "condensed",
@@ -345,6 +357,7 @@ def _run_soffice_convert(cmd: list[str]) -> None:
 
 
 def _export_to_odp(pptx_path: str, user_profile: str, out_dir: str, stem: str) -> str:
+    _require_local_terminal_for_soffice()
     bin_path = shutil.which("soffice") or shutil.which("libreoffice") or "/usr/bin/libreoffice"
     cmd_odp = [
         bin_path,

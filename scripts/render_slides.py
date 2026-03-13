@@ -3,6 +3,8 @@
 import argparse
 import os
 import re
+import shlex
+import shutil
 import subprocess
 import tempfile
 import xml.etree.ElementTree as ET
@@ -14,6 +16,19 @@ from zipfile import ZipFile
 from pdf2image import convert_from_path, pdfinfo_from_path
 
 EMU_PER_INCH: int = 914_400
+POWERPOINT_EXTENSIONS = (".pptx", ".ppsx", ".potx", ".pptm", ".ppsm", ".potm")
+
+
+def _running_in_codex_shell() -> bool:
+    return os.environ.get("CODEX_SHELL") == "1" or bool(os.environ.get("CODEX_THREAD_ID"))
+
+
+def _require_local_terminal_for_soffice() -> None:
+    if _running_in_codex_shell():
+        raise SystemExit(
+            "LibreOffice-backed validation is human-in-the-loop inside Codex. "
+            "Re-run the render-dependent validation from a local terminal."
+        )
 
 
 def calc_dpi_via_ooxml(input_path: str, max_w_px: int, max_h_px: int) -> int:
@@ -95,14 +110,71 @@ def calc_dpi_via_pdf(input_path: str, max_w_px: int, max_h_px: int) -> int:
             return round(min(max_w_px / width_in, max_h_px / height_in))
 
 
-def run_cmd_no_check(cmd: list[str]) -> None:
-    subprocess.run(
+def run_cmd_no_check(cmd: list[str]) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
         cmd,
         check=False,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
         env=os.environ.copy(),
     )
+
+
+def _format_command(cmd: list[str]) -> str:
+    return " ".join(shlex.quote(part) for part in cmd)
+
+
+def _trim_output(text: str, limit: int = 40) -> str:
+    stripped = text.strip()
+    if not stripped:
+        return ""
+
+    lines = stripped.splitlines()
+    if len(lines) <= limit:
+        return "\n".join(lines)
+
+    kept = lines[:limit]
+    kept.append(f"... ({len(lines) - limit} more lines omitted)")
+    return "\n".join(kept)
+
+
+def _looks_like_soffice_abort(result: subprocess.CompletedProcess[str]) -> bool:
+    combined = "\n".join(part for part in (result.stdout, result.stderr) if part)
+    lowered = combined.lower()
+    return result.returncode in (134, -6) or "abort trap: 6" in lowered
+
+
+def _format_soffice_failure(
+    step: str,
+    cmd: list[str],
+    result: subprocess.CompletedProcess[str],
+    expected_path: str,
+) -> str:
+    parts = [
+        f"{step} failed.",
+        f"Command: {_format_command(cmd)}",
+        f"Exit code: {result.returncode}",
+        f"Expected output: {expected_path}",
+    ]
+
+    stdout_text = _trim_output(result.stdout)
+    stderr_text = _trim_output(result.stderr)
+    if stdout_text:
+        parts.append("stdout:\n" + stdout_text)
+    if stderr_text:
+        parts.append("stderr:\n" + stderr_text)
+    if not stdout_text and not stderr_text:
+        parts.append("stdout/stderr: <empty>")
+
+    if _looks_like_soffice_abort(result):
+        parts.append(
+            "LibreOffice appears to have aborted. In a sandboxed Codex session, this is "
+            "usually an environment issue rather than a deck-content issue. Re-run the "
+            "render-dependent validation from a local terminal."
+        )
+
+    return "\n".join(parts)
 
 
 def convert_to_pdf(
@@ -111,9 +183,13 @@ def convert_to_pdf(
     convert_tmp_dir: str,
     stem: str,
 ) -> str:
+    _require_local_terminal_for_soffice()
+    bin_path = shutil.which("soffice") or shutil.which("libreoffice") or "soffice"
+    failures: list[str] = []
+
     # Try direct PPTX -> PDF
     cmd_pdf = [
-        "soffice",
+        bin_path,
         "-env:UserInstallation=file://" + user_profile,
         "--invisible",
         "--headless",
@@ -124,17 +200,20 @@ def convert_to_pdf(
         convert_tmp_dir,
         pptx_path,
     ]
-    run_cmd_no_check(cmd_pdf)
+    pdf_result = run_cmd_no_check(cmd_pdf)
 
     pdf_path = join(convert_tmp_dir, f"{stem}.pdf")
     if exists(pdf_path):
         return pdf_path
+    failures.append(
+        _format_soffice_failure("Direct PPTX to PDF conversion", cmd_pdf, pdf_result, pdf_path)
+    )
 
     # Fallback: PPTX -> ODP, then ODP -> PDF
     # Rationale: Saving as ODP normalizes PPTX-specific constructs via the ODF serializer,
     # which often bypasses Impress PDF export issues on problematic decks.
     cmd_odp = [
-        "soffice",
+        bin_path,
         "-env:UserInstallation=file://" + user_profile,
         "--invisible",
         "--headless",
@@ -145,14 +224,14 @@ def convert_to_pdf(
         convert_tmp_dir,
         pptx_path,
     ]
-    run_cmd_no_check(cmd_odp)
+    odp_result = run_cmd_no_check(cmd_odp)
 
     odp_path = join(convert_tmp_dir, f"{stem}.odp")
 
     if exists(odp_path):
         # ODP -> PDF
         cmd_odp_pdf = [
-            "soffice",
+            bin_path,
             "-env:UserInstallation=file://" + user_profile,
             "--invisible",
             "--headless",
@@ -163,11 +242,30 @@ def convert_to_pdf(
             convert_tmp_dir,
             odp_path,
         ]
-        run_cmd_no_check(cmd_odp_pdf)
+        odp_pdf_result = run_cmd_no_check(cmd_odp_pdf)
         if exists(pdf_path):
             return pdf_path
+        failures.append(
+            _format_soffice_failure(
+                "Fallback ODP to PDF conversion",
+                cmd_odp_pdf,
+                odp_pdf_result,
+                pdf_path,
+            )
+        )
+    else:
+        failures.append(
+            _format_soffice_failure(
+                "Fallback PPTX to ODP conversion",
+                cmd_odp,
+                odp_result,
+                odp_path,
+            )
+        )
 
-    return ""
+    raise RuntimeError(
+        "Failed to convert PowerPoint to PDF for rasterization.\n\n" + "\n\n".join(failures)
+    )
 
 
 def rasterize(
@@ -192,9 +290,7 @@ def rasterize(
             )
 
             if not pdf_path or not exists(pdf_path):
-                raise RuntimeError(
-                    "Failed to produce PDF for rasterization (direct and ODP fallback)."
-                )
+                raise RuntimeError("Failed to produce PDF for rasterization.")
 
             # Perform rasterization while the temp PDF still exists
             paths_raw = cast(
@@ -261,7 +357,7 @@ def main() -> None:
 
     input_path = abspath(expanduser(args.input_path))
     out_dir = abspath(expanduser(args.output_dir)) if args.output_dir else splitext(input_path)[0]
-    if input_path.lower().endswith((".pptx", ".ppsx", ".potx", ".pptm", ".ppsm", ".potm")):
+    if input_path.lower().endswith(POWERPOINT_EXTENSIONS):
         dpi = calc_dpi_via_ooxml(input_path, args.width, args.height)
     else:
         dpi = calc_dpi_via_pdf(input_path, args.width, args.height)

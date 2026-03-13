@@ -7,36 +7,40 @@ description: Create and edit presentation slide decks (`.pptx`) with PptxGenJS, 
 
 ## Overview
 
-Use PptxGenJS for slide authoring. Do not use `python-pptx` for deck generation unless the task is inspection-only; keep editable output in JavaScript and deliver both the `.pptx` and the source `.js`.
+Use PptxGenJS for slide authoring. Do not use `python-pptx` for deck generation unless the task is inspection-only; keep editable output in TypeScript and deliver both the `.pptx` and the source `.ts`.
 
 Keep work in a task-local directory. Only copy final artifacts to the requested destination after rendering and validation pass.
 Keep this skill folder reusable: put helpers, scripts, assets, and references here, but keep generated decks and validation outputs in separate task workspaces.
+For ongoing work, prefer a parent deck root that contains one project directory per PPT under `projects/<slug>/`. The shared runtime and shared config live at the deck root; each project directory keeps only project-scoped source, tests, metadata, wrappers, and outputs.
+The deck root bootstrap now also writes a root-local `.npmrc` with `store-dir=.pnpm-store` so shared `pnpm` installs stay inside the deck root instead of reusing a host-global store. The repair flow also pins `uv` cache to `.uv-cache/` under the same deck root.
 
-## Bundled Resources
+## Primary Entry Points
 
-- `assets/pptxgenjs_helpers/`: Copy this folder into the deck workspace and import it locally instead of reimplementing helper logic.
-- `assets/templates/package.json`: Minimal deck template written by bootstrap when a new workspace does not already have `package.json`.
-- `scripts/bootstrap_deck_workspace.sh`: Copy helper assets into a deck workspace and write a local `validate-local.sh` wrapper that uses the installed skill's validation scripts.
-- `scripts/ensure_deck_workspace.sh`: Run a cheap preflight check for deck-local dependencies and write `.ai-native-slides/state.json` with the latest workspace status.
-- `scripts/repair_deck_workspace.sh`: Repair deck-local dependencies that can be safely automated. In Codex sessions, treat `pnpm` steps as human-in-the-loop and ask the user to run the script locally when sandboxed filesystem restrictions block package installation.
-- `scripts/render_slides.py`: Rasterize a `.pptx` or `.pdf` to per-slide PNGs.
-- `scripts/slides_test.py`: Detect content that overflows the slide canvas.
-- `scripts/create_montage.py`: Build a contact-sheet style montage of rendered slides.
-- `scripts/detect_font.py`: Report missing or substituted fonts as LibreOffice resolves them.
-- `scripts/ensure_raster_image.py`: Convert SVG/EMF/HEIC/PDF-like assets into PNGs for quick inspection.
-- `references/pptxgenjs-helpers.md`: Load only when you need API details or dependency notes.
+- `scripts/init_deck_project.sh`: preferred project initializer for create-or-refresh.
+- `scripts/ensure_deck_root.sh` and `scripts/ensure_deck_workspace.sh`: cheap preflight checks.
+- `scripts/repair_deck_root.sh` and `scripts/repair_deck_workspace.sh`: repair shared runtime or project-scoped bootstrap files.
+- `scripts/clean_deck_project.sh`: remove legacy generated directories such as old `rendered/` folders or project-local `node_modules/.vite*`.
+- `assets/pptxgenjs_helpers/`: shared helper code copied into the deck root.
+- `assets/templates/`: project-scaffold templates and wrappers copied into each project.
+- `assets/content_starters/`: optional reference starters for prompt-generated deck content.
 
 ## Workflow
 
 1. Inspect the request and determine whether you are creating a new deck, recreating an existing deck, or editing one.
 2. Set the slide size up front. Default to 16:9 (`LAYOUT_WIDE`) unless the source material clearly uses another aspect ratio.
-3. Run `scripts/bootstrap_deck_workspace.sh <deck-workspace>` once per workspace. This syncs helper assets, writes `validate-local.sh`, optionally writes a minimal `package.json`, and records workspace state.
-4. Re-run `scripts/ensure_deck_workspace.sh <deck-workspace>` for cheap preflight checks when reusing an existing deck workspace. Read `.ai-native-slides/state.json` if the workspace is incomplete.
-5. If `ensure` reports only deck-local dependency issues, use `scripts/repair_deck_workspace.sh <deck-workspace>` as the repair path. In Codex sessions, prompt the user to run repair locally whenever `pnpm` installation is involved, because sandboxed `pnpm` store operations may be blocked.
-6. Build the deck in JavaScript with an explicit theme font, stable spacing, and editable PowerPoint-native elements when practical.
-7. Prefer running the bundled validation scripts from the installed skill directory with the deck's own `.venv/bin/python`. Only copy Python validation scripts into the deck workspace if you intentionally want a fully vendored deck.
-8. Run `slides_test.py` for overflow checks when slide edges are tight or the deck is dense.
-9. Deliver the `.pptx`, the authoring `.js`, and any generated assets that are required to rebuild the deck.
+3. For long-lived work, initialize a project directory under a parent deck root with `scripts/init_deck_project.sh <deck-root> <project-name>`.
+4. Re-run `scripts/ensure_deck_workspace.sh <project-dir>` when reusing an existing project. Read `.ai-native-slides/state.json` to tell apart scaffold readiness from missing project content.
+5. Repair missing runtime or project bootstrap files with the corresponding `repair_*` script. In Codex sessions, `repair_deck_root.sh` and the root-repair portion of `repair_deck_workspace.sh` must stop before `pnpm install`; have the user run that install from a local terminal. LibreOffice-backed validation is also human-in-the-loop in Codex: the validation scripts intentionally block `soffice` there and require a local-terminal rerun.
+6. After the scaffold is ready, generate `src/buildDeck.ts`, `src/presentationModel.ts`, and project tests from the user's prompt.
+7. Build the deck in TypeScript with explicit fonts, stable spacing, and editable PowerPoint-native elements when practical.
+8. Use `pnpm lint`, `pnpm typecheck`, `pnpm test`, and `pnpm build` as the fast local loop. Prefer `pnpm validate` only when you need full render, font, and overflow checks; inside Codex, a blocked validation run should print the local rerun command plus the raw `soffice` command blocks in terminal output, not only in the markdown report.
+9. Deliver the `.pptx`, the authoring `.ts`, and any generated assets required to rebuild the deck.
+
+## Load Next
+
+- `references/project-workflow.md`: root/project layout, script boundaries, template-managed files, cleanup rules, and command examples.
+- `references/pptxgenjs-helpers.md`: helper API summary, dependency notes, and validation script descriptions.
+- `references/maintenance-workflow.md`: maintainer-only workflow for editing this skill, syncing it into Codex, and validating skill changes.
 
 ## Authoring Rules
 
@@ -47,7 +51,8 @@ Keep this skill folder reusable: put helpers, scripts, assets, and references he
 - Use `latexToSvgDataUri()` for equations and `codeToRuns()` for syntax-highlighted code blocks.
 - Prefer native PowerPoint charts for simple bar/line/pie/histogram style visuals so reviewers can edit them later.
 - For charts or diagrams that PptxGenJS cannot express well, render SVG externally and place the SVG in the slide.
-- Include both `warnIfSlideHasOverlaps(slide, pptx)` and `warnIfSlideElementsOutOfBounds(slide, pptx)` in the submitted JavaScript whenever you generate or substantially edit slides.
+- Keep the authoring source under `src/` and the fast regression loop under `tests/`.
+- Include both `warnIfSlideHasOverlaps(slide, pptx)` and `warnIfSlideElementsOutOfBounds(slide, pptx)` in the submitted TypeScript whenever you generate or substantially edit slides.
 - Fix all unintentional overlap and out-of-bounds warnings before delivering. If an overlap is intentional, leave a short code comment near the relevant element.
 
 ## Recreate Or Edit Existing Slides
@@ -57,47 +62,4 @@ Keep this skill folder reusable: put helpers, scripts, assets, and references he
 - Preserve editability where possible: text should stay text, and simple charts should stay native charts.
 - If a reference slide uses raster artwork, use `ensure_raster_image.py` to generate debug PNGs from vector or odd image formats before placing them.
 
-## Validation Commands
-
-Examples below assume the deck uses the installed skill's validation scripts and the deck's own Python environment.
-
-```bash
-# Initialize a deck workspace once
-bash ~/.codex/skills/ai-native-slides/scripts/bootstrap_deck_workspace.sh /path/to/deck
-```
-
-```bash
-# Run a cheap workspace preflight check and refresh state
-bash ~/.codex/skills/ai-native-slides/scripts/ensure_deck_workspace.sh /path/to/deck
-```
-
-```bash
-# Auto-fix deck-local dependencies when possible
-bash ~/.codex/skills/ai-native-slides/scripts/repair_deck_workspace.sh /path/to/deck
-```
-
-When `pnpm install` is part of the repair path, prefer having the user run that command locally rather than assuming Codex can execute it inside the sandbox.
-
-```bash
-# Render slides to PNGs for review
-./.venv/bin/python ~/.codex/skills/ai-native-slides/scripts/render_slides.py deck.pptx --output_dir rendered
-```
-
-```bash
-# Build a montage for quick scanning
-./.venv/bin/python ~/.codex/skills/ai-native-slides/scripts/create_montage.py --input_dir rendered --output_file montage.png
-```
-
-```bash
-# Check for overflow beyond the original slide canvas
-./.venv/bin/python ~/.codex/skills/ai-native-slides/scripts/slides_test.py deck.pptx
-```
-
-```bash
-# Detect missing or substituted fonts
-./.venv/bin/python ~/.codex/skills/ai-native-slides/scripts/detect_font.py deck.pptx --json
-```
-
-Load `references/pptxgenjs-helpers.md` if you need the helper API summary or dependency details.
-Use `.ai-native-slides/state.json` in the deck workspace as the machine-readable record of the last bootstrap / ensure check.
-If you are maintaining this skill itself, not just using it to build decks, see `references/maintenance-workflow.md` for the local development, validation, and Codex sync loop.
+Use `.ai-native-slides/state.json` in the deck root and each project directory as the machine-readable record of the last bootstrap or ensure check.
