@@ -44,7 +44,7 @@ The deck root `.npmrc` pins `store-dir=.pnpm-store`, so shared `pnpm install` tr
 - `scripts/init_deck_project.sh <deck-root> <project-name>`: preferred idempotent entrypoint for creating or refreshing one project.
 - `scripts/create_deck_project.sh <deck-root> <project-name>`: compatibility create-oriented entrypoint; prefer `init_deck_project.sh` for initialize-or-refresh behavior.
 - `scripts/bootstrap_deck_root.sh <deck-root>`: sync shared helpers and shared root config.
-- `scripts/bootstrap_deck_workspace.sh <project-dir>`: copy project-scoped templates and wrappers into an existing project path.
+- `scripts/bootstrap_deck_workspace.sh <project-dir>`: copy project-scoped templates and wrappers into an existing project path; it does not bootstrap the shared root.
 - `scripts/ensure_deck_root.sh <deck-root>`: cheap shared-runtime preflight.
 - `scripts/ensure_deck_workspace.sh <project-dir>`: cheap project preflight.
 - `scripts/repair_deck_root.sh <deck-root>`: repair shared runtime dependencies.
@@ -126,7 +126,7 @@ cd /path/to/deck-root/projects/my-new-deck
 pnpm validate
 ```
 
-Inside Codex, `pnpm validate` still writes an `INCOMPLETE (human-in-the-loop required)` report, but it exits successfully when the only blocked steps are the expected LibreOffice-backed ones. Terminal output should also print the local rerun command and the raw `soffice` command blocks so the user can finish the human-in-the-loop step without opening the markdown report first. Real lint/typecheck/test/build failures still exit non-zero.
+Inside Codex, `pnpm validate` still writes an `INCOMPLETE (human-in-the-loop required)` report, but it exits successfully when the only blocked steps are the expected LibreOffice-backed ones. Terminal output should also print the local rerun command and the raw `soffice` command blocks so the user can finish the human-in-the-loop step without opening the markdown report first. The markdown report now always ends with a `Summary` section, including the fully passed case. Real lint/typecheck/test/build failures still exit non-zero.
 
 ## Human-In-The-Loop Steps
 

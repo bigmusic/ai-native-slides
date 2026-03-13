@@ -45,9 +45,7 @@ assert_not_project_root "$PROJECT_DIR" "$SCRIPT_DIR"
 
 DECK_ROOT="$(find_deck_root_for_project "$PROJECT_DIR" || true)"
 if [[ -z "$DECK_ROOT" ]]; then
-  add_missing_root_hint=1
-else
-  add_missing_root_hint=0
+  DECK_ROOT="$(infer_deck_root_from_project_dir "$PROJECT_DIR" || true)"
 fi
 
 STATE_DIR="${PROJECT_DIR}/.ai-native-slides"

@@ -452,39 +452,39 @@ if [[ "$BLOCKED_STEPS" -ne 0 ]]; then
   append_local_terminal_commands
 fi
 
-if [[ "$FAILED_STEPS" -ne 0 || "$BLOCKED_STEPS" -ne 0 || "$SKIPPED_STEPS" -ne 0 ]]; then
-  {
-    echo "## Summary"
-    echo
-    if [[ "$FAILED_STEPS" -ne 0 ]]; then
-      echo "- Result: FAILED"
-    elif [[ "$BLOCKED_STEPS" -ne 0 ]]; then
-      echo "- Result: INCOMPLETE (human-in-the-loop required)"
-    else
-      echo "- Result: PASSED WITH SKIPS"
-    fi
-    if [[ "$FAILED_STEPS" -ne 0 ]]; then
-      echo "- Failed sections: $FAILED_STEPS"
-      for title in "${FAILED_TITLES[@]}"; do
-        echo "- ${title}"
-      done
-    fi
-    if [[ "$BLOCKED_STEPS" -ne 0 ]]; then
-      echo "- Human-in-the-loop sections: $BLOCKED_STEPS"
-      for title in "${BLOCKED_TITLES[@]}"; do
-        echo "- ${title}"
-      done
-      echo "- Next action: Re-run \`pnpm validate\` from a local terminal to complete LibreOffice-dependent validation."
-    fi
-    if [[ "$SKIPPED_STEPS" -ne 0 ]]; then
-      echo "- Skipped sections: $SKIPPED_STEPS"
-      for title in "${SKIPPED_TITLES[@]}"; do
-        echo "- ${title}"
-      done
-    fi
-    echo
-  } >> "$REPORT_PATH"
-fi
+{
+  echo "## Summary"
+  echo
+  if [[ "$FAILED_STEPS" -ne 0 ]]; then
+    echo "- Result: FAILED"
+  elif [[ "$BLOCKED_STEPS" -ne 0 ]]; then
+    echo "- Result: INCOMPLETE (human-in-the-loop required)"
+  elif [[ "$SKIPPED_STEPS" -ne 0 ]]; then
+    echo "- Result: PASSED WITH SKIPS"
+  else
+    echo "- Result: PASSED"
+  fi
+  if [[ "$FAILED_STEPS" -ne 0 ]]; then
+    echo "- Failed sections: $FAILED_STEPS"
+    for title in "${FAILED_TITLES[@]}"; do
+      echo "- ${title}"
+    done
+  fi
+  if [[ "$BLOCKED_STEPS" -ne 0 ]]; then
+    echo "- Human-in-the-loop sections: $BLOCKED_STEPS"
+    for title in "${BLOCKED_TITLES[@]}"; do
+      echo "- ${title}"
+    done
+    echo "- Next action: Re-run \`pnpm validate\` from a local terminal to complete LibreOffice-dependent validation."
+  fi
+  if [[ "$SKIPPED_STEPS" -ne 0 ]]; then
+    echo "- Skipped sections: $SKIPPED_STEPS"
+    for title in "${SKIPPED_TITLES[@]}"; do
+      echo "- ${title}"
+    done
+  fi
+  echo
+} >> "$REPORT_PATH"
 
 if [[ "$FAILED_STEPS" -ne 0 ]]; then
   echo "Validation completed with failures." >&2

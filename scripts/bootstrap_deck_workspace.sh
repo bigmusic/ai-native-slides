@@ -104,11 +104,6 @@ mkdir -p \
   "${DECK_DIR}/tmp" \
   "${STATE_DIR}"
 
-set +e
-bash "${SCRIPT_DIR}/bootstrap_deck_root.sh" "${DECK_ROOT}"
-root_bootstrap_exit=$?
-set -e
-
 while IFS= read -r template_file; do
   relative_path="${template_file#"${TEMPLATE_ROOT}/"}"
   if [[ "${relative_path}" == "validate-local.sh" || "${relative_path}" == "run-project.sh" || "${relative_path}" == "package.json" || "${relative_path}" == "tsconfig.json" || "${relative_path}" == "vitest.config.ts" || "${relative_path}" == ".gitignore" || "${relative_path}" == "src/main.ts" ]]; then
@@ -143,9 +138,5 @@ else
 fi
 
 write_project_metadata "$DECK_ROOT" "$DECK_DIR" "$(basename "$DECK_DIR")" "$(basename "$DECK_DIR")"
-
-if [[ "$root_bootstrap_exit" -ne 0 ]]; then
-  echo "Shared deck root is scaffolded but not fully ready yet: $DECK_ROOT" >&2
-fi
 
 bash "${SCRIPT_DIR}/ensure_deck_workspace.sh" "${DECK_DIR}"
