@@ -126,7 +126,7 @@ cd /path/to/deck-root/projects/my-new-deck
 pnpm validate
 ```
 
-Inside Codex, `pnpm validate` still writes an `INCOMPLETE (human-in-the-loop required)` report, but it exits successfully when the only blocked steps are the expected LibreOffice-backed ones. Real lint/typecheck/test/build failures still exit non-zero.
+Inside Codex, `pnpm validate` still writes an `INCOMPLETE (human-in-the-loop required)` report, but it exits successfully when the only blocked steps are the expected LibreOffice-backed ones. Terminal output should also print the local rerun command and the raw `soffice` command blocks so the user can finish the human-in-the-loop step without opening the markdown report first. Real lint/typecheck/test/build failures still exit non-zero.
 
 ## Human-In-The-Loop Steps
 

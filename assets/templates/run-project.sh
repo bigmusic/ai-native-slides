@@ -61,7 +61,7 @@ case "$ACTION" in
     fi
     (
       cd "$PROJECT_DIR"
-      "$BIN_DIR/tsx" src/main.ts
+      node --import tsx src/main.ts
     )
     ;;
   lint)

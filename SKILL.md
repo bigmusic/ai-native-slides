@@ -33,7 +33,7 @@ The deck root bootstrap now also writes a root-local `.npmrc` with `store-dir=.p
 5. Repair missing runtime or project bootstrap files with the corresponding `repair_*` script. In Codex sessions, `repair_deck_root.sh` and the root-repair portion of `repair_deck_workspace.sh` must stop before `pnpm install`; have the user run that install from a local terminal. LibreOffice-backed validation is also human-in-the-loop in Codex: the validation scripts intentionally block `soffice` there and require a local-terminal rerun.
 6. After the scaffold is ready, generate `src/buildDeck.ts`, `src/presentationModel.ts`, and project tests from the user's prompt.
 7. Build the deck in TypeScript with explicit fonts, stable spacing, and editable PowerPoint-native elements when practical.
-8. Use `pnpm lint`, `pnpm typecheck`, `pnpm test`, and `pnpm build` as the fast local loop. Prefer `pnpm validate` only when you need full render, font, and overflow checks.
+8. Use `pnpm lint`, `pnpm typecheck`, `pnpm test`, and `pnpm build` as the fast local loop. Prefer `pnpm validate` only when you need full render, font, and overflow checks; inside Codex, a blocked validation run should print the local rerun command plus the raw `soffice` command blocks in terminal output, not only in the markdown report.
 9. Deliver the `.pptx`, the authoring `.ts`, and any generated assets required to rebuild the deck.
 
 ## Load Next

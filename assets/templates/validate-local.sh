@@ -131,10 +131,10 @@ fi
 LOCAL_VALIDATE_CMD="cd \"$PROJECT_DIR\" && TMPDIR=\"$TMP_DIR\" TMP=\"$TMP_DIR\" TEMP=\"$TMP_DIR\" SAL_USE_VCLPLUGIN=svp pnpm validate"
 RAW_RENDER_CMD_1="PROFILE_DIR=\"\$(mktemp -d \"$TMP_DIR/soffice_profile.render.XXXXXX\")\""
 RAW_RENDER_CMD_2="OUT_DIR=\"\$(mktemp -d \"$TMP_DIR/soffice_convert.render.XXXXXX\")\""
-RAW_RENDER_CMD_3="$SOFFICE_BIN \"-env:UserInstallation=file://\$PROFILE_DIR\" --invisible --headless --norestore --convert-to pdf --outdir \"\$OUT_DIR\" \"$PPTX_PATH\""
+RAW_RENDER_CMD_3="TMPDIR=\"$TMP_DIR\" TMP=\"$TMP_DIR\" TEMP=\"$TMP_DIR\" SAL_USE_VCLPLUGIN=svp \"$SOFFICE_BIN\" \"-env:UserInstallation=file://\$PROFILE_DIR\" --invisible --headless --norestore --convert-to pdf --outdir \"\$OUT_DIR\" \"$PPTX_PATH\""
 RAW_FONT_CMD_1="PROFILE_DIR=\"\$(mktemp -d \"$TMP_DIR/soffice_profile.font.XXXXXX\")\""
 RAW_FONT_CMD_2="OUT_DIR=\"\$(mktemp -d \"$TMP_DIR/soffice_convert.font.XXXXXX\")\""
-RAW_FONT_CMD_3="$SOFFICE_BIN \"-env:UserInstallation=file://\$PROFILE_DIR\" --invisible --headless --norestore --convert-to odp --outdir \"\$OUT_DIR\" \"$PPTX_PATH\""
+RAW_FONT_CMD_3="TMPDIR=\"$TMP_DIR\" TMP=\"$TMP_DIR\" TEMP=\"$TMP_DIR\" SAL_USE_VCLPLUGIN=svp \"$SOFFICE_BIN\" \"-env:UserInstallation=file://\$PROFILE_DIR\" --invisible --headless --norestore --convert-to odp --outdir \"\$OUT_DIR\" \"$PPTX_PATH\""
 MANUAL_RENDER_STEP="unset CODEX_THREAD_ID CODEX_SHELL && TMPDIR=\"$TMP_DIR\" TMP=\"$TMP_DIR\" TEMP=\"$TMP_DIR\" SAL_USE_VCLPLUGIN=svp \"$VENV_PYTHON\" \"$SKILL_SCRIPTS_DIR/render_slides.py\" \"$PPTX_PATH\" --output_dir \"$RENDERED_DIR\""
 MANUAL_OVERFLOW_STEP="unset CODEX_THREAD_ID CODEX_SHELL && TMPDIR=\"$TMP_DIR\" TMP=\"$TMP_DIR\" TEMP=\"$TMP_DIR\" SAL_USE_VCLPLUGIN=svp \"$VENV_PYTHON\" \"$SKILL_SCRIPTS_DIR/slides_test.py\" \"$PPTX_PATH\""
 MANUAL_MONTAGE_STEP="unset CODEX_THREAD_ID CODEX_SHELL && TMPDIR=\"$TMP_DIR\" TMP=\"$TMP_DIR\" TEMP=\"$TMP_DIR\" SAL_USE_VCLPLUGIN=svp \"$VENV_PYTHON\" \"$SKILL_SCRIPTS_DIR/create_montage.py\" --input_dir \"$RENDERED_DIR\" --output_file \"$MONTAGE_PATH\""
@@ -242,7 +242,8 @@ append_local_terminal_commands() {
     echo "$MANUAL_FONT_STEP"
     echo '```'
     echo
-    echo "- Raw LibreOffice commands used by the blocked render/font-export steps:"
+    echo "- Raw LibreOffice commands used by the blocked render/font-export steps."
+    echo "- Run each three-line block in the same local shell session so PROFILE_DIR and OUT_DIR stay defined."
     echo
     echo '```bash'
     echo "$RAW_RENDER_CMD_1"
@@ -255,6 +256,29 @@ append_local_terminal_commands() {
     echo '```'
     echo
   } >> "$REPORT_PATH"
+}
+
+print_local_terminal_commands() {
+  echo "Local terminal commands:"
+  echo
+  echo "Recommended full rerun:"
+  echo "$LOCAL_VALIDATE_CMD"
+  echo
+  echo "Step-by-step local validation commands:"
+  echo "$MANUAL_RENDER_STEP"
+  echo "$MANUAL_OVERFLOW_STEP"
+  echo "$MANUAL_MONTAGE_STEP"
+  echo "$MANUAL_FONT_STEP"
+  echo
+  echo "Raw LibreOffice commands used by the blocked render/font-export steps:"
+  echo "Run each three-line block in the same local shell session so PROFILE_DIR and OUT_DIR stay defined."
+  echo "$RAW_RENDER_CMD_1"
+  echo "$RAW_RENDER_CMD_2"
+  echo "$RAW_RENDER_CMD_3"
+  echo
+  echo "$RAW_FONT_CMD_1"
+  echo "$RAW_FONT_CMD_2"
+  echo "$RAW_FONT_CMD_3"
 }
 
 record_failure() {
@@ -472,15 +496,7 @@ if [[ "$BLOCKED_STEPS" -ne 0 ]]; then
   if running_in_codex_shell; then
     echo "Validation incomplete. Human-in-the-loop steps remain."
     echo "Markdown report: $REPORT_PATH"
-    echo "Run this from a local terminal to finish validation:"
-    echo "$LOCAL_VALIDATE_CMD"
-    echo "If you need the raw LibreOffice commands, run:"
-    echo "$RAW_RENDER_CMD_1"
-    echo "$RAW_RENDER_CMD_2"
-    echo "$RAW_RENDER_CMD_3"
-    echo "$RAW_FONT_CMD_1"
-    echo "$RAW_FONT_CMD_2"
-    echo "$RAW_FONT_CMD_3"
+    print_local_terminal_commands
     exit 0
   fi
 
