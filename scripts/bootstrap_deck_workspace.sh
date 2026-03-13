@@ -2,7 +2,7 @@
 set -euo pipefail
 
 usage() {
-  echo "Usage: $0 <deck-workspace> [--force]" >&2
+  echo "Usage: $0 <project-dir> [--force]" >&2
 }
 
 FORCE=0
@@ -34,162 +34,112 @@ fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILL_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
-HELPERS_SRC="${SKILL_ROOT}/assets/pptxgenjs_helpers"
-HELPERS_DEST="${DECK_DIR}/assets/pptxgenjs_helpers"
-VALIDATE_DEST="${DECK_DIR}/validate-local.sh"
-PACKAGE_TEMPLATE="${SKILL_ROOT}/assets/templates/package.json"
+source "${SCRIPT_DIR}/project_lib.sh"
+TEMPLATE_ROOT="${SKILL_ROOT}/assets/templates"
+PROJECT_GITIGNORE_TEMPLATE="${TEMPLATE_ROOT}/.gitignore"
+PACKAGE_TEMPLATE="${TEMPLATE_ROOT}/package.json"
+PROJECT_TSCONFIG_TEMPLATE="${TEMPLATE_ROOT}/tsconfig.json"
+PROJECT_VITEST_CONFIG_TEMPLATE="${TEMPLATE_ROOT}/vitest.config.ts"
+RUN_PROJECT_TEMPLATE="${TEMPLATE_ROOT}/run-project.sh"
+VALIDATE_TEMPLATE="${TEMPLATE_ROOT}/validate-local.sh"
+MAIN_TEMPLATE="${TEMPLATE_ROOT}/src/main.ts"
+PROJECT_GITIGNORE_DEST="${DECK_DIR}/.gitignore"
 PACKAGE_DEST="${DECK_DIR}/package.json"
+PROJECT_TSCONFIG_DEST="${DECK_DIR}/tsconfig.json"
+PROJECT_VITEST_CONFIG_DEST="${DECK_DIR}/vitest.config.ts"
+RUN_PROJECT_DEST="${DECK_DIR}/run-project.sh"
+VALIDATE_DEST="${DECK_DIR}/validate-local.sh"
+MAIN_DEST="${DECK_DIR}/src/main.ts"
 STATE_DIR="${DECK_DIR}/.ai-native-slides"
 
-mkdir -p "${DECK_DIR}/assets" "${STATE_DIR}"
-rsync -a --delete "${HELPERS_SRC}/" "${HELPERS_DEST}/"
+assert_not_project_root "$DECK_DIR" "$SCRIPT_DIR"
 
-if [[ ! -e "${PACKAGE_DEST}" ]] && [[ -f "${PACKAGE_TEMPLATE}" ]]; then
-  cp "${PACKAGE_TEMPLATE}" "${PACKAGE_DEST}"
-  echo "Wrote ${PACKAGE_DEST}"
-elif [[ -e "${PACKAGE_DEST}" ]]; then
-  echo "Kept existing ${PACKAGE_DEST}"
+DECK_DIR="$(mkdir -p "$DECK_DIR" && cd "$DECK_DIR" && pwd)"
+DECK_ROOT="$(find_deck_root_for_project "$DECK_DIR" || true)"
+
+if [[ -z "$DECK_ROOT" ]]; then
+  DECK_ROOT="$(infer_deck_root_from_project_dir "$DECK_DIR" || true)"
 fi
+
+if [[ -z "$DECK_ROOT" ]]; then
+  echo "Could not infer a deck root for project directory: $DECK_DIR" >&2
+  echo "Projects must live under <deck-root>/projects/<slug>." >&2
+  echo "Initialize them with: bash \"$SCRIPT_DIR/init_deck_project.sh\" <deck-root> <project-name>" >&2
+  exit 1
+fi
+
+copy_if_missing() {
+  local src="$1"
+  local dest="$2"
+
+  if [[ -e "${dest}" ]]; then
+    echo "Kept existing ${dest}"
+    return
+  fi
+
+  mkdir -p "$(dirname "${dest}")"
+  cp "${src}" "${dest}"
+  echo "Wrote ${dest}"
+}
+
+copy_rule_file() {
+  local src="$1"
+  local dest="$2"
+
+  if [[ -e "${dest}" && "${FORCE}" -ne 1 ]]; then
+    echo "Kept existing ${dest}"
+    return
+  fi
+
+  mkdir -p "$(dirname "${dest}")"
+  cp "${src}" "${dest}"
+  echo "Wrote ${dest}"
+}
+
+mkdir -p "${DECK_DIR}/assets" "${STATE_DIR}"
+
+set +e
+bash "${SCRIPT_DIR}/bootstrap_deck_root.sh" "${DECK_ROOT}"
+root_bootstrap_exit=$?
+set -e
+
+while IFS= read -r template_file; do
+  relative_path="${template_file#"${TEMPLATE_ROOT}/"}"
+  if [[ "${relative_path}" == "validate-local.sh" || "${relative_path}" == "run-project.sh" || "${relative_path}" == "package.json" || "${relative_path}" == "tsconfig.json" || "${relative_path}" == "vitest.config.ts" || "${relative_path}" == ".gitignore" || "${relative_path}" == "src/main.ts" ]]; then
+    continue
+  fi
+  copy_if_missing "${template_file}" "${DECK_DIR}/${relative_path}"
+done < <(find "${TEMPLATE_ROOT}" -type f | sort)
+
+if [[ ! -f "${VALIDATE_TEMPLATE}" ]]; then
+  echo "Missing validate template: ${VALIDATE_TEMPLATE}" >&2
+  exit 1
+fi
+
+if [[ ! -f "${RUN_PROJECT_TEMPLATE}" ]]; then
+  echo "Missing project runner template: ${RUN_PROJECT_TEMPLATE}" >&2
+  exit 1
+fi
+
+copy_rule_file "${PROJECT_GITIGNORE_TEMPLATE}" "${PROJECT_GITIGNORE_DEST}"
+copy_rule_file "${PACKAGE_TEMPLATE}" "${PACKAGE_DEST}"
+copy_rule_file "${PROJECT_TSCONFIG_TEMPLATE}" "${PROJECT_TSCONFIG_DEST}"
+copy_rule_file "${PROJECT_VITEST_CONFIG_TEMPLATE}" "${PROJECT_VITEST_CONFIG_DEST}"
+copy_rule_file "${RUN_PROJECT_TEMPLATE}" "${RUN_PROJECT_DEST}"
+copy_rule_file "${MAIN_TEMPLATE}" "${MAIN_DEST}"
+chmod +x "${RUN_PROJECT_DEST}"
 
 if [[ -e "${VALIDATE_DEST}" && "${FORCE}" -ne 1 ]]; then
   echo "Skipped existing ${VALIDATE_DEST}. Re-run with --force to replace it."
 else
-  cat > "${VALIDATE_DEST}" <<'EOF'
-#!/usr/bin/env bash
-set -u
-
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-VENV_PYTHON="$ROOT_DIR/.venv/bin/python"
-TMP_DIR="$ROOT_DIR/tmp"
-RENDERED_DIR="$ROOT_DIR/rendered"
-OUTPUT_DIR="$ROOT_DIR/output"
-PPTX_PATH="${1:-$OUTPUT_DIR/ai-native-ppt-product.pptx}"
-REPORT_PATH="$OUTPUT_DIR/local-validation.md"
-FONT_JSON_PATH="$OUTPUT_DIR/font-report.json"
-MONTAGE_PATH="$OUTPUT_DIR/montage.png"
-SKILL_DIR="${AI_NATIVE_SLIDES_SKILL_DIR:-$HOME/.codex/skills/ai-native-slides}"
-SKILL_SCRIPTS_DIR="$SKILL_DIR/scripts"
-STATE_FILE="$ROOT_DIR/.ai-native-slides/state.json"
-
-if [[ ! -x "$VENV_PYTHON" ]]; then
-  echo "Missing deck venv python: $VENV_PYTHON" >&2
-  exit 1
-fi
-
-if [[ ! -d "$SKILL_SCRIPTS_DIR" ]]; then
-  echo "Missing installed skill scripts: $SKILL_SCRIPTS_DIR" >&2
-  echo "Set AI_NATIVE_SLIDES_SKILL_DIR or sync the skill into ~/.codex/skills/ai-native-slides." >&2
-  exit 1
-fi
-
-if ! bash "$SKILL_SCRIPTS_DIR/ensure_deck_workspace.sh" "$ROOT_DIR" --quiet; then
-  echo "Workspace preflight failed. See $STATE_FILE." >&2
-  exit 1
-fi
-
-export TMPDIR="$TMP_DIR"
-export TMP="$TMP_DIR"
-export TEMP="$TMP_DIR"
-export SAL_USE_VCLPLUGIN="svp"
-
-mkdir -p "$TMP_DIR" "$RENDERED_DIR" "$OUTPUT_DIR"
-
-rm -f "$REPORT_PATH" "$FONT_JSON_PATH"
-rm -f "$MONTAGE_PATH"
-rm -f "$RENDERED_DIR"/slide-*.png
-
-cat <<REPORT > "$REPORT_PATH"
-# Local Validation Report
-
-- Generated at: $(date '+%Y-%m-%d %H:%M:%S %z')
-- Workspace: $ROOT_DIR
-- TMPDIR: $TMPDIR
-- Skill dir: $SKILL_DIR
-- Workspace state: $STATE_FILE
-
-REPORT
-
-append_section() {
-  local title="$1"
-  local command_text="$2"
-  local output_file="$3"
-  local exit_code="$4"
-
-  {
-    echo "## $title"
-    echo
-    echo '```bash'
-    echo "$command_text"
-    echo '```'
-    echo
-    echo "- Exit code: $exit_code"
-    echo
-    echo '```text'
-    cat "$output_file"
-    echo '```'
-    echo
-  } >> "$REPORT_PATH"
-}
-
-run_and_capture() {
-  local title="$1"
-  shift
-  local cmd=("$@")
-  local output_file
-  local exit_code
-  output_file="$(mktemp "$TMPDIR/${title// /_}.XXXXXX.log")"
-
-  set +e
-  "${cmd[@]}" >"$output_file" 2>&1
-  exit_code=$?
-  set -e
-
-  append_section "$title" "${cmd[*]}" "$output_file" "$exit_code"
-  rm -f "$output_file"
-  return 0
-}
-
-run_and_capture "Versions" \
-  /bin/bash -lc "uv --version && soffice --version && '$VENV_PYTHON' --version && pdfinfo -v && pdftoppm -v"
-
-run_and_capture "Build Deck" \
-  /bin/bash -lc "cd '$ROOT_DIR' && pnpm build"
-
-run_and_capture "Render Slides" \
-  "$VENV_PYTHON" "$SKILL_SCRIPTS_DIR/render_slides.py" \
-  "$PPTX_PATH" \
-  --output_dir "$RENDERED_DIR"
-
-run_and_capture "Overflow Check" \
-  "$VENV_PYTHON" "$SKILL_SCRIPTS_DIR/slides_test.py" \
-  "$PPTX_PATH"
-
-run_and_capture "Build Montage" \
-  "$VENV_PYTHON" "$SKILL_SCRIPTS_DIR/create_montage.py" \
-  --input_dir "$RENDERED_DIR" \
-  --output_file "$MONTAGE_PATH"
-
-run_and_capture "Detect Font" \
-  /bin/bash -lc "'$VENV_PYTHON' '$SKILL_SCRIPTS_DIR/detect_font.py' '$PPTX_PATH' --json | tee '$FONT_JSON_PATH'"
-
-{
-  echo "## Artifacts"
-  echo
-  echo "- PPTX: $PPTX_PATH"
-  echo "- Report: $REPORT_PATH"
-  echo "- Font JSON: $FONT_JSON_PATH"
-  echo "- Montage: $MONTAGE_PATH"
-  echo "- Rendered slides: $RENDERED_DIR"
-  echo
-} >> "$REPORT_PATH"
-
-echo "Validation complete."
-echo "Markdown report: $REPORT_PATH"
-EOF
-
+  copy_rule_file "${VALIDATE_TEMPLATE}" "${VALIDATE_DEST}"
   chmod +x "${VALIDATE_DEST}"
-  echo "Wrote ${VALIDATE_DEST}"
 fi
 
-echo "Synced helper assets to ${HELPERS_DEST}"
+write_project_metadata "$DECK_ROOT" "$DECK_DIR" "$(basename "$DECK_DIR")" "$(basename "$DECK_DIR")"
+
+if [[ "$root_bootstrap_exit" -ne 0 ]]; then
+  echo "Shared deck root is scaffolded but not fully ready yet: $DECK_ROOT" >&2
+fi
+
 bash "${SCRIPT_DIR}/ensure_deck_workspace.sh" "${DECK_DIR}"

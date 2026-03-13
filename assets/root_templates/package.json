@@ -1,0 +1,27 @@
+{
+	"name": "ai-native-slides-root",
+	"version": "1.0.0",
+	"private": true,
+	"type": "module",
+	"pnpm": {
+		"onlyBuiltDependencies": [
+			"esbuild",
+			"skia-canvas"
+		]
+	},
+	"dependencies": {
+		"fontkit": "^2.0.4",
+		"linebreak": "^1.1.0",
+		"mathjax-full": "^3.2.2",
+		"pptxgenjs": "^3.12.0",
+		"prismjs": "^1.30.0",
+		"skia-canvas": "^2.0.2"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.4.6",
+		"@types/node": "^20.19.37",
+		"tsx": "^4.21.0",
+		"typescript": "^5.9.3",
+		"vitest": "^3.2.4"
+	}
+}

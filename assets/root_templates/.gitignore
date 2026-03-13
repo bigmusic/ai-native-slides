@@ -1,0 +1,4 @@
+node_modules/
+.venv/
+.ai-native-slides/
+assets/pptxgenjs_helpers/

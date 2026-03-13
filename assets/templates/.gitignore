@@ -1,0 +1,8 @@
+.ai-native-slides/
+node_modules/
+output/
+rendered/
+tmp/
+dist/
+*.pptx
+.DS_Store

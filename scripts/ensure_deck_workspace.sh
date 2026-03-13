@@ -2,12 +2,12 @@
 set -euo pipefail
 
 usage() {
-  echo "Usage: $0 <deck-workspace> [--quiet] [--json]" >&2
+  echo "Usage: $0 <project-dir> [--quiet] [--json]" >&2
 }
 
 QUIET=0
 JSON_ONLY=0
-DECK_DIR=""
+PROJECT_DIR=""
 
 for arg in "$@"; do
   case "$arg" in
@@ -22,34 +22,55 @@ for arg in "$@"; do
       exit 1
       ;;
     *)
-      if [[ -n "$DECK_DIR" ]]; then
+      if [[ -n "$PROJECT_DIR" ]]; then
         usage
         exit 1
       fi
-      DECK_DIR="$arg"
+      PROJECT_DIR="$arg"
       ;;
   esac
 done
 
-if [[ -z "$DECK_DIR" ]]; then
+if [[ -z "$PROJECT_DIR" ]]; then
   usage
   exit 1
 fi
 
-DECK_DIR="$(cd "$DECK_DIR" && pwd)"
+PROJECT_DIR="$(cd "$PROJECT_DIR" && pwd)"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILL_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
-STATE_DIR="${DECK_DIR}/.ai-native-slides"
+source "${SCRIPT_DIR}/project_lib.sh"
+
+assert_not_project_root "$PROJECT_DIR" "$SCRIPT_DIR"
+
+DECK_ROOT="$(find_deck_root_for_project "$PROJECT_DIR" || true)"
+if [[ -z "$DECK_ROOT" ]]; then
+  add_missing_root_hint=1
+else
+  add_missing_root_hint=0
+fi
+
+STATE_DIR="${PROJECT_DIR}/.ai-native-slides"
 STATE_FILE="${STATE_DIR}/state.json"
-HELPERS_SRC="${SKILL_ROOT}/assets/pptxgenjs_helpers"
-HELPERS_DEST="${DECK_DIR}/assets/pptxgenjs_helpers"
-VALIDATE_DEST="${DECK_DIR}/validate-local.sh"
-PACKAGE_TEMPLATE="${SKILL_ROOT}/assets/templates/package.json"
-PACKAGE_JSON="${DECK_DIR}/package.json"
-PNPM_LOCK="${DECK_DIR}/pnpm-lock.yaml"
-DECK_JS="${DECK_DIR}/deck.js"
-NODE_MODULES_DIR="${DECK_DIR}/node_modules"
-VENV_PYTHON="${DECK_DIR}/.venv/bin/python"
+PROJECT_METADATA_FILE="$(project_metadata_path "$PROJECT_DIR")"
+PACKAGE_JSON="${PROJECT_DIR}/package.json"
+TSCONFIG_JSON="${PROJECT_DIR}/tsconfig.json"
+SRC_MAIN_TS="${PROJECT_DIR}/src/main.ts"
+TESTS_DIR="${PROJECT_DIR}/tests"
+RUN_PROJECT_SCRIPT="${PROJECT_DIR}/run-project.sh"
+VALIDATE_SCRIPT="${PROJECT_DIR}/validate-local.sh"
+LEGACY_RENDERED_DIR="${PROJECT_DIR}/rendered"
+LEGACY_OUTPUT_RENDERED_DIR="${PROJECT_DIR}/output/rendered"
+LEGACY_VITE_CACHE_DIR="${PROJECT_DIR}/node_modules/.vite"
+LEGACY_VITE_TEMP_DIR="${PROJECT_DIR}/node_modules/.vite-temp"
+PROJECT_NODE_MODULES_DIR="${PROJECT_DIR}/node_modules"
+ROOT_STATE_FILE="${DECK_ROOT}/.ai-native-slides/state.json"
+ROOT_PACKAGE_JSON="${DECK_ROOT}/package.json"
+ROOT_BIOME="${DECK_ROOT}/biome.jsonc"
+ROOT_TSCONFIG_BASE="${DECK_ROOT}/tsconfig.base.json"
+ROOT_HELPERS="${DECK_ROOT}/assets/pptxgenjs_helpers/index.js"
+ROOT_NODE_MODULES="${DECK_ROOT}/node_modules"
+ROOT_VENV_PYTHON="${DECK_ROOT}/.venv/bin/python"
 CHECKED_AT="$(date '+%Y-%m-%dT%H:%M:%S%z')"
 
 mkdir -p "$STATE_DIR"
@@ -64,32 +85,6 @@ json_escape() {
   printf '%s' "$value"
 }
 
-command_exists() {
-  command -v "$1" >/dev/null 2>&1
-}
-
-dir_signature() {
-  local dir="$1"
-  if [[ ! -d "$dir" ]]; then
-    printf 'missing'
-    return
-  fi
-
-  local tmp_file
-  tmp_file="$(mktemp)"
-  while IFS= read -r file; do
-    local rel="${file#"$dir"/}"
-    local sum
-    sum="$(shasum -a 256 "$file" | awk '{print $1}')"
-    printf '%s  %s\n' "$sum" "$rel" >> "$tmp_file"
-  done < <(find "$dir" -type f | sort)
-
-  local combined
-  combined="$(shasum -a 256 "$tmp_file" | awk '{print $1}')"
-  rm -f "$tmp_file"
-  printf '%s' "$combined"
-}
-
 add_missing() {
   MISSING_ITEMS+=("$1")
 }
@@ -102,6 +97,11 @@ add_suggestion() {
   SUGGESTIONS+=("$1")
 }
 
+package_script_present() {
+  local script_name="$1"
+  [[ -f "$PACKAGE_JSON" ]] && grep -Eq "\"${script_name}\"[[:space:]]*:" "$PACKAGE_JSON"
+}
+
 declare -a MISSING_ITEMS=()
 declare -a WARNINGS=()
 declare -a SUGGESTIONS=()
@@ -111,144 +111,179 @@ SKILL_REVISION="$(
   shasum -a 256 "$SKILL_ROOT/SKILL.md" | awk '{print $1}'
 )"
 
-PNPM_PRESENT=false
-if command_exists pnpm; then PNPM_PRESENT=true; else
-  add_missing "pnpm is not installed or not on PATH"
-  add_suggestion "Install pnpm and confirm \`pnpm --version\` works."
+ROOT_DETECTED=false
+if [[ -n "$DECK_ROOT" ]]; then
+  ROOT_DETECTED=true
+else
+  add_missing "could not locate the shared deck root above this project"
+  add_suggestion "Projects must live under <deck-root>/projects/<slug>."
 fi
 
-NODE_PRESENT=false
-if command_exists node; then NODE_PRESENT=true; else
-  add_missing "node is not installed or not on PATH"
-  add_suggestion "Install Node.js so \`pnpm build\` can run."
+ROOT_READY=false
+if [[ "$ROOT_DETECTED" == true ]]; then
+  set +e
+  bash "${SCRIPT_DIR}/ensure_deck_root.sh" "$DECK_ROOT" --quiet >/dev/null 2>&1
+  root_ready_exit=$?
+  set -e
+  if [[ "$root_ready_exit" -eq 0 ]]; then
+    ROOT_READY=true
+  else
+    add_missing "shared deck root is not ready"
+    add_suggestion "Run \`bash \"$SKILL_ROOT/scripts/repair_deck_root.sh\" \"$DECK_ROOT\"\` to repair shared dependencies."
+  fi
 fi
 
-UV_PRESENT=false
-if command_exists uv; then UV_PRESENT=true; else
-  add_missing "uv is not installed or not on PATH"
-  add_suggestion "Install uv for deck-local Python environment management."
-fi
-
-SOFFICE_PRESENT=false
-if command_exists soffice; then SOFFICE_PRESENT=true; else
-  add_missing "LibreOffice soffice is not installed or not on PATH"
-  add_suggestion "Install LibreOffice and confirm \`soffice --version\` works."
-fi
-
-PDFINFO_PRESENT=false
-if command_exists pdfinfo; then PDFINFO_PRESENT=true; else
-  add_missing "pdfinfo is not installed or not on PATH"
-  add_suggestion "Install Poppler so \`pdfinfo\` is available."
-fi
-
-PDFTOPPM_PRESENT=false
-if command_exists pdftoppm; then PDFTOPPM_PRESENT=true; else
-  add_missing "pdftoppm is not installed or not on PATH"
-  add_suggestion "Install Poppler so \`pdftoppm\` is available."
+PROJECT_METADATA_PRESENT=false
+if [[ -f "$PROJECT_METADATA_FILE" ]]; then PROJECT_METADATA_PRESENT=true; else
+  add_missing "project metadata is missing"
+  add_suggestion "Run \`bash \"$SKILL_ROOT/scripts/bootstrap_deck_workspace.sh\" \"$PROJECT_DIR\" --force\` to refresh project bootstrap files."
 fi
 
 PACKAGE_JSON_PRESENT=false
 if [[ -f "$PACKAGE_JSON" ]]; then PACKAGE_JSON_PRESENT=true; else
-  add_missing "package.json is missing"
-  if [[ -f "$PACKAGE_TEMPLATE" ]]; then
-    add_suggestion "Run \`bash \"$SKILL_ROOT/scripts/bootstrap_deck_workspace.sh\" \"$DECK_DIR\"\` to scaffold package.json."
-  fi
-fi
-
-PNPM_LOCK_PRESENT=false
-if [[ -f "$PNPM_LOCK" ]]; then PNPM_LOCK_PRESENT=true; else
-  add_warning "pnpm-lock.yaml is missing"
-fi
-
-DECK_JS_PRESENT=false
-if [[ -f "$DECK_JS" ]]; then DECK_JS_PRESENT=true; else
-  add_missing "deck.js is missing"
-  add_suggestion "Create \`$DECK_JS\` before running \`pnpm build\`."
+  add_missing "project package.json is missing"
+  add_suggestion "Run \`bash \"$SKILL_ROOT/scripts/bootstrap_deck_workspace.sh\" \"$PROJECT_DIR\"\` to scaffold the project files."
 fi
 
 BUILD_SCRIPT_PRESENT=false
-if [[ -f "$PACKAGE_JSON" ]] && grep -Eq '"build"[[:space:]]*:' "$PACKAGE_JSON"; then
-  BUILD_SCRIPT_PRESENT=true
-else
-  if [[ -f "$PACKAGE_JSON" ]]; then
-    add_missing "package.json does not define a build script"
-    add_suggestion "Add a \`build\` script such as \`node deck.js\` to package.json."
-  fi
+if package_script_present "build"; then BUILD_SCRIPT_PRESENT=true; else
+  add_missing "project package.json does not define a build script"
+  add_suggestion "Run \`bash \"$SKILL_ROOT/scripts/bootstrap_deck_workspace.sh\" \"$PROJECT_DIR\" --force\` to restore the project runner scripts."
 fi
 
-HELPERS_PRESENT=false
-if [[ -f "${HELPERS_DEST}/index.js" ]]; then HELPERS_PRESENT=true; else
-  add_missing "deck helper assets are missing from assets/pptxgenjs_helpers"
-  add_suggestion "Run \`bash \"$SKILL_ROOT/scripts/bootstrap_deck_workspace.sh\" \"$DECK_DIR\"\` to sync helper assets."
+LINT_SCRIPT_PRESENT=false
+if package_script_present "lint"; then LINT_SCRIPT_PRESENT=true; else
+  add_missing "project package.json does not define a lint script"
+fi
+
+TYPECHECK_SCRIPT_PRESENT=false
+if package_script_present "typecheck"; then TYPECHECK_SCRIPT_PRESENT=true; else
+  add_missing "project package.json does not define a typecheck script"
+fi
+
+TEST_SCRIPT_PRESENT=false
+if package_script_present "test"; then TEST_SCRIPT_PRESENT=true; else
+  add_missing "project package.json does not define a test script"
+fi
+
+VALIDATE_SCRIPT_PRESENT=false
+if package_script_present "validate"; then VALIDATE_SCRIPT_PRESENT=true; else
+  add_missing "project package.json does not define a validate script"
+fi
+
+RUNNER_PRESENT=false
+if [[ -x "$RUN_PROJECT_SCRIPT" ]]; then RUNNER_PRESENT=true; else
+  add_missing "run-project.sh is missing or not executable"
+  add_suggestion "Run \`bash \"$SKILL_ROOT/scripts/bootstrap_deck_workspace.sh\" \"$PROJECT_DIR\" --force\` to restore it."
 fi
 
 VALIDATE_WRAPPER_PRESENT=false
-if [[ -x "$VALIDATE_DEST" ]]; then VALIDATE_WRAPPER_PRESENT=true; else
+if [[ -x "$VALIDATE_SCRIPT" ]]; then VALIDATE_WRAPPER_PRESENT=true; else
   add_missing "validate-local.sh is missing or not executable"
-  add_suggestion "Run \`bash \"$SKILL_ROOT/scripts/bootstrap_deck_workspace.sh\" \"$DECK_DIR\" --force\` to write validate-local.sh."
+  add_suggestion "Run \`bash \"$SKILL_ROOT/scripts/bootstrap_deck_workspace.sh\" \"$PROJECT_DIR\" --force\` to restore it."
 fi
 
-HELPERS_SYNCED=false
-SOURCE_HELPERS_SIGNATURE="$(dir_signature "$HELPERS_SRC")"
-DEST_HELPERS_SIGNATURE="$(dir_signature "$HELPERS_DEST")"
-if [[ "$SOURCE_HELPERS_SIGNATURE" != "missing" ]] && [[ "$SOURCE_HELPERS_SIGNATURE" == "$DEST_HELPERS_SIGNATURE" ]]; then
-  HELPERS_SYNCED=true
+DECK_ENTRY_PRESENT=false
+if [[ -f "$SRC_MAIN_TS" ]]; then DECK_ENTRY_PRESENT=true; else
+  add_missing "src/main.ts is missing"
+  add_suggestion "Run \`bash \"$SKILL_ROOT/scripts/bootstrap_deck_workspace.sh\" \"$PROJECT_DIR\"\` to scaffold the project entrypoint."
+fi
+
+TSCONFIG_PRESENT=false
+if [[ -f "$TSCONFIG_JSON" ]]; then TSCONFIG_PRESENT=true; else
+  add_missing "project tsconfig.json is missing"
+  add_suggestion "Run \`bash \"$SKILL_ROOT/scripts/bootstrap_deck_workspace.sh\" \"$PROJECT_DIR\"\` to scaffold the project tsconfig."
+fi
+
+TESTS_PRESENT=false
+if [[ -d "$TESTS_DIR" ]] && find "$TESTS_DIR" -type f \( -name '*.test.ts' -o -name '*.spec.ts' \) | grep -q .; then
+  TESTS_PRESENT=true
 else
-  if [[ "$DEST_HELPERS_SIGNATURE" != "missing" ]]; then
-    add_warning "deck helper assets differ from the installed skill helper assets"
-    add_suggestion "Run \`bash \"$SKILL_ROOT/scripts/bootstrap_deck_workspace.sh\" \"$DECK_DIR\" --force\` to resync helper assets."
-  fi
+  add_missing "tests directory does not contain any TypeScript test files"
+  add_suggestion "Add at least one \`*.test.ts\` file under \`tests/\` so the project has a fast regression loop."
 fi
 
-NODE_DEPS_PRESENT=false
-if [[ -d "$NODE_MODULES_DIR/pptxgenjs" ]] && [[ -d "$NODE_MODULES_DIR/skia-canvas" ]] && [[ -d "$NODE_MODULES_DIR/fontkit" ]] && [[ -d "$NODE_MODULES_DIR/linebreak" ]] && [[ -d "$NODE_MODULES_DIR/prismjs" ]] && [[ -d "$NODE_MODULES_DIR/mathjax-full" ]]; then
-  NODE_DEPS_PRESENT=true
-else
-  add_missing "Node dependencies are not fully installed in node_modules"
-  add_suggestion "Run \`cd \"$DECK_DIR\" && pnpm install\`."
+ROOT_PACKAGE_PRESENT=false
+ROOT_BIOME_PRESENT=false
+ROOT_TSCONFIG_BASE_PRESENT=false
+ROOT_HELPERS_PRESENT=false
+ROOT_NODE_DEPS_PRESENT=false
+ROOT_VENV_PRESENT=false
+LEGACY_RENDERED_DIR_PRESENT=false
+LEGACY_OUTPUT_RENDERED_DIR_PRESENT=false
+LEGACY_VITE_CACHE_PRESENT=false
+LEGACY_VITE_TEMP_PRESENT=false
+EMPTY_PROJECT_NODE_MODULES_PRESENT=false
+
+if [[ "$ROOT_DETECTED" == true ]]; then
+  [[ -f "$ROOT_PACKAGE_JSON" ]] && ROOT_PACKAGE_PRESENT=true
+  [[ -f "$ROOT_BIOME" ]] && ROOT_BIOME_PRESENT=true
+  [[ -f "$ROOT_TSCONFIG_BASE" ]] && ROOT_TSCONFIG_BASE_PRESENT=true
+  [[ -f "$ROOT_HELPERS" ]] && ROOT_HELPERS_PRESENT=true
+  [[ -d "$ROOT_NODE_MODULES/pptxgenjs" ]] && ROOT_NODE_DEPS_PRESENT=true
+  [[ -x "$ROOT_VENV_PYTHON" ]] && ROOT_VENV_PRESENT=true
 fi
 
-VENV_PYTHON_PRESENT=false
-if [[ -x "$VENV_PYTHON" ]]; then VENV_PYTHON_PRESENT=true; else
-  add_missing "deck Python environment is missing at .venv/bin/python"
-  add_suggestion "Run \`cd \"$DECK_DIR\" && uv venv --python 3.12 .venv\`."
+if [[ -d "$LEGACY_RENDERED_DIR" ]]; then
+  LEGACY_RENDERED_DIR_PRESENT=true
+  add_warning "legacy rendered/ directory is present at the project root"
 fi
 
-PYTHON_PACKAGES_PRESENT=false
-if [[ -x "$VENV_PYTHON" ]] && "$VENV_PYTHON" -c "import PIL, pdf2image, pptx, numpy" >/dev/null 2>&1; then
-  PYTHON_PACKAGES_PRESENT=true
-else
-  if [[ -x "$VENV_PYTHON" ]]; then
-    add_missing "deck Python packages are incomplete"
-    add_suggestion "Run \`cd \"$DECK_DIR\" && uv pip install --python .venv/bin/python Pillow pdf2image python-pptx numpy\`."
-  fi
+if [[ -d "$LEGACY_OUTPUT_RENDERED_DIR" ]]; then
+  LEGACY_OUTPUT_RENDERED_DIR_PRESENT=true
+  add_warning "legacy output/rendered directory is present"
 fi
 
-SYSTEM_TOOLS_PRESENT=false
-if [[ "$SOFFICE_PRESENT" == true ]] && [[ "$PDFINFO_PRESENT" == true ]] && [[ "$PDFTOPPM_PRESENT" == true ]]; then
-  SYSTEM_TOOLS_PRESENT=true
+if [[ -d "$LEGACY_VITE_CACHE_DIR" ]]; then
+  LEGACY_VITE_CACHE_PRESENT=true
+  add_warning "project-local node_modules/.vite cache is present"
 fi
 
-WORKSPACE_READY=false
-if [[ "$PACKAGE_JSON_PRESENT" == true ]] && \
-   [[ "$DECK_JS_PRESENT" == true ]] && \
+if [[ -d "$LEGACY_VITE_TEMP_DIR" ]]; then
+  LEGACY_VITE_TEMP_PRESENT=true
+  add_warning "project-local node_modules/.vite-temp cache is present"
+fi
+
+if [[ -d "$PROJECT_NODE_MODULES_DIR" ]] && [[ -z "$(find "$PROJECT_NODE_MODULES_DIR" -mindepth 1 -print -quit)" ]]; then
+  EMPTY_PROJECT_NODE_MODULES_PRESENT=true
+  add_warning "empty project-local node_modules directory is present"
+fi
+
+if [[ "$LEGACY_RENDERED_DIR_PRESENT" == true ]] || \
+   [[ "$LEGACY_OUTPUT_RENDERED_DIR_PRESENT" == true ]] || \
+   [[ "$LEGACY_VITE_CACHE_PRESENT" == true ]] || \
+   [[ "$LEGACY_VITE_TEMP_PRESENT" == true ]] || \
+   [[ "$EMPTY_PROJECT_NODE_MODULES_PRESENT" == true ]]; then
+  add_suggestion "Run \`bash \"$SKILL_ROOT/scripts/clean_deck_project.sh\" \"$PROJECT_DIR\"\` to remove legacy generated directories and caches."
+fi
+
+PROJECT_READY=false
+if [[ "$ROOT_DETECTED" == true ]] && \
+   [[ "$ROOT_READY" == true ]] && \
+   [[ "$PROJECT_METADATA_PRESENT" == true ]] && \
+   [[ "$PACKAGE_JSON_PRESENT" == true ]] && \
    [[ "$BUILD_SCRIPT_PRESENT" == true ]] && \
-   [[ "$HELPERS_PRESENT" == true ]] && \
+   [[ "$LINT_SCRIPT_PRESENT" == true ]] && \
+   [[ "$TYPECHECK_SCRIPT_PRESENT" == true ]] && \
+   [[ "$TEST_SCRIPT_PRESENT" == true ]] && \
+   [[ "$VALIDATE_SCRIPT_PRESENT" == true ]] && \
+   [[ "$RUNNER_PRESENT" == true ]] && \
    [[ "$VALIDATE_WRAPPER_PRESENT" == true ]] && \
-   [[ "$NODE_DEPS_PRESENT" == true ]] && \
-   [[ "$VENV_PYTHON_PRESENT" == true ]] && \
-   [[ "$PYTHON_PACKAGES_PRESENT" == true ]] && \
-   [[ "$SYSTEM_TOOLS_PRESENT" == true ]]; then
-   WORKSPACE_READY=true
+   [[ "$DECK_ENTRY_PRESENT" == true ]] && \
+   [[ "$TSCONFIG_PRESENT" == true ]] && \
+   [[ "$TESTS_PRESENT" == true ]]; then
+  PROJECT_READY=true
 fi
 
 BOOTSTRAP_COMPLETE=false
-if [[ "$HELPERS_PRESENT" == true ]] && [[ "$VALIDATE_WRAPPER_PRESENT" == true ]] && [[ "$PACKAGE_JSON_PRESENT" == true ]]; then
+if [[ "$PROJECT_METADATA_PRESENT" == true ]] && \
+   [[ "$PACKAGE_JSON_PRESENT" == true ]] && \
+   [[ "$RUNNER_PRESENT" == true ]] && \
+   [[ "$VALIDATE_WRAPPER_PRESENT" == true ]] && \
+   [[ "$DECK_ENTRY_PRESENT" == true ]] && \
+   [[ "$TSCONFIG_PRESENT" == true ]] && \
+   [[ "$TESTS_PRESENT" == true ]]; then
   BOOTSTRAP_COMPLETE=true
-fi
-
-if [[ "$WORKSPACE_READY" != true ]]; then
-  add_suggestion "Run \`bash \"$SKILL_ROOT/scripts/repair_deck_workspace.sh\" \"$DECK_DIR\"\` to auto-fix deck-local dependencies and refresh workspace state."
 fi
 
 {
@@ -257,34 +292,38 @@ fi
   echo "  \"skill_dir\": \"$(json_escape "$SKILL_ROOT")\","
   echo "  \"skill_revision\": \"$(json_escape "$SKILL_REVISION")\","
   echo "  \"checked_at\": \"$(json_escape "$CHECKED_AT")\","
-  echo "  \"workspace_path\": \"$(json_escape "$DECK_DIR")\","
+  echo "  \"deck_root\": \"$(json_escape "$DECK_ROOT")\","
+  echo "  \"project_dir\": \"$(json_escape "$PROJECT_DIR")\","
+  echo "  \"root_state_file\": \"$(json_escape "$ROOT_STATE_FILE")\","
   echo "  \"state_file\": \"$(json_escape "$STATE_FILE")\","
   echo "  \"bootstrap_complete\": ${BOOTSTRAP_COMPLETE},"
-  echo "  \"workspace_ready\": ${WORKSPACE_READY},"
+  echo "  \"project_ready\": ${PROJECT_READY},"
   echo "  \"status\": {"
+  echo "    \"root_detected\": ${ROOT_DETECTED},"
+  echo "    \"root_ready\": ${ROOT_READY},"
+  echo "    \"project_metadata_present\": ${PROJECT_METADATA_PRESENT},"
   echo "    \"package_json_present\": ${PACKAGE_JSON_PRESENT},"
-  echo "    \"pnpm_lock_present\": ${PNPM_LOCK_PRESENT},"
-  echo "    \"deck_js_present\": ${DECK_JS_PRESENT},"
   echo "    \"build_script_present\": ${BUILD_SCRIPT_PRESENT},"
-  echo "    \"helpers_present\": ${HELPERS_PRESENT},"
-  echo "    \"helpers_synced\": ${HELPERS_SYNCED},"
+  echo "    \"lint_script_present\": ${LINT_SCRIPT_PRESENT},"
+  echo "    \"typecheck_script_present\": ${TYPECHECK_SCRIPT_PRESENT},"
+  echo "    \"test_script_present\": ${TEST_SCRIPT_PRESENT},"
+  echo "    \"validate_script_present\": ${VALIDATE_SCRIPT_PRESENT},"
+  echo "    \"runner_present\": ${RUNNER_PRESENT},"
   echo "    \"validate_wrapper_present\": ${VALIDATE_WRAPPER_PRESENT},"
-  echo "    \"node_dependencies_installed\": ${NODE_DEPS_PRESENT},"
-  echo "    \"venv_python_present\": ${VENV_PYTHON_PRESENT},"
-  echo "    \"python_packages_installed\": ${PYTHON_PACKAGES_PRESENT},"
-  echo "    \"system_tools_present\": ${SYSTEM_TOOLS_PRESENT}"
-  echo "  },"
-  echo "  \"tools\": {"
-  echo "    \"node_present\": ${NODE_PRESENT},"
-  echo "    \"pnpm_present\": ${PNPM_PRESENT},"
-  echo "    \"uv_present\": ${UV_PRESENT},"
-  echo "    \"soffice_present\": ${SOFFICE_PRESENT},"
-  echo "    \"pdfinfo_present\": ${PDFINFO_PRESENT},"
-  echo "    \"pdftoppm_present\": ${PDFTOPPM_PRESENT}"
-  echo "  },"
-  echo "  \"helpers\": {"
-  echo "    \"source_signature\": \"$(json_escape "$SOURCE_HELPERS_SIGNATURE")\","
-  echo "    \"workspace_signature\": \"$(json_escape "$DEST_HELPERS_SIGNATURE")\""
+  echo "    \"deck_entry_present\": ${DECK_ENTRY_PRESENT},"
+  echo "    \"tsconfig_present\": ${TSCONFIG_PRESENT},"
+  echo "    \"tests_present\": ${TESTS_PRESENT},"
+  echo "    \"root_package_present\": ${ROOT_PACKAGE_PRESENT},"
+  echo "    \"root_biome_present\": ${ROOT_BIOME_PRESENT},"
+  echo "    \"root_tsconfig_base_present\": ${ROOT_TSCONFIG_BASE_PRESENT},"
+  echo "    \"root_helpers_present\": ${ROOT_HELPERS_PRESENT},"
+  echo "    \"root_node_dependencies_installed\": ${ROOT_NODE_DEPS_PRESENT},"
+  echo "    \"root_venv_python_present\": ${ROOT_VENV_PRESENT},"
+  echo "    \"legacy_rendered_dir_present\": ${LEGACY_RENDERED_DIR_PRESENT},"
+  echo "    \"legacy_output_rendered_dir_present\": ${LEGACY_OUTPUT_RENDERED_DIR_PRESENT},"
+  echo "    \"legacy_vite_cache_present\": ${LEGACY_VITE_CACHE_PRESENT},"
+  echo "    \"legacy_vite_temp_present\": ${LEGACY_VITE_TEMP_PRESENT},"
+  echo "    \"empty_project_node_modules_present\": ${EMPTY_PROJECT_NODE_MODULES_PRESENT}"
   echo "  },"
   echo "  \"missing\": ["
   if [[ "${#MISSING_ITEMS[@]}" -gt 0 ]]; then
@@ -324,38 +363,36 @@ fi
 
 if [[ "$JSON_ONLY" -eq 1 ]]; then
   cat "$STATE_FILE"
-fi
-
-if [[ "$JSON_ONLY" -eq 0 ]]; then
-  if [[ "$WORKSPACE_READY" == true ]]; then
-    if [[ "$QUIET" -ne 1 ]]; then
-      echo "Workspace ready: ${DECK_DIR}"
-      echo "State file: ${STATE_FILE}"
-    fi
-  else
-    echo "Workspace incomplete: ${DECK_DIR}" >&2
-    echo "State file: ${STATE_FILE}" >&2
-    if [[ "${#MISSING_ITEMS[@]}" -gt 0 ]]; then
-      for item in "${MISSING_ITEMS[@]}"; do
-        echo "- Missing: ${item}" >&2
-      done
-    fi
-    if [[ "${#WARNINGS[@]}" -gt 0 ]]; then
-      for item in "${WARNINGS[@]}"; do
-        echo "- Warning: ${item}" >&2
-      done
-    fi
-    if [[ "${#SUGGESTIONS[@]}" -gt 0 ]]; then
-      echo "Suggested next steps:" >&2
-      for item in "${SUGGESTIONS[@]}"; do
-        echo "- ${item}" >&2
-      done
-    fi
-  fi
-fi
-
-if [[ "$WORKSPACE_READY" == true ]]; then
   exit 0
+fi
+
+if [[ "$PROJECT_READY" == true ]]; then
+  if [[ "$QUIET" -ne 1 ]]; then
+    echo "Project ready: $PROJECT_DIR"
+    echo "State file: $STATE_FILE"
+  fi
+  exit 0
+fi
+
+if [[ "$QUIET" -ne 1 ]]; then
+  echo "Project incomplete: $PROJECT_DIR"
+  echo "State file: $STATE_FILE"
+  if [[ "${#MISSING_ITEMS[@]}" -gt 0 ]]; then
+    for item in "${MISSING_ITEMS[@]}"; do
+      echo "- Missing: $item"
+    done
+  fi
+  if [[ "${#WARNINGS[@]}" -gt 0 ]]; then
+    for item in "${WARNINGS[@]}"; do
+      echo "- Warning: $item"
+    done
+  fi
+  if [[ "${#SUGGESTIONS[@]}" -gt 0 ]]; then
+    echo "Suggested next steps:"
+    for item in "${SUGGESTIONS[@]}"; do
+      echo "- $item"
+    done
+  fi
 fi
 
 exit 1
