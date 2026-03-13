@@ -32,6 +32,7 @@ ROOT_STATE_FILE="$DECK_ROOT/.ai-native-slides/state.json"
 VENV_PYTHON="$DECK_ROOT/.venv/bin/python"
 LOCAL_SKILL_DIR="$(cd "$DECK_ROOT/.." && pwd)/ai-native-slides"
 INSTALLED_SKILL_DIR="$HOME/.codex/skills/ai-native-slides"
+SOFFICE_BIN="$(command -v soffice || command -v libreoffice || printf 'soffice')"
 
 pick_default_pptx() {
   local candidates=()
@@ -88,6 +89,17 @@ declare -a BLOCKED_TITLES=()
 declare -a SKIPPED_TITLES=()
 LAST_EXIT_CODE=0
 LAST_OUTPUT_TEXT=""
+LOCAL_VALIDATE_CMD=""
+RAW_RENDER_CMD_1=""
+RAW_RENDER_CMD_2=""
+RAW_RENDER_CMD_3=""
+RAW_FONT_CMD_1=""
+RAW_FONT_CMD_2=""
+RAW_FONT_CMD_3=""
+MANUAL_RENDER_STEP=""
+MANUAL_OVERFLOW_STEP=""
+MANUAL_MONTAGE_STEP=""
+MANUAL_FONT_STEP=""
 
 running_in_codex_shell() {
   [[ "${CODEX_SHELL:-}" == "1" ]] || [[ -n "${CODEX_THREAD_ID:-}" ]]
@@ -115,6 +127,18 @@ if [[ ! -d "$SKILL_SCRIPTS_DIR" ]]; then
   echo "Set AI_NATIVE_SLIDES_SKILL_DIR or ensure a local skill repo exists at $LOCAL_SKILL_DIR." >&2
   exit 1
 fi
+
+LOCAL_VALIDATE_CMD="cd \"$PROJECT_DIR\" && TMPDIR=\"$TMP_DIR\" TMP=\"$TMP_DIR\" TEMP=\"$TMP_DIR\" SAL_USE_VCLPLUGIN=svp pnpm validate"
+RAW_RENDER_CMD_1="PROFILE_DIR=\"\$(mktemp -d \"$TMP_DIR/soffice_profile.render.XXXXXX\")\""
+RAW_RENDER_CMD_2="OUT_DIR=\"\$(mktemp -d \"$TMP_DIR/soffice_convert.render.XXXXXX\")\""
+RAW_RENDER_CMD_3="$SOFFICE_BIN \"-env:UserInstallation=file://\$PROFILE_DIR\" --invisible --headless --norestore --convert-to pdf --outdir \"\$OUT_DIR\" \"$PPTX_PATH\""
+RAW_FONT_CMD_1="PROFILE_DIR=\"\$(mktemp -d \"$TMP_DIR/soffice_profile.font.XXXXXX\")\""
+RAW_FONT_CMD_2="OUT_DIR=\"\$(mktemp -d \"$TMP_DIR/soffice_convert.font.XXXXXX\")\""
+RAW_FONT_CMD_3="$SOFFICE_BIN \"-env:UserInstallation=file://\$PROFILE_DIR\" --invisible --headless --norestore --convert-to odp --outdir \"\$OUT_DIR\" \"$PPTX_PATH\""
+MANUAL_RENDER_STEP="unset CODEX_THREAD_ID CODEX_SHELL && TMPDIR=\"$TMP_DIR\" TMP=\"$TMP_DIR\" TEMP=\"$TMP_DIR\" SAL_USE_VCLPLUGIN=svp \"$VENV_PYTHON\" \"$SKILL_SCRIPTS_DIR/render_slides.py\" \"$PPTX_PATH\" --output_dir \"$RENDERED_DIR\""
+MANUAL_OVERFLOW_STEP="unset CODEX_THREAD_ID CODEX_SHELL && TMPDIR=\"$TMP_DIR\" TMP=\"$TMP_DIR\" TEMP=\"$TMP_DIR\" SAL_USE_VCLPLUGIN=svp \"$VENV_PYTHON\" \"$SKILL_SCRIPTS_DIR/slides_test.py\" \"$PPTX_PATH\""
+MANUAL_MONTAGE_STEP="unset CODEX_THREAD_ID CODEX_SHELL && TMPDIR=\"$TMP_DIR\" TMP=\"$TMP_DIR\" TEMP=\"$TMP_DIR\" SAL_USE_VCLPLUGIN=svp \"$VENV_PYTHON\" \"$SKILL_SCRIPTS_DIR/create_montage.py\" --input_dir \"$RENDERED_DIR\" --output_file \"$MONTAGE_PATH\""
+MANUAL_FONT_STEP="unset CODEX_THREAD_ID CODEX_SHELL && TMPDIR=\"$TMP_DIR\" TMP=\"$TMP_DIR\" TEMP=\"$TMP_DIR\" SAL_USE_VCLPLUGIN=svp /bin/bash -lc 'set -o pipefail; \"$VENV_PYTHON\" \"$SKILL_SCRIPTS_DIR/detect_font.py\" \"$PPTX_PATH\" --json | tee \"$FONT_JSON_PATH\"'"
 
 if ! bash "$SKILL_SCRIPTS_DIR/ensure_deck_root.sh" "$DECK_ROOT" --quiet; then
   echo "Deck root preflight failed. See $ROOT_STATE_FILE." >&2
@@ -195,6 +219,40 @@ append_blocked_section() {
     echo
     echo "- Status: HUMAN-IN-THE-LOOP"
     echo "- Reason: $reason"
+    echo
+  } >> "$REPORT_PATH"
+}
+
+append_local_terminal_commands() {
+  {
+    echo "## Local Terminal Commands"
+    echo
+    echo "- Recommended: rerun the full validation wrapper from a local terminal."
+    echo
+    echo '```bash'
+    echo "$LOCAL_VALIDATE_CMD"
+    echo '```'
+    echo
+    echo "- Step-by-step local validation commands:"
+    echo
+    echo '```bash'
+    echo "$MANUAL_RENDER_STEP"
+    echo "$MANUAL_OVERFLOW_STEP"
+    echo "$MANUAL_MONTAGE_STEP"
+    echo "$MANUAL_FONT_STEP"
+    echo '```'
+    echo
+    echo "- Raw LibreOffice commands used by the blocked render/font-export steps:"
+    echo
+    echo '```bash'
+    echo "$RAW_RENDER_CMD_1"
+    echo "$RAW_RENDER_CMD_2"
+    echo "$RAW_RENDER_CMD_3"
+    echo
+    echo "$RAW_FONT_CMD_1"
+    echo "$RAW_FONT_CMD_2"
+    echo "$RAW_FONT_CMD_3"
+    echo '```'
     echo
   } >> "$REPORT_PATH"
 }
@@ -366,6 +424,10 @@ fi
   echo
 } >> "$REPORT_PATH"
 
+if [[ "$BLOCKED_STEPS" -ne 0 ]]; then
+  append_local_terminal_commands
+fi
+
 if [[ "$FAILED_STEPS" -ne 0 || "$BLOCKED_STEPS" -ne 0 || "$SKIPPED_STEPS" -ne 0 ]]; then
   {
     echo "## Summary"
@@ -407,6 +469,21 @@ if [[ "$FAILED_STEPS" -ne 0 ]]; then
 fi
 
 if [[ "$BLOCKED_STEPS" -ne 0 ]]; then
+  if running_in_codex_shell; then
+    echo "Validation incomplete. Human-in-the-loop steps remain."
+    echo "Markdown report: $REPORT_PATH"
+    echo "Run this from a local terminal to finish validation:"
+    echo "$LOCAL_VALIDATE_CMD"
+    echo "If you need the raw LibreOffice commands, run:"
+    echo "$RAW_RENDER_CMD_1"
+    echo "$RAW_RENDER_CMD_2"
+    echo "$RAW_RENDER_CMD_3"
+    echo "$RAW_FONT_CMD_1"
+    echo "$RAW_FONT_CMD_2"
+    echo "$RAW_FONT_CMD_3"
+    exit 0
+  fi
+
   echo "Validation incomplete. Human-in-the-loop steps remain." >&2
   echo "Markdown report: $REPORT_PATH" >&2
   exit 1

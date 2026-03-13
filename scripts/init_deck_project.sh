@@ -75,6 +75,19 @@ if [[ "$bootstrap_exit" -ne 0 ]]; then
   echo "See ${PROJECT_DIR}/.ai-native-slides/state.json for the next repair steps." >&2
 fi
 
+declare -a missing_project_content=()
+if [[ ! -f "${PROJECT_DIR}/src/buildDeck.ts" ]]; then
+  missing_project_content+=("src/buildDeck.ts")
+fi
+
+if [[ ! -f "${PROJECT_DIR}/src/presentationModel.ts" ]]; then
+  missing_project_content+=("src/presentationModel.ts")
+fi
+
+if ! find "${PROJECT_DIR}/tests" -type f \( -name '*.test.ts' -o -name '*.spec.ts' \) | grep -q .; then
+  missing_project_content+=("tests/buildDeck.test.ts")
+fi
+
 cat <<EOF
 Project scaffold initialized: $PROJECT_DIR
 Template-managed files:
@@ -85,9 +98,20 @@ Template-managed files:
 - run-project.sh
 - validate-local.sh
 - src/main.ts
+EOF
 
-Generate these project-content files next from the user's prompt:
+if [[ "${#missing_project_content[@]}" -eq 0 ]]; then
+  cat <<EOF
+
+Project content already exists. Existing prompt-generated files were left untouched:
 - src/buildDeck.ts
 - src/presentationModel.ts
 - tests/buildDeck.test.ts
 EOF
+else
+  echo
+  echo "Generate these remaining project-content files next from the user's prompt:"
+  for path in "${missing_project_content[@]}"; do
+    echo "- ${path}"
+  done
+fi

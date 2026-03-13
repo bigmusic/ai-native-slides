@@ -126,6 +126,8 @@ cd /path/to/deck-root/projects/my-new-deck
 pnpm validate
 ```
 
+Inside Codex, `pnpm validate` still writes an `INCOMPLETE (human-in-the-loop required)` report, but it exits successfully when the only blocked steps are the expected LibreOffice-backed ones. Real lint/typecheck/test/build failures still exit non-zero.
+
 ## Human-In-The-Loop Steps
 
 Shared runtime installation uses `pnpm install` at the deck root. The bootstrap now writes `.npmrc` with `store-dir=.pnpm-store`, so that install stays inside the deck root. In sandboxed Codex sessions, `repair_deck_root.sh` still treats that install as human-in-the-loop and tells the user to run it from a local terminal.

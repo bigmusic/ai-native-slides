@@ -41,7 +41,7 @@ fi
 
 echo "Bootstrapping project files..."
 set +e
-bash "${SCRIPT_DIR}/bootstrap_deck_workspace.sh" "$PROJECT_DIR"
+bash "${SCRIPT_DIR}/bootstrap_deck_workspace.sh" "$PROJECT_DIR" --force
 project_bootstrap_exit=$?
 set -e
 
