@@ -51,8 +51,10 @@ fi
 STATE_DIR="${PROJECT_DIR}/.ai-native-slides"
 STATE_FILE="${STATE_DIR}/state.json"
 PROJECT_METADATA_FILE="$(project_metadata_path "$PROJECT_DIR")"
+PROJECT_GITIGNORE="${PROJECT_DIR}/.gitignore"
 PACKAGE_JSON="${PROJECT_DIR}/package.json"
 TSCONFIG_JSON="${PROJECT_DIR}/tsconfig.json"
+VITEST_CONFIG="${PROJECT_DIR}/vitest.config.ts"
 SRC_MAIN_TS="${PROJECT_DIR}/src/main.ts"
 BUILD_DECK_TS="${PROJECT_DIR}/src/buildDeck.ts"
 PRESENTATION_MODEL_TS="${PROJECT_DIR}/src/presentationModel.ts"
@@ -72,8 +74,21 @@ ROOT_HELPERS="${DECK_ROOT}/assets/pptxgenjs_helpers/index.js"
 ROOT_NODE_MODULES="${DECK_ROOT}/node_modules"
 ROOT_VENV_PYTHON="${DECK_ROOT}/.venv/bin/python"
 CHECKED_AT="$(date '+%Y-%m-%dT%H:%M:%S%z')"
+TEMPLATE_ROOT="${SKILL_ROOT}/assets/templates"
+PROJECT_GITIGNORE_TEMPLATE="${TEMPLATE_ROOT}/.gitignore"
+PACKAGE_TEMPLATE="${TEMPLATE_ROOT}/package.json"
+PROJECT_TSCONFIG_TEMPLATE="${TEMPLATE_ROOT}/tsconfig.json"
+PROJECT_VITEST_CONFIG_TEMPLATE="${TEMPLATE_ROOT}/vitest.config.ts"
+RUN_PROJECT_TEMPLATE="${TEMPLATE_ROOT}/run-project.sh"
+VALIDATE_TEMPLATE="${TEMPLATE_ROOT}/validate-local.sh"
+MAIN_TEMPLATE="${TEMPLATE_ROOT}/src/main.ts"
 
 mkdir -p "$STATE_DIR"
+
+PROJECT_NAME_HINT="$(existing_json_string_field "$PROJECT_METADATA_FILE" "project_name" || true)"
+if [[ -z "$PROJECT_NAME_HINT" ]]; then
+  PROJECT_NAME_HINT="$(basename "$PROJECT_DIR")"
+fi
 
 json_escape() {
   local value="$1"
@@ -100,6 +115,12 @@ add_suggestion() {
 package_script_present() {
   local script_name="$1"
   [[ -f "$PACKAGE_JSON" ]] && grep -Eq "\"${script_name}\"[[:space:]]*:" "$PACKAGE_JSON"
+}
+
+template_file_matches() {
+  local template_path="$1"
+  local dest_path="$2"
+  [[ -f "$template_path" ]] && [[ -f "$dest_path" ]] && cmp -s "$template_path" "$dest_path"
 }
 
 declare -a MISSING_ITEMS=()
@@ -129,26 +150,28 @@ if [[ "$ROOT_DETECTED" == true ]]; then
     ROOT_READY=true
   else
     add_missing "shared deck root is not ready"
-    add_suggestion "Run \`bash \"$SKILL_ROOT/scripts/repair_deck_root.sh\" \"$DECK_ROOT\"\` to repair shared dependencies."
+    add_suggestion "Run \`bash \"$SKILL_ROOT/scripts/init_deck_root.sh\" \"$DECK_ROOT\"\` to initialize shared dependencies."
   fi
+fi
+
+PROJECT_GITIGNORE_PRESENT=false
+if [[ -f "$PROJECT_GITIGNORE" ]]; then PROJECT_GITIGNORE_PRESENT=true; else
+  add_missing "project .gitignore is missing"
 fi
 
 PROJECT_METADATA_PRESENT=false
 if [[ -f "$PROJECT_METADATA_FILE" ]]; then PROJECT_METADATA_PRESENT=true; else
   add_missing "project metadata is missing"
-  add_suggestion "Run \`bash \"$SKILL_ROOT/scripts/bootstrap_deck_workspace.sh\" \"$PROJECT_DIR\" --force\` to refresh project bootstrap files."
 fi
 
 PACKAGE_JSON_PRESENT=false
 if [[ -f "$PACKAGE_JSON" ]]; then PACKAGE_JSON_PRESENT=true; else
   add_missing "project package.json is missing"
-  add_suggestion "Run \`bash \"$SKILL_ROOT/scripts/bootstrap_deck_workspace.sh\" \"$PROJECT_DIR\"\` to scaffold the project files."
 fi
 
 BUILD_SCRIPT_PRESENT=false
 if package_script_present "build"; then BUILD_SCRIPT_PRESENT=true; else
   add_missing "project package.json does not define a build script"
-  add_suggestion "Run \`bash \"$SKILL_ROOT/scripts/bootstrap_deck_workspace.sh\" \"$PROJECT_DIR\" --force\` to restore the project runner scripts."
 fi
 
 LINT_SCRIPT_PRESENT=false
@@ -171,28 +194,78 @@ if package_script_present "validate"; then VALIDATE_SCRIPT_PRESENT=true; else
   add_missing "project package.json does not define a validate script"
 fi
 
+VITEST_CONFIG_PRESENT=false
+if [[ -f "$VITEST_CONFIG" ]]; then VITEST_CONFIG_PRESENT=true; else
+  add_missing "project vitest.config.ts is missing"
+fi
+
 RUNNER_PRESENT=false
 if [[ -x "$RUN_PROJECT_SCRIPT" ]]; then RUNNER_PRESENT=true; else
   add_missing "run-project.sh is missing or not executable"
-  add_suggestion "Run \`bash \"$SKILL_ROOT/scripts/bootstrap_deck_workspace.sh\" \"$PROJECT_DIR\" --force\` to restore it."
 fi
 
 VALIDATE_WRAPPER_PRESENT=false
 if [[ -x "$VALIDATE_SCRIPT" ]]; then VALIDATE_WRAPPER_PRESENT=true; else
   add_missing "validate-local.sh is missing or not executable"
-  add_suggestion "Run \`bash \"$SKILL_ROOT/scripts/bootstrap_deck_workspace.sh\" \"$PROJECT_DIR\" --force\` to restore it."
 fi
 
 DECK_ENTRY_PRESENT=false
 if [[ -f "$SRC_MAIN_TS" ]]; then DECK_ENTRY_PRESENT=true; else
   add_missing "src/main.ts is missing"
-  add_suggestion "Run \`bash \"$SKILL_ROOT/scripts/bootstrap_deck_workspace.sh\" \"$PROJECT_DIR\"\` to scaffold the project entrypoint."
 fi
 
 TSCONFIG_PRESENT=false
 if [[ -f "$TSCONFIG_JSON" ]]; then TSCONFIG_PRESENT=true; else
   add_missing "project tsconfig.json is missing"
-  add_suggestion "Run \`bash \"$SKILL_ROOT/scripts/bootstrap_deck_workspace.sh\" \"$PROJECT_DIR\"\` to scaffold the project tsconfig."
+fi
+
+PROJECT_GITIGNORE_SYNCED=false
+if template_file_matches "$PROJECT_GITIGNORE_TEMPLATE" "$PROJECT_GITIGNORE"; then
+  PROJECT_GITIGNORE_SYNCED=true
+elif [[ "$PROJECT_GITIGNORE_PRESENT" == true ]]; then
+  add_warning "project .gitignore differs from the template-managed version"
+fi
+
+PACKAGE_JSON_SYNCED=false
+if template_file_matches "$PACKAGE_TEMPLATE" "$PACKAGE_JSON"; then
+  PACKAGE_JSON_SYNCED=true
+elif [[ "$PACKAGE_JSON_PRESENT" == true ]]; then
+  add_warning "project package.json differs from the template-managed version"
+fi
+
+TSCONFIG_SYNCED=false
+if template_file_matches "$PROJECT_TSCONFIG_TEMPLATE" "$TSCONFIG_JSON"; then
+  TSCONFIG_SYNCED=true
+elif [[ "$TSCONFIG_PRESENT" == true ]]; then
+  add_warning "project tsconfig.json differs from the template-managed version"
+fi
+
+VITEST_CONFIG_SYNCED=false
+if template_file_matches "$PROJECT_VITEST_CONFIG_TEMPLATE" "$VITEST_CONFIG"; then
+  VITEST_CONFIG_SYNCED=true
+elif [[ "$VITEST_CONFIG_PRESENT" == true ]]; then
+  add_warning "project vitest.config.ts differs from the template-managed version"
+fi
+
+RUNNER_SYNCED=false
+if template_file_matches "$RUN_PROJECT_TEMPLATE" "$RUN_PROJECT_SCRIPT"; then
+  RUNNER_SYNCED=true
+elif [[ -f "$RUN_PROJECT_SCRIPT" ]]; then
+  add_warning "run-project.sh differs from the template-managed version"
+fi
+
+VALIDATE_WRAPPER_SYNCED=false
+if template_file_matches "$VALIDATE_TEMPLATE" "$VALIDATE_SCRIPT"; then
+  VALIDATE_WRAPPER_SYNCED=true
+elif [[ -f "$VALIDATE_SCRIPT" ]]; then
+  add_warning "validate-local.sh differs from the template-managed version"
+fi
+
+DECK_ENTRY_SYNCED=false
+if template_file_matches "$MAIN_TEMPLATE" "$SRC_MAIN_TS"; then
+  DECK_ENTRY_SYNCED=true
+elif [[ "$DECK_ENTRY_PRESENT" == true ]]; then
+  add_warning "src/main.ts differs from the template-managed version"
 fi
 
 BUILD_DECK_PRESENT=false
@@ -261,34 +334,56 @@ if [[ "$LEGACY_RENDERED_DIR_PRESENT" == true ]] || \
    [[ "$LEGACY_VITE_CACHE_PRESENT" == true ]] || \
    [[ "$LEGACY_VITE_TEMP_PRESENT" == true ]] || \
    [[ "$EMPTY_PROJECT_NODE_MODULES_PRESENT" == true ]]; then
-  add_suggestion "Run \`bash \"$SKILL_ROOT/scripts/clean_deck_project.sh\" \"$PROJECT_DIR\"\` to remove legacy generated directories and caches."
+  add_suggestion "Legacy generated directories from an older layout are present. If you are maintaining or migrating this project, see \`$SKILL_ROOT/scripts/maintenance/maintenance-workflow.md\`."
 fi
 
 PROJECT_READY=false
 if [[ "$ROOT_DETECTED" == true ]] && \
    [[ "$ROOT_READY" == true ]] && \
+   [[ "$PROJECT_GITIGNORE_PRESENT" == true ]] && \
+   [[ "$PROJECT_GITIGNORE_SYNCED" == true ]] && \
    [[ "$PROJECT_METADATA_PRESENT" == true ]] && \
    [[ "$PACKAGE_JSON_PRESENT" == true ]] && \
+   [[ "$PACKAGE_JSON_SYNCED" == true ]] && \
    [[ "$BUILD_SCRIPT_PRESENT" == true ]] && \
    [[ "$LINT_SCRIPT_PRESENT" == true ]] && \
    [[ "$TYPECHECK_SCRIPT_PRESENT" == true ]] && \
    [[ "$TEST_SCRIPT_PRESENT" == true ]] && \
    [[ "$VALIDATE_SCRIPT_PRESENT" == true ]] && \
+   [[ "$VITEST_CONFIG_PRESENT" == true ]] && \
+   [[ "$VITEST_CONFIG_SYNCED" == true ]] && \
    [[ "$RUNNER_PRESENT" == true ]] && \
+   [[ "$RUNNER_SYNCED" == true ]] && \
    [[ "$VALIDATE_WRAPPER_PRESENT" == true ]] && \
+   [[ "$VALIDATE_WRAPPER_SYNCED" == true ]] && \
    [[ "$DECK_ENTRY_PRESENT" == true ]] && \
-   [[ "$TSCONFIG_PRESENT" == true ]]; then
+   [[ "$DECK_ENTRY_SYNCED" == true ]] && \
+   [[ "$TSCONFIG_PRESENT" == true ]] && \
+   [[ "$TSCONFIG_SYNCED" == true ]]; then
   PROJECT_READY=true
 fi
 
 BOOTSTRAP_COMPLETE=false
-if [[ "$PROJECT_METADATA_PRESENT" == true ]] && \
+if [[ "$PROJECT_GITIGNORE_PRESENT" == true ]] && \
+   [[ "$PROJECT_GITIGNORE_SYNCED" == true ]] && \
+   [[ "$PROJECT_METADATA_PRESENT" == true ]] && \
    [[ "$PACKAGE_JSON_PRESENT" == true ]] && \
+   [[ "$PACKAGE_JSON_SYNCED" == true ]] && \
+   [[ "$VITEST_CONFIG_PRESENT" == true ]] && \
+   [[ "$VITEST_CONFIG_SYNCED" == true ]] && \
    [[ "$RUNNER_PRESENT" == true ]] && \
+   [[ "$RUNNER_SYNCED" == true ]] && \
    [[ "$VALIDATE_WRAPPER_PRESENT" == true ]] && \
+   [[ "$VALIDATE_WRAPPER_SYNCED" == true ]] && \
    [[ "$DECK_ENTRY_PRESENT" == true ]] && \
-   [[ "$TSCONFIG_PRESENT" == true ]]; then
+   [[ "$DECK_ENTRY_SYNCED" == true ]] && \
+   [[ "$TSCONFIG_PRESENT" == true ]] && \
+   [[ "$TSCONFIG_SYNCED" == true ]]; then
   BOOTSTRAP_COMPLETE=true
+fi
+
+if [[ "$ROOT_DETECTED" == true ]] && [[ "$BOOTSTRAP_COMPLETE" != true ]]; then
+  add_suggestion "Run \`bash \"$SKILL_ROOT/scripts/init_deck_project.sh\" \"$DECK_ROOT\" \"$PROJECT_NAME_HINT\"\` to refresh template-managed project files."
 fi
 
 CONTENT_READY=false
@@ -317,21 +412,30 @@ fi
   echo "  \"status\": {"
   echo "    \"root_detected\": ${ROOT_DETECTED},"
   echo "    \"root_ready\": ${ROOT_READY},"
+  echo "    \"project_gitignore_present\": ${PROJECT_GITIGNORE_PRESENT},"
+  echo "    \"project_gitignore_synced\": ${PROJECT_GITIGNORE_SYNCED},"
   echo "    \"project_metadata_present\": ${PROJECT_METADATA_PRESENT},"
   echo "    \"package_json_present\": ${PACKAGE_JSON_PRESENT},"
+  echo "    \"package_json_synced\": ${PACKAGE_JSON_SYNCED},"
   echo "    \"build_script_present\": ${BUILD_SCRIPT_PRESENT},"
   echo "    \"lint_script_present\": ${LINT_SCRIPT_PRESENT},"
   echo "    \"typecheck_script_present\": ${TYPECHECK_SCRIPT_PRESENT},"
   echo "    \"test_script_present\": ${TEST_SCRIPT_PRESENT},"
   echo "    \"validate_script_present\": ${VALIDATE_SCRIPT_PRESENT},"
-    echo "    \"runner_present\": ${RUNNER_PRESENT},"
-    echo "    \"validate_wrapper_present\": ${VALIDATE_WRAPPER_PRESENT},"
-    echo "    \"deck_entry_present\": ${DECK_ENTRY_PRESENT},"
-    echo "    \"tsconfig_present\": ${TSCONFIG_PRESENT},"
-    echo "    \"build_deck_present\": ${BUILD_DECK_PRESENT},"
-    echo "    \"presentation_model_present\": ${PRESENTATION_MODEL_PRESENT},"
-    echo "    \"content_tests_present\": ${CONTENT_TESTS_PRESENT},"
-    echo "    \"root_package_present\": ${ROOT_PACKAGE_PRESENT},"
+  echo "    \"vitest_config_present\": ${VITEST_CONFIG_PRESENT},"
+  echo "    \"vitest_config_synced\": ${VITEST_CONFIG_SYNCED},"
+  echo "    \"runner_present\": ${RUNNER_PRESENT},"
+  echo "    \"runner_synced\": ${RUNNER_SYNCED},"
+  echo "    \"validate_wrapper_present\": ${VALIDATE_WRAPPER_PRESENT},"
+  echo "    \"validate_wrapper_synced\": ${VALIDATE_WRAPPER_SYNCED},"
+  echo "    \"deck_entry_present\": ${DECK_ENTRY_PRESENT},"
+  echo "    \"deck_entry_synced\": ${DECK_ENTRY_SYNCED},"
+  echo "    \"tsconfig_present\": ${TSCONFIG_PRESENT},"
+  echo "    \"tsconfig_synced\": ${TSCONFIG_SYNCED},"
+  echo "    \"build_deck_present\": ${BUILD_DECK_PRESENT},"
+  echo "    \"presentation_model_present\": ${PRESENTATION_MODEL_PRESENT},"
+  echo "    \"content_tests_present\": ${CONTENT_TESTS_PRESENT},"
+  echo "    \"root_package_present\": ${ROOT_PACKAGE_PRESENT},"
   echo "    \"root_biome_present\": ${ROOT_BIOME_PRESENT},"
   echo "    \"root_tsconfig_base_present\": ${ROOT_TSCONFIG_BASE_PRESENT},"
   echo "    \"root_helpers_present\": ${ROOT_HELPERS_PRESENT},"

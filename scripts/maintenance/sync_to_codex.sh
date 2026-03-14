@@ -2,7 +2,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 CODEX_HOME_DIR="${CODEX_HOME:-${HOME}/.codex}"
 DEST_DIR="${CODEX_HOME_DIR}/skills/ai-native-slides"
 

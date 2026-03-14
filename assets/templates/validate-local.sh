@@ -145,7 +145,7 @@ if ! bash "$SKILL_SCRIPTS_DIR/ensure_deck_root.sh" "$DECK_ROOT" --quiet; then
   exit 1
 fi
 
-if ! bash "$SKILL_SCRIPTS_DIR/ensure_deck_workspace.sh" "$PROJECT_DIR" --quiet; then
+if ! bash "$SKILL_SCRIPTS_DIR/ensure_deck_project.sh" "$PROJECT_DIR" --quiet; then
   echo "Project preflight failed. See $PROJECT_STATE_FILE." >&2
   exit 1
 fi
@@ -347,6 +347,29 @@ run_step_with_classification() {
   return 1
 }
 
+openxml_geometry_sanity_check() {
+  local unpack_dir
+  local negative_geometry_log
+  unpack_dir="$(mktemp -d "$TMPDIR/openxml_sanity.XXXXXX")"
+  negative_geometry_log="$TMPDIR/openxml_negative_geometry.log"
+
+  unzip -qq "$PPTX_PATH" -d "$unpack_dir"
+
+  if rg -n \
+    'a:(off|ext|chOff|chExt) (x|cx)="-[0-9]+|a:(off|ext|chOff|chExt) (x|cx)="[0-9]+" (y|cy)="-[0-9]+' \
+    "$unpack_dir/ppt" >"$negative_geometry_log"; then
+    echo "Found negative DrawingML geometry values in the generated PPTX:"
+    cat "$negative_geometry_log"
+    rm -rf "$unpack_dir"
+    rm -f "$negative_geometry_log"
+    return 1
+  fi
+
+  rm -rf "$unpack_dir"
+  rm -f "$negative_geometry_log"
+  echo "Open XML geometry sanity check passed."
+}
+
 if ! run_step_with_classification "Versions" \
   /bin/bash -lc "uv --version && soffice --version && '$VENV_PYTHON' --version && pdfinfo -v && pdftoppm -v"; then
   :
@@ -369,6 +392,11 @@ fi
 
 if ! run_step_with_classification "Build Deck" \
   /bin/bash -lc "cd '$PROJECT_DIR' && pnpm build"; then
+  :
+fi
+
+if ! run_step_with_classification "Open XML Sanity" \
+  openxml_geometry_sanity_check; then
   :
 fi
 

@@ -57,5 +57,8 @@ System tools used by the Python scripts:
 - Default to `LAYOUT_WIDE` unless the source material says otherwise.
 - Set font families explicitly before measuring text.
 - Use `valign: "top"` for content boxes that may grow.
+- Never emit negative geometry for shapes or text boxes. In practice this means any derived `x`, `y`, `w`, `h`, or DrawingML extents must stay positive after padding/inset math. Clamp computed sizes with `Math.max(...)` before calling `addText()` or `addShape()`.
+- Be especially careful when deriving body-text height from card height minus fixed offsets. If the available height can go below zero, shrink the font with `autoFontSize()` or increase the container height instead of writing a negative text-box height. macOS PowerPoint may repair and strip content from decks that contain negative DrawingML geometry even when LibreOffice renders them.
+- Treat LibreOffice render success as necessary but not sufficient. A deck can render and still trigger PowerPoint repair if the generated Open XML contains invalid geometry.
 - Prefer native PowerPoint charts over rendered images when the chart is simple and likely to be edited later.
 - Use SVG instead of PNG for diagrams whenever possible.

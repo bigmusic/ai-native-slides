@@ -33,7 +33,8 @@ if [[ -z "$PROJECT_DIR" ]]; then
 fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "${SCRIPT_DIR}/project_lib.sh"
+SCRIPTS_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+source "${SCRIPTS_DIR}/project_lib.sh"
 
 assert_not_project_root "$PROJECT_DIR" "$SCRIPT_DIR"
 

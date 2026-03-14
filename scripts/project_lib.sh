@@ -31,6 +31,29 @@ json_write_string_array_items() {
   done
 }
 
+existing_json_string_field() {
+  local file_path="$1"
+  local field_name="$2"
+
+  if [[ ! -f "$file_path" ]]; then
+    return 1
+  fi
+
+  sed -nE "s/^[[:space:]]*\"${field_name}\"[[:space:]]*:[[:space:]]*\"([^\"]*)\".*/\\1/p" "$file_path" | head -n 1
+}
+
+write_file_if_changed() {
+  local dest_path="$1"
+  local tmp_path="$2"
+
+  if [[ -f "$dest_path" ]] && cmp -s "$dest_path" "$tmp_path"; then
+    rm -f "$tmp_path"
+    return 0
+  fi
+
+  mv "$tmp_path" "$dest_path"
+}
+
 slugify_project_name() {
   local name="$1"
   local slug
@@ -104,17 +127,28 @@ write_root_metadata() {
   local deck_root="$1"
   local metadata_path
   metadata_path="$(root_metadata_path "$deck_root")"
+  local created_at
+  created_at="$(existing_json_string_field "$metadata_path" "created_at" || true)"
+
+  if [[ -z "$created_at" ]]; then
+    created_at="$(date '+%Y-%m-%dT%H:%M:%S%z')"
+  fi
+
+  local tmp_file
+  tmp_file="$(mktemp)"
 
   mkdir -p "$(dirname "$metadata_path")"
 
-  cat > "$metadata_path" <<EOF
+  cat > "$tmp_file" <<EOF
 {
   "layout_version": 2,
   "deck_root": "$(json_escape "$deck_root")",
   "managed_by": "ai-native-slides",
-  "created_at": "$(date '+%Y-%m-%dT%H:%M:%S%z')"
+  "created_at": "$(json_escape "$created_at")"
 }
 EOF
+
+  write_file_if_changed "$metadata_path" "$tmp_file"
 }
 
 write_project_metadata() {
@@ -124,6 +158,8 @@ write_project_metadata() {
   local project_slug="$4"
   local metadata_path
   metadata_path="$(project_metadata_path "$project_dir")"
+  local created_at
+  created_at="$(existing_json_string_field "$metadata_path" "created_at" || true)"
   local template_managed_files=(
     ".gitignore"
     "package.json"
@@ -156,6 +192,13 @@ write_project_metadata() {
     "node_modules/.vite-temp"
   )
 
+  if [[ -z "$created_at" ]]; then
+    created_at="$(date '+%Y-%m-%dT%H:%M:%S%z')"
+  fi
+
+  local tmp_file
+  tmp_file="$(mktemp)"
+
   mkdir -p "$(dirname "$metadata_path")"
 
   {
@@ -181,9 +224,11 @@ write_project_metadata() {
     echo "  \"legacy_cleanup_targets\": ["
     json_write_string_array_items "    " "${legacy_cleanup_targets[@]}"
     echo "  ],"
-    echo "  \"created_at\": \"$(date '+%Y-%m-%dT%H:%M:%S%z')\""
+    echo "  \"created_at\": \"$(json_escape "$created_at")\""
     echo "}"
-  } > "$metadata_path"
+  } > "$tmp_file"
+
+  write_file_if_changed "$metadata_path" "$tmp_file"
 }
 
 assert_not_project_root() {
@@ -207,7 +252,7 @@ assert_not_project_dir() {
   if is_project_dir "$path"; then
     echo "Path looks like a project directory, not a deck root: $path" >&2
     echo "Pass the parent root above \"$path\", or use project-level scripts such as:" >&2
-    echo "bash \"$script_dir/ensure_deck_workspace.sh\" \"$path\"" >&2
+    echo "bash \"$script_dir/ensure_deck_project.sh\" \"$path\"" >&2
     return 1
   fi
 

@@ -44,7 +44,8 @@ PROJECT_ROOT="$(cd "$PROJECT_ROOT" && pwd)"
 
 if is_legacy_deck_workspace "$PROJECT_ROOT"; then
   echo "Path looks like a legacy single-workspace deck: $PROJECT_ROOT" >&2
-  echo "Use migrate_single_workspace_to_project.sh instead of creating a nested project in place." >&2
+  echo "Legacy single-workspace migration is a maintainer operation." >&2
+  echo "See ${SCRIPT_DIR}/maintenance/maintenance-workflow.md for the migration path." >&2
   exit 1
 fi
 

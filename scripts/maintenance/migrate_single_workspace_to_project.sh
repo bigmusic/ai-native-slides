@@ -14,7 +14,8 @@ DECK_ROOT="$1"
 PROJECT_NAME="$2"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "${SCRIPT_DIR}/project_lib.sh"
+SCRIPTS_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+source "${SCRIPTS_DIR}/project_lib.sh"
 
 DECK_ROOT="$(cd "$DECK_ROOT" && pwd)"
 
@@ -68,12 +69,12 @@ done
 rm -f "${DECK_ROOT}/validate-local.sh" "${DECK_ROOT}/run-project.sh" "${DECK_ROOT}/tsconfig.json"
 
 set +e
-bash "${SCRIPT_DIR}/bootstrap_deck_root.sh" "$DECK_ROOT" --force
+bash "${SCRIPTS_DIR}/init_deck_root.sh" "$DECK_ROOT" --force
 root_bootstrap_exit=$?
 set -e
 
 set +e
-bash "${SCRIPT_DIR}/bootstrap_deck_workspace.sh" "$PROJECT_DIR" --force
+bash "${SCRIPTS_DIR}/bootstrap_deck_project.sh" "$PROJECT_DIR" --force
 project_bootstrap_exit=$?
 set -e
 
@@ -84,12 +85,12 @@ find "${PROJECT_DIR}/src" -type f -name '*.ts' -print0 2>/dev/null | while IFS= 
 done
 
 if [[ "$root_bootstrap_exit" -ne 0 ]]; then
-  echo "Shared root bootstrap completed with follow-up suggestions." >&2
+  echo "Shared root initialization completed with follow-up suggestions." >&2
 fi
 
 if [[ "$project_bootstrap_exit" -ne 0 ]]; then
   echo "Project migration completed, but the project is not fully ready yet." >&2
-  echo "See ${PROJECT_DIR}/.ai-native-slides/state.json for the next repair steps." >&2
+  echo "See ${PROJECT_DIR}/.ai-native-slides/state.json for the next follow-up steps." >&2
 fi
 
 echo "Migration complete."

@@ -53,40 +53,49 @@ BIOME_DEST="${DECK_ROOT}/biome.jsonc"
 TSCONFIG_BASE_TEMPLATE="${SKILL_ROOT}/tsconfig.base.json"
 TSCONFIG_BASE_DEST="${DECK_ROOT}/tsconfig.base.json"
 
-copy_rule_file() {
+sync_managed_file() {
   local src="$1"
   local dest="$2"
+  local existed_before=false
 
-  if [[ -e "$dest" && "$FORCE" -ne 1 ]]; then
-    echo "Kept existing ${dest}"
+  if [[ -e "$dest" ]]; then
+    existed_before=true
+  fi
+
+  if [[ -f "$dest" ]] && cmp -s "$src" "$dest"; then
+    echo "Up-to-date ${dest}"
     return
   fi
 
   mkdir -p "$(dirname "$dest")"
   cp "$src" "$dest"
-  echo "Wrote ${dest}"
+  if [[ "$existed_before" == true ]]; then
+    echo "Refreshed ${dest}"
+  else
+    echo "Wrote ${dest}"
+  fi
 }
 
 mkdir -p "${DECK_ROOT}/assets" "${DECK_ROOT}/projects" "${DECK_ROOT}/.ai-native-slides"
 
 if [[ -f "$ROOT_PACKAGE_TEMPLATE" ]]; then
-  copy_rule_file "$ROOT_PACKAGE_TEMPLATE" "$ROOT_PACKAGE_JSON"
+  sync_managed_file "$ROOT_PACKAGE_TEMPLATE" "$ROOT_PACKAGE_JSON"
 fi
 
 if [[ -f "$ROOT_GITIGNORE_TEMPLATE" ]]; then
-  copy_rule_file "$ROOT_GITIGNORE_TEMPLATE" "$ROOT_GITIGNORE_DEST"
+  sync_managed_file "$ROOT_GITIGNORE_TEMPLATE" "$ROOT_GITIGNORE_DEST"
 fi
 
 if [[ -f "$ROOT_NPMRC_TEMPLATE" ]]; then
-  copy_rule_file "$ROOT_NPMRC_TEMPLATE" "$ROOT_NPMRC_DEST"
+  sync_managed_file "$ROOT_NPMRC_TEMPLATE" "$ROOT_NPMRC_DEST"
 fi
 
 if [[ -f "$BIOME_TEMPLATE" ]]; then
-  copy_rule_file "$BIOME_TEMPLATE" "$BIOME_DEST"
+  sync_managed_file "$BIOME_TEMPLATE" "$BIOME_DEST"
 fi
 
 if [[ -f "$TSCONFIG_BASE_TEMPLATE" ]]; then
-  copy_rule_file "$TSCONFIG_BASE_TEMPLATE" "$TSCONFIG_BASE_DEST"
+  sync_managed_file "$TSCONFIG_BASE_TEMPLATE" "$TSCONFIG_BASE_DEST"
 fi
 
 rsync -a --delete "${HELPERS_SRC}/" "${HELPERS_DEST}/"

@@ -12,7 +12,8 @@ fi
 
 PROJECT_DIR="$(cd "$1" && pwd)"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "${SCRIPT_DIR}/project_lib.sh"
+SCRIPTS_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+source "${SCRIPTS_DIR}/project_lib.sh"
 
 assert_not_project_root "$PROJECT_DIR" "$SCRIPT_DIR"
 
@@ -29,31 +30,21 @@ fi
 
 STATE_FILE="${PROJECT_DIR}/.ai-native-slides/state.json"
 
-echo "Bootstrapping shared deck root files..."
-set +e
-bash "${SCRIPT_DIR}/bootstrap_deck_root.sh" "$DECK_ROOT"
-root_bootstrap_exit=$?
-set -e
-
-if [[ "$root_bootstrap_exit" -ne 0 ]]; then
-  echo "Shared root bootstrap reported an incomplete root. Continuing with shared repairs..."
-fi
+echo "Initializing shared deck root..."
+bash "${SCRIPTS_DIR}/init_deck_root.sh" "$DECK_ROOT"
 
 echo "Bootstrapping project files..."
 set +e
-bash "${SCRIPT_DIR}/bootstrap_deck_workspace.sh" "$PROJECT_DIR" --force
+bash "${SCRIPTS_DIR}/bootstrap_deck_project.sh" "$PROJECT_DIR" --force
 project_bootstrap_exit=$?
 set -e
 
 if [[ "$project_bootstrap_exit" -ne 0 ]]; then
-  echo "Project bootstrap reported an incomplete project. Continuing with shared repairs..."
+  echo "Project bootstrap reported an incomplete project. Continuing with project state refresh..."
 fi
 
-echo "Repairing shared root runtime..."
-bash "${SCRIPT_DIR}/repair_deck_root.sh" "$DECK_ROOT"
-
 echo "Refreshing project state..."
-if bash "${SCRIPT_DIR}/ensure_deck_workspace.sh" "$PROJECT_DIR"; then
+if bash "${SCRIPTS_DIR}/ensure_deck_project.sh" "$PROJECT_DIR"; then
   echo "Project repair complete. Project is ready."
   exit 0
 fi

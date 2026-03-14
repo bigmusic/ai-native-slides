@@ -82,18 +82,27 @@ copy_if_missing() {
   echo "Wrote ${dest}"
 }
 
-copy_rule_file() {
+sync_managed_file() {
   local src="$1"
   local dest="$2"
+  local existed_before=false
 
-  if [[ -e "${dest}" && "${FORCE}" -ne 1 ]]; then
-    echo "Kept existing ${dest}"
+  if [[ -e "${dest}" ]]; then
+    existed_before=true
+  fi
+
+  if [[ -f "${dest}" ]] && cmp -s "${src}" "${dest}"; then
+    echo "Up-to-date ${dest}"
     return
   fi
 
   mkdir -p "$(dirname "${dest}")"
   cp "${src}" "${dest}"
-  echo "Wrote ${dest}"
+  if [[ "${existed_before}" == true ]]; then
+    echo "Refreshed ${dest}"
+  else
+    echo "Wrote ${dest}"
+  fi
 }
 
 mkdir -p \
@@ -122,21 +131,17 @@ if [[ ! -f "${RUN_PROJECT_TEMPLATE}" ]]; then
   exit 1
 fi
 
-copy_rule_file "${PROJECT_GITIGNORE_TEMPLATE}" "${PROJECT_GITIGNORE_DEST}"
-copy_rule_file "${PACKAGE_TEMPLATE}" "${PACKAGE_DEST}"
-copy_rule_file "${PROJECT_TSCONFIG_TEMPLATE}" "${PROJECT_TSCONFIG_DEST}"
-copy_rule_file "${PROJECT_VITEST_CONFIG_TEMPLATE}" "${PROJECT_VITEST_CONFIG_DEST}"
-copy_rule_file "${RUN_PROJECT_TEMPLATE}" "${RUN_PROJECT_DEST}"
-copy_rule_file "${MAIN_TEMPLATE}" "${MAIN_DEST}"
+sync_managed_file "${PROJECT_GITIGNORE_TEMPLATE}" "${PROJECT_GITIGNORE_DEST}"
+sync_managed_file "${PACKAGE_TEMPLATE}" "${PACKAGE_DEST}"
+sync_managed_file "${PROJECT_TSCONFIG_TEMPLATE}" "${PROJECT_TSCONFIG_DEST}"
+sync_managed_file "${PROJECT_VITEST_CONFIG_TEMPLATE}" "${PROJECT_VITEST_CONFIG_DEST}"
+sync_managed_file "${RUN_PROJECT_TEMPLATE}" "${RUN_PROJECT_DEST}"
+sync_managed_file "${MAIN_TEMPLATE}" "${MAIN_DEST}"
 chmod +x "${RUN_PROJECT_DEST}"
 
-if [[ -e "${VALIDATE_DEST}" && "${FORCE}" -ne 1 ]]; then
-  echo "Skipped existing ${VALIDATE_DEST}. Re-run with --force to replace it."
-else
-  copy_rule_file "${VALIDATE_TEMPLATE}" "${VALIDATE_DEST}"
-  chmod +x "${VALIDATE_DEST}"
-fi
+sync_managed_file "${VALIDATE_TEMPLATE}" "${VALIDATE_DEST}"
+chmod +x "${VALIDATE_DEST}"
 
 write_project_metadata "$DECK_ROOT" "$DECK_DIR" "$(basename "$DECK_DIR")" "$(basename "$DECK_DIR")"
 
-bash "${SCRIPT_DIR}/ensure_deck_workspace.sh" "${DECK_DIR}"
+bash "${SCRIPT_DIR}/ensure_deck_project.sh" "${DECK_DIR}"

@@ -46,8 +46,13 @@ assert_not_project_dir "$DECK_ROOT" "$SCRIPT_DIR"
 STATE_DIR="${DECK_ROOT}/.ai-native-slides"
 STATE_FILE="${STATE_DIR}/state.json"
 ROOT_METADATA_FILE="$(root_metadata_path "$DECK_ROOT")"
+ROOT_TEMPLATE_DIR="${SKILL_ROOT}/assets/root_templates"
+ROOT_GITIGNORE_TEMPLATE="${ROOT_TEMPLATE_DIR}/.gitignore"
+ROOT_NPMRC_TEMPLATE="${ROOT_TEMPLATE_DIR}/.npmrc"
+ROOT_PACKAGE_TEMPLATE="${ROOT_TEMPLATE_DIR}/package.json"
 HELPERS_SRC="${SKILL_ROOT}/assets/pptxgenjs_helpers"
 HELPERS_DEST="${DECK_ROOT}/assets/pptxgenjs_helpers"
+ROOT_GITIGNORE="${DECK_ROOT}/.gitignore"
 PACKAGE_JSON="${DECK_ROOT}/package.json"
 NPMRC_FILE="${DECK_ROOT}/.npmrc"
 PNPM_LOCK="${DECK_ROOT}/pnpm-lock.yaml"
@@ -61,6 +66,12 @@ mkdir -p "$STATE_DIR"
 
 command_exists() {
   command -v "$1" >/dev/null 2>&1
+}
+
+template_file_matches() {
+  local template_path="$1"
+  local dest_path="$2"
+  [[ -f "$template_path" ]] && [[ -f "$dest_path" ]] && cmp -s "$template_path" "$dest_path"
 }
 
 dir_signature() {
@@ -109,7 +120,12 @@ SKILL_REVISION="$(
 ROOT_METADATA_PRESENT=false
 if [[ -f "$ROOT_METADATA_FILE" ]]; then ROOT_METADATA_PRESENT=true; else
   add_missing "deck root metadata is missing"
-  add_suggestion "Run \`bash \"$SKILL_ROOT/scripts/bootstrap_deck_root.sh\" \"$DECK_ROOT\"\` to initialize the shared deck root."
+  add_suggestion "Run \`bash \"$SKILL_ROOT/scripts/init_deck_root.sh\" \"$DECK_ROOT\"\` to initialize the shared deck root."
+fi
+
+ROOT_GITIGNORE_PRESENT=false
+if [[ -f "$ROOT_GITIGNORE" ]]; then ROOT_GITIGNORE_PRESENT=true; else
+  add_missing "root .gitignore is missing"
 fi
 
 PNPM_PRESENT=false
@@ -151,13 +167,13 @@ fi
 PACKAGE_JSON_PRESENT=false
 if [[ -f "$PACKAGE_JSON" ]]; then PACKAGE_JSON_PRESENT=true; else
   add_missing "root package.json is missing"
-  add_suggestion "Run \`bash \"$SKILL_ROOT/scripts/bootstrap_deck_root.sh\" \"$DECK_ROOT\"\` to scaffold the shared root package."
+  add_suggestion "Run \`bash \"$SKILL_ROOT/scripts/init_deck_root.sh\" \"$DECK_ROOT\"\` to scaffold the shared root package."
 fi
 
 NPMRC_PRESENT=false
 if [[ -f "$NPMRC_FILE" ]]; then NPMRC_PRESENT=true; else
   add_missing "root .npmrc is missing"
-  add_suggestion "Run \`bash \"$SKILL_ROOT/scripts/bootstrap_deck_root.sh\" \"$DECK_ROOT\" --force\` to restore the deck-root pnpm store config."
+  add_suggestion "Run \`bash \"$SKILL_ROOT/scripts/init_deck_root.sh\" \"$DECK_ROOT\"\` to restore the deck-root pnpm store config."
 fi
 
 LOCAL_PNPM_STORE_CONFIGURED=false
@@ -166,7 +182,7 @@ if [[ -f "$NPMRC_FILE" ]] && grep -Eq '^[[:space:]]*store-dir[[:space:]]*=[[:spa
 else
   if [[ "$NPMRC_PRESENT" == true ]]; then
     add_missing "root .npmrc does not configure \`store-dir=.pnpm-store\`"
-    add_suggestion "Run \`bash \"$SKILL_ROOT/scripts/bootstrap_deck_root.sh\" \"$DECK_ROOT\" --force\` to restore the deck-root pnpm store config."
+    add_suggestion "Run \`bash \"$SKILL_ROOT/scripts/init_deck_root.sh\" \"$DECK_ROOT\"\` to restore the deck-root pnpm store config."
   fi
 fi
 
@@ -178,19 +194,54 @@ fi
 BIOME_PRESENT=false
 if [[ -f "$BIOME_CONFIG" ]]; then BIOME_PRESENT=true; else
   add_missing "root biome.jsonc is missing"
-  add_suggestion "Run \`bash \"$SKILL_ROOT/scripts/bootstrap_deck_root.sh\" \"$DECK_ROOT\" --force\` to refresh shared config."
+  add_suggestion "Run \`bash \"$SKILL_ROOT/scripts/init_deck_root.sh\" \"$DECK_ROOT\"\` to refresh shared config."
 fi
 
 TSCONFIG_BASE_PRESENT=false
 if [[ -f "$TSCONFIG_BASE" ]]; then TSCONFIG_BASE_PRESENT=true; else
   add_missing "root tsconfig.base.json is missing"
-  add_suggestion "Run \`bash \"$SKILL_ROOT/scripts/bootstrap_deck_root.sh\" \"$DECK_ROOT\" --force\` to refresh shared config."
+  add_suggestion "Run \`bash \"$SKILL_ROOT/scripts/init_deck_root.sh\" \"$DECK_ROOT\"\` to refresh shared config."
 fi
 
 HELPERS_PRESENT=false
 if [[ -f "${HELPERS_DEST}/index.js" ]]; then HELPERS_PRESENT=true; else
   add_missing "shared helper assets are missing from assets/pptxgenjs_helpers"
-  add_suggestion "Run \`bash \"$SKILL_ROOT/scripts/bootstrap_deck_root.sh\" \"$DECK_ROOT\" --force\` to sync shared helpers."
+  add_suggestion "Run \`bash \"$SKILL_ROOT/scripts/init_deck_root.sh\" \"$DECK_ROOT\"\` to sync shared helpers."
+fi
+
+ROOT_GITIGNORE_SYNCED=false
+if template_file_matches "$ROOT_GITIGNORE_TEMPLATE" "$ROOT_GITIGNORE"; then
+  ROOT_GITIGNORE_SYNCED=true
+elif [[ "$ROOT_GITIGNORE_PRESENT" == true ]]; then
+  add_warning "root .gitignore differs from the template-managed version"
+fi
+
+PACKAGE_JSON_SYNCED=false
+if template_file_matches "$ROOT_PACKAGE_TEMPLATE" "$PACKAGE_JSON"; then
+  PACKAGE_JSON_SYNCED=true
+elif [[ "$PACKAGE_JSON_PRESENT" == true ]]; then
+  add_warning "root package.json differs from the template-managed version"
+fi
+
+NPMRC_SYNCED=false
+if template_file_matches "$ROOT_NPMRC_TEMPLATE" "$NPMRC_FILE"; then
+  NPMRC_SYNCED=true
+elif [[ "$NPMRC_PRESENT" == true ]]; then
+  add_warning "root .npmrc differs from the template-managed version"
+fi
+
+BIOME_SYNCED=false
+if template_file_matches "$SKILL_ROOT/biome.jsonc" "$BIOME_CONFIG"; then
+  BIOME_SYNCED=true
+elif [[ "$BIOME_PRESENT" == true ]]; then
+  add_warning "root biome.jsonc differs from the template-managed version"
+fi
+
+TSCONFIG_BASE_SYNCED=false
+if template_file_matches "$SKILL_ROOT/tsconfig.base.json" "$TSCONFIG_BASE"; then
+  TSCONFIG_BASE_SYNCED=true
+elif [[ "$TSCONFIG_BASE_PRESENT" == true ]]; then
+  add_warning "root tsconfig.base.json differs from the template-managed version"
 fi
 
 HELPERS_SYNCED=false
@@ -201,7 +252,7 @@ if [[ "$SOURCE_HELPERS_SIGNATURE" != "missing" ]] && [[ "$SOURCE_HELPERS_SIGNATU
 else
   if [[ "$DEST_HELPERS_SIGNATURE" != "missing" ]]; then
     add_warning "shared helper assets differ from the installed skill helper assets"
-    add_suggestion "Run \`bash \"$SKILL_ROOT/scripts/bootstrap_deck_root.sh\" \"$DECK_ROOT\" --force\` to resync shared helpers."
+    add_suggestion "Run \`bash \"$SKILL_ROOT/scripts/init_deck_root.sh\" \"$DECK_ROOT\"\` to resync shared helpers."
   fi
 fi
 
@@ -220,7 +271,7 @@ if [[ -d "$NODE_MODULES_DIR/pptxgenjs" ]] && \
   NODE_DEPS_PRESENT=true
 else
   add_missing "shared Node dependencies are not fully installed in root node_modules"
-  add_suggestion "Run \`cd \"$DECK_ROOT\" && pnpm install\` from a local terminal (human-in-the-loop in Codex; uses the deck-root \`.pnpm-store/\` configured in \`.npmrc\`)."
+  add_suggestion "Run \`cd \"$DECK_ROOT\" && pnpm install\` so shared Node dependencies use the deck-root \`.pnpm-store/\` configured in \`.npmrc\`."
 fi
 
 VENV_PYTHON_PRESENT=false
@@ -246,12 +297,19 @@ fi
 
 ROOT_READY=false
 if [[ "$ROOT_METADATA_PRESENT" == true ]] && \
+   [[ "$ROOT_GITIGNORE_PRESENT" == true ]] && \
+   [[ "$ROOT_GITIGNORE_SYNCED" == true ]] && \
    [[ "$PACKAGE_JSON_PRESENT" == true ]] && \
+   [[ "$PACKAGE_JSON_SYNCED" == true ]] && \
    [[ "$NPMRC_PRESENT" == true ]] && \
+   [[ "$NPMRC_SYNCED" == true ]] && \
    [[ "$LOCAL_PNPM_STORE_CONFIGURED" == true ]] && \
    [[ "$BIOME_PRESENT" == true ]] && \
+   [[ "$BIOME_SYNCED" == true ]] && \
    [[ "$TSCONFIG_BASE_PRESENT" == true ]] && \
+   [[ "$TSCONFIG_BASE_SYNCED" == true ]] && \
    [[ "$HELPERS_PRESENT" == true ]] && \
+   [[ "$HELPERS_SYNCED" == true ]] && \
    [[ "$NODE_DEPS_PRESENT" == true ]] && \
    [[ "$VENV_PYTHON_PRESENT" == true ]] && \
    [[ "$PYTHON_PACKAGES_PRESENT" == true ]] && \
@@ -261,17 +319,24 @@ fi
 
 BOOTSTRAP_COMPLETE=false
 if [[ "$ROOT_METADATA_PRESENT" == true ]] && \
+   [[ "$ROOT_GITIGNORE_PRESENT" == true ]] && \
+   [[ "$ROOT_GITIGNORE_SYNCED" == true ]] && \
    [[ "$PACKAGE_JSON_PRESENT" == true ]] && \
+   [[ "$PACKAGE_JSON_SYNCED" == true ]] && \
    [[ "$NPMRC_PRESENT" == true ]] && \
+   [[ "$NPMRC_SYNCED" == true ]] && \
    [[ "$LOCAL_PNPM_STORE_CONFIGURED" == true ]] && \
    [[ "$BIOME_PRESENT" == true ]] && \
+   [[ "$BIOME_SYNCED" == true ]] && \
    [[ "$TSCONFIG_BASE_PRESENT" == true ]] && \
-   [[ "$HELPERS_PRESENT" == true ]]; then
+   [[ "$TSCONFIG_BASE_SYNCED" == true ]] && \
+   [[ "$HELPERS_PRESENT" == true ]] && \
+   [[ "$HELPERS_SYNCED" == true ]]; then
   BOOTSTRAP_COMPLETE=true
 fi
 
 if [[ "$ROOT_READY" != true ]]; then
-  add_suggestion "Run \`bash \"$SKILL_ROOT/scripts/repair_deck_root.sh\" \"$DECK_ROOT\"\` to auto-fix shared dependencies and refresh root state."
+  add_suggestion "Run \`bash \"$SKILL_ROOT/scripts/init_deck_root.sh\" \"$DECK_ROOT\"\` to auto-fix shared dependencies and refresh root state."
 fi
 
 {
@@ -286,12 +351,18 @@ fi
   echo "  \"root_ready\": ${ROOT_READY},"
   echo "  \"status\": {"
   echo "    \"root_metadata_present\": ${ROOT_METADATA_PRESENT},"
+  echo "    \"root_gitignore_present\": ${ROOT_GITIGNORE_PRESENT},"
+  echo "    \"root_gitignore_synced\": ${ROOT_GITIGNORE_SYNCED},"
   echo "    \"package_json_present\": ${PACKAGE_JSON_PRESENT},"
+  echo "    \"package_json_synced\": ${PACKAGE_JSON_SYNCED},"
   echo "    \"npmrc_present\": ${NPMRC_PRESENT},"
+  echo "    \"npmrc_synced\": ${NPMRC_SYNCED},"
   echo "    \"local_pnpm_store_configured\": ${LOCAL_PNPM_STORE_CONFIGURED},"
   echo "    \"pnpm_lock_present\": ${PNPM_LOCK_PRESENT},"
   echo "    \"biome_present\": ${BIOME_PRESENT},"
+  echo "    \"biome_synced\": ${BIOME_SYNCED},"
   echo "    \"tsconfig_base_present\": ${TSCONFIG_BASE_PRESENT},"
+  echo "    \"tsconfig_base_synced\": ${TSCONFIG_BASE_SYNCED},"
   echo "    \"helpers_present\": ${HELPERS_PRESENT},"
   echo "    \"helpers_synced\": ${HELPERS_SYNCED},"
   echo "    \"node_dependencies_installed\": ${NODE_DEPS_PRESENT},"

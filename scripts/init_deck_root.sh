@@ -2,15 +2,37 @@
 set -euo pipefail
 
 usage() {
-  echo "Usage: $0 <deck-root>" >&2
+  echo "Usage: $0 <deck-root> [--force]" >&2
 }
 
-if [[ "$#" -ne 1 ]]; then
+FORCE=0
+DECK_ROOT=""
+
+for arg in "$@"; do
+  case "$arg" in
+    --force)
+      FORCE=1
+      ;;
+    -*)
+      usage
+      exit 1
+      ;;
+    *)
+      if [[ -n "$DECK_ROOT" ]]; then
+        usage
+        exit 1
+      fi
+      DECK_ROOT="$arg"
+      ;;
+  esac
+done
+
+if [[ -z "$DECK_ROOT" ]]; then
   usage
   exit 1
 fi
 
-DECK_ROOT="$(mkdir -p "$1" && cd "$1" && pwd)"
+DECK_ROOT="$(mkdir -p "$DECK_ROOT" && cd "$DECK_ROOT" && pwd)"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/project_lib.sh"
 
@@ -20,11 +42,6 @@ STATE_FILE="${DECK_ROOT}/.ai-native-slides/state.json"
 NODE_MODULES_DIR="${DECK_ROOT}/node_modules"
 VENV_PYTHON="${DECK_ROOT}/.venv/bin/python"
 UV_CACHE_DIR="${DECK_ROOT}/.uv-cache"
-NODE_INSTALL_BLOCKED=false
-
-running_in_codex_shell() {
-  [[ "${CODEX_SHELL:-}" == "1" ]] || [[ -n "${CODEX_THREAD_ID:-}" ]]
-}
 
 require_command() {
   local command_name="$1"
@@ -60,14 +77,19 @@ run_uv() {
   )
 }
 
-echo "Bootstrapping shared deck root files..."
+bootstrap_args=("$DECK_ROOT")
+if [[ "$FORCE" -eq 1 ]]; then
+  bootstrap_args+=("--force")
+fi
+
+echo "Initializing shared deck root files..."
 set +e
-bash "${SCRIPT_DIR}/bootstrap_deck_root.sh" "$DECK_ROOT"
+bash "${SCRIPT_DIR}/bootstrap_deck_root.sh" "${bootstrap_args[@]}"
 bootstrap_exit=$?
 set -e
 
 if [[ "$bootstrap_exit" -ne 0 ]]; then
-  echo "Root bootstrap reported an incomplete deck root. Continuing with shared runtime repairs..."
+  echo "Root bootstrap reported an incomplete deck root. Continuing with shared runtime setup..."
 fi
 
 require_command node
@@ -76,18 +98,11 @@ require_command uv
 mkdir -p "$UV_CACHE_DIR"
 
 if ! node_dependencies_installed; then
-  if running_in_codex_shell; then
-    NODE_INSTALL_BLOCKED=true
-    echo "Shared Node dependencies must be installed from a local terminal when running inside Codex." >&2
-    echo "The deck root is configured to keep pnpm packages in .pnpm-store via .npmrc." >&2
-    echo "Run: cd \"$DECK_ROOT\" && pnpm install" >&2
-  else
-    echo "Installing shared Node dependencies with pnpm..."
-    (
-      cd "$DECK_ROOT"
-      pnpm install
-    )
-  fi
+  echo "Installing shared Node dependencies with pnpm..."
+  (
+    cd "$DECK_ROOT"
+    pnpm install
+  )
 else
   echo "Shared Node dependencies already installed."
 fi
@@ -108,16 +123,10 @@ fi
 
 echo "Refreshing shared root state..."
 if bash "${SCRIPT_DIR}/ensure_deck_root.sh" "$DECK_ROOT"; then
-  echo "Shared root repair complete. Deck root is ready."
+  echo "Shared deck root is ready."
   exit 0
 fi
 
-if [[ "$NODE_INSTALL_BLOCKED" == true ]]; then
-  echo "Shared root repair paused for human-in-the-loop Node install." >&2
-  echo "See ${STATE_FILE}" >&2
-  exit 1
-fi
-
-echo "Shared root repair finished, but manual follow-up is still required." >&2
+echo "Shared deck root initialization finished, but manual follow-up is still required." >&2
 echo "See ${STATE_FILE}" >&2
 exit 1

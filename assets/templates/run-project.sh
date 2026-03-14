@@ -39,7 +39,7 @@ fi
 BIN_DIR="$DECK_ROOT/node_modules/.bin"
 if [[ ! -d "$BIN_DIR" ]]; then
   echo "Missing shared node_modules at: $DECK_ROOT/node_modules" >&2
-  echo "Run 'pnpm install' in the deck root from a local terminal first." >&2
+  echo "Run 'pnpm install' in the deck root first." >&2
   exit 1
 fi
 

@@ -12,11 +12,14 @@ This repository started from a Codex slide-skill template and was then adjusted 
 This repository is the reusable part of the workflow:
 
 - `SKILL.md`: the skill entry point and operating instructions
-- `scripts/`: project setup, repair, cleanup, and validation helpers
+- `scripts/`: user-facing setup and validation helpers
+- `scripts/maintenance/`: internal maintainer tooling, cleanup/migration/sync helpers, and maintainer-only workflow notes
 - `assets/`: shared helpers, templates, and content starters
-- `references/`: workflow notes for project use and skill maintenance
+- `references/`: user-facing workflow notes and helper references
 
 This repository is not intended to hold finished decks, rendered outputs, or local runtime caches.
+
+Normal skill use should start from `SKILL.md` and the user-facing scripts only. Files under `scripts/maintenance/` are not part of the normal deck-authoring workflow; they exist for maintaining the skill itself, validating template recovery paths, migrating older layouts, and syncing or repairing the reusable scaffold layer.
 
 ## How It Is Used With Codex
 
@@ -43,6 +46,7 @@ The skill instructions also separate concerns clearly:
 
 - this repository is the source of truth for the skill
 - deck work should happen in a separate workspace
+- `scripts/maintenance/` is for skill maintainers, not normal skill users
 - local validation may require human-in-the-loop steps when LibreOffice is involved
 
 ## Notes On The Current Setup

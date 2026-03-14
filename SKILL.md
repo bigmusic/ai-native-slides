@@ -7,45 +7,53 @@ description: Create and edit presentation slide decks (`.pptx`) with PptxGenJS, 
 
 ## Overview
 
-Use PptxGenJS for slide authoring. Do not use `python-pptx` for deck generation unless the task is inspection-only; keep editable output in TypeScript and deliver both the `.pptx` and the source `.ts`.
+Use PptxGenJS for slide authoring. Do not use `python-pptx` for deck generation unless the task is inspection-only.
 
-Keep work in a task-local directory. Only copy final artifacts to the requested destination after rendering and validation pass.
-Keep this skill folder reusable: put helpers, scripts, assets, and references here, but keep generated decks and validation outputs in separate task workspaces.
-For ongoing work, prefer a parent deck root that contains one project directory per PPT under `projects/<slug>/`. The shared runtime and shared config live at the deck root; each project directory keeps only project-scoped source, tests, metadata, wrappers, and outputs.
-The deck root bootstrap now also writes a root-local `.npmrc` with `store-dir=.pnpm-store` so shared `pnpm` installs stay inside the deck root instead of reusing a host-global store. The repair flow also pins `uv` cache to `.uv-cache/` under the same deck root.
+Keep editable output in TypeScript and deliver both the `.pptx` and the source `.ts`.
+
+## Workspace Rules
+
+- Keep all deck work under the current workspace's deck root.
+- Use one project directory per deck at `projects/<slug>/`.
+- Keep project-scoped source, tests, metadata, wrappers, outputs, temporary files, renders, and validation artifacts in that project directory.
+- Keep shared runtime and config at the deck root.
+- Use this skill folder only for shared helpers, scripts, assets, and references.
+- Copy final artifacts elsewhere only after rendering and validation pass, and only if the user explicitly asks.
 
 ## Primary Entry Points
 
-- `scripts/init_deck_project.sh`: preferred project initializer for create-or-refresh.
-- `scripts/ensure_deck_root.sh` and `scripts/ensure_deck_workspace.sh`: cheap preflight checks.
-- `scripts/repair_deck_root.sh` and `scripts/repair_deck_workspace.sh`: repair shared runtime or project-scoped bootstrap files.
-- `scripts/clean_deck_project.sh`: remove legacy generated directories such as old `rendered/` folders or project-local `node_modules/.vite*`.
+- `scripts/init_deck_root.sh`: preferred idempotent entry point for creating or refreshing the shared deck root so each new project can rely on a complete shared runtime/config.
+- `scripts/init_deck_project.sh`: preferred idempotent project entry point for create-or-refresh of template-managed project files while preserving prompt-generated deck content.
+- `scripts/ensure_deck_root.sh` and `scripts/ensure_deck_project.sh`: cheap preflight checks.
 - `assets/pptxgenjs_helpers/`: shared helper code copied into the deck root.
 - `assets/templates/`: project-scaffold templates and wrappers copied into each project.
 - `assets/content_starters/`: optional reference starters for prompt-generated deck content.
 
 ## Workflow
 
-1. Inspect the request and determine whether you are creating a new deck, recreating an existing deck, or editing one.
-2. Set the slide size up front. Default to 16:9 (`LAYOUT_WIDE`) unless the source material clearly uses another aspect ratio.
-3. For long-lived work, initialize a project directory under a parent deck root with `scripts/init_deck_project.sh <deck-root> <project-name>`.
-4. Re-run `scripts/ensure_deck_workspace.sh <project-dir>` when reusing an existing project. Read `.ai-native-slides/state.json` to tell apart scaffold readiness from missing project content.
-5. Repair missing runtime or project bootstrap files with the corresponding `repair_*` script. In Codex sessions, `repair_deck_root.sh` and the root-repair portion of `repair_deck_workspace.sh` must stop before `pnpm install`; have the user run that install from a local terminal. LibreOffice-backed validation is also human-in-the-loop in Codex: the validation scripts intentionally block `soffice` there and require a local-terminal rerun.
-6. After the scaffold is ready, generate `src/buildDeck.ts`, `src/presentationModel.ts`, and project tests from the user's prompt.
-7. Build the deck in TypeScript with explicit fonts, stable spacing, and editable PowerPoint-native elements when practical.
-8. Use `pnpm lint`, `pnpm typecheck`, `pnpm test`, and `pnpm build` as the fast local loop. Prefer `pnpm validate` only when you need full render, font, and overflow checks; inside Codex, a blocked validation run should print the local rerun command plus the raw `soffice` command blocks in terminal output, not only in the markdown report.
-9. Deliver the `.pptx`, the authoring `.ts`, and any generated assets required to rebuild the deck.
+1. Use the current workspace as the deck root and decide the project name from the user's prompt.
+2. Use the root scripts as deterministic entry points for the deck root: run `scripts/ensure_deck_root.sh` for preflight, then rerun `scripts/init_deck_root.sh` whenever a new project needs a complete shared runtime/config. This layer handles only root `package.json`, `.npmrc`, shared helpers, root metadata, `node_modules`, and `.venv`, and it is safe to rerun as a converge step.
+3. Use `scripts/init_deck_project.sh <deck-root> <project-name>` as the deterministic entry point for `projects/<slug>/`. Use `scripts/ensure_deck_project.sh` only for cheap preflight or state refresh; if project preflight is incomplete or template-managed files have drifted during edit work, rerun `scripts/init_deck_project.sh` so the project scaffold converges without overwriting prompt-generated deck content. This layer handles only template-managed files, project metadata, and empty project folders such as `src/`, `tests/`, `output/`, `tmp/`, and `assets/`.
+4. Treat `.ai-native-slides/state.json` as the machine-readable record of scaffold state, not as project content.
+5. Let `scripts/init_deck_root.sh` restore the deck-root `.npmrc` and run `pnpm install` in Codex so the shared store stays inside `<deck-root>/.pnpm-store`. LibreOffice-backed validation is still human-in-the-loop in Codex and requires a local-terminal rerun.
+6. After the scaffold is ready, classify the task as create, recreate, or edit.
+7. Set the slide size up front. Default to 16:9 (`LAYOUT_WIDE`) unless the source material clearly uses another aspect ratio.
+8. Generate project content only after both root and project scaffolds are ready. Write `src/buildDeck.ts`, `src/presentationModel.ts`, and project tests from the user's prompt.
+9. Build the deck in TypeScript with explicit fonts, stable spacing, and editable PowerPoint-native elements when practical.
+10. Use `pnpm lint`, `pnpm typecheck`, `pnpm test`, and `pnpm build` as the fast local loop. Prefer `pnpm validate` only when you need full render, font, and overflow checks; inside Codex, a blocked validation run should print the local rerun command plus the raw `soffice` command blocks in terminal output, not only in the markdown report.
+11. Deliver the `.pptx`, the authoring `.ts`, and any generated assets required to rebuild the deck.
 
 ## Load Next
 
-- `references/project-workflow.md`: root/project layout, script boundaries, template-managed files, cleanup rules, and command examples.
+- `references/project-workflow.md`: root/project layout, script boundaries, template-managed files, and command examples.
 - `references/pptxgenjs-helpers.md`: helper API summary, dependency notes, and validation script descriptions.
-- `references/maintenance-workflow.md`: maintainer-only workflow for editing this skill, syncing it into Codex, and validating skill changes.
 
 ## Authoring Rules
 
 - Set theme fonts explicitly. Do not rely on PowerPoint defaults if typography matters.
 - Use `autoFontSize`, `calcTextBox`, and related helpers to size text boxes; do not use PptxGenJS `fit` or `autoFit`.
+- Never generate negative geometry. Any derived `x`, `y`, `w`, `h`, or equivalent DrawingML extents must remain positive after padding, inset, and offset math. Clamp computed sizes with `Math.max(...)`, and if a text area becomes too small, shrink text with `autoFontSize()` or enlarge the container instead of emitting a negative text-box height.
+- Do not treat LibreOffice render success as sufficient proof that the deck is PowerPoint-safe. Invalid Open XML geometry can still trigger macOS PowerPoint repair even when LibreOffice renders the deck.
 - Use bullet options, not literal `•` characters.
 - Use `imageSizingCrop` or `imageSizingContain` instead of PptxGenJS built-in image sizing.
 - Use `latexToSvgDataUri()` for equations and `codeToRuns()` for syntax-highlighted code blocks.
