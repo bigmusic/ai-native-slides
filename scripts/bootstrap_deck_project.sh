@@ -53,7 +53,7 @@ MEDIA_PROVIDER_PROMPT_TEMPLATE="${TEMPLATE_ROOT}/src/deck-spec-module/media/prov
 SPEC_CONTRACT_TEMPLATE="${TEMPLATE_ROOT}/src/spec/contract.ts"
 SPEC_DERIVE_TEMPLATE="${TEMPLATE_ROOT}/src/spec/deriveOutputFileName.ts"
 SPEC_NORMALIZE_TEMPLATE="${TEMPLATE_ROOT}/src/spec/normalizeSystemManagedFields.ts"
-SPEC_PROMOTE_TEMPLATE="${TEMPLATE_ROOT}/src/spec/promoteDeckSpecCandidate.ts"
+SPEC_RUN_TEMPLATE="${TEMPLATE_ROOT}/src/spec/runDeckSpec.ts"
 SPEC_READ_TEMPLATE="${TEMPLATE_ROOT}/src/spec/readDeckSpec.ts"
 SPEC_RENDERER_CONTRACT_TEMPLATE="${TEMPLATE_ROOT}/src/spec/rendererContract.ts"
 SPEC_REVIEW_RENDER_TEMPLATE="${TEMPLATE_ROOT}/src/spec/renderSpecReview.ts"
@@ -78,7 +78,7 @@ MEDIA_PROVIDER_PROMPT_DEST="${DECK_DIR}/src/deck-spec-module/media/providerPromp
 SPEC_CONTRACT_DEST="${DECK_DIR}/src/spec/contract.ts"
 SPEC_DERIVE_DEST="${DECK_DIR}/src/spec/deriveOutputFileName.ts"
 SPEC_NORMALIZE_DEST="${DECK_DIR}/src/spec/normalizeSystemManagedFields.ts"
-SPEC_PROMOTE_DEST="${DECK_DIR}/src/spec/promoteDeckSpecCandidate.ts"
+SPEC_RUN_DEST="${DECK_DIR}/src/spec/runDeckSpec.ts"
 SPEC_READ_DEST="${DECK_DIR}/src/spec/readDeckSpec.ts"
 SPEC_RENDERER_CONTRACT_DEST="${DECK_DIR}/src/spec/rendererContract.ts"
 SPEC_REVIEW_RENDER_DEST="${DECK_DIR}/src/spec/renderSpecReview.ts"
@@ -152,7 +152,7 @@ mkdir -p \
 
 while IFS= read -r template_file; do
   relative_path="${template_file#"${TEMPLATE_ROOT}/"}"
-  if [[ "${relative_path}" == "validate-local.sh" || "${relative_path}" == "run-project.sh" || "${relative_path}" == "package.json" || "${relative_path}" == "tsconfig.json" || "${relative_path}" == "vitest.config.ts" || "${relative_path}" == ".gitignore" || "${relative_path}" == "spec/deck-spec.schema.json" || "${relative_path}" == "src/main.ts" || "${relative_path}" == "src/asset-pipeline/generateMedia.ts" || "${relative_path}" == "src/asset-pipeline/imagePolicy.ts" || "${relative_path}" == "src/asset-pipeline/paths.ts" || "${relative_path}" == "src/deck-spec-module/media/geminiImageProvider.ts" || "${relative_path}" == "src/deck-spec-module/media/providerEnv.ts" || "${relative_path}" == "src/deck-spec-module/media/providerPrompt.ts" || "${relative_path}" == "src/spec/contract.ts" || "${relative_path}" == "src/spec/deriveOutputFileName.ts" || "${relative_path}" == "src/spec/normalizeSystemManagedFields.ts" || "${relative_path}" == "src/spec/promoteDeckSpecCandidate.ts" || "${relative_path}" == "src/spec/readDeckSpec.ts" || "${relative_path}" == "src/spec/rendererContract.ts" || "${relative_path}" == "src/spec/renderSpecReview.ts" || "${relative_path}" == "src/spec/reviewContract.ts" || "${relative_path}" == "src/spec/validateDeckSpec.ts" || "${relative_path}" == "src/spec/validateSpecReview.ts" || "${relative_path}" == "src/spec/writeFileAtomic.ts" ]]; then
+  if [[ "${relative_path}" == "validate-local.sh" || "${relative_path}" == "run-project.sh" || "${relative_path}" == "package.json" || "${relative_path}" == "tsconfig.json" || "${relative_path}" == "vitest.config.ts" || "${relative_path}" == ".gitignore" || "${relative_path}" == "spec/deck-spec.schema.json" || "${relative_path}" == "src/main.ts" || "${relative_path}" == "src/asset-pipeline/generateMedia.ts" || "${relative_path}" == "src/asset-pipeline/imagePolicy.ts" || "${relative_path}" == "src/asset-pipeline/paths.ts" || "${relative_path}" == "src/deck-spec-module/media/geminiImageProvider.ts" || "${relative_path}" == "src/deck-spec-module/media/providerEnv.ts" || "${relative_path}" == "src/deck-spec-module/media/providerPrompt.ts" || "${relative_path}" == "src/spec/contract.ts" || "${relative_path}" == "src/spec/deriveOutputFileName.ts" || "${relative_path}" == "src/spec/normalizeSystemManagedFields.ts" || "${relative_path}" == "src/spec/runDeckSpec.ts" || "${relative_path}" == "src/spec/readDeckSpec.ts" || "${relative_path}" == "src/spec/rendererContract.ts" || "${relative_path}" == "src/spec/renderSpecReview.ts" || "${relative_path}" == "src/spec/reviewContract.ts" || "${relative_path}" == "src/spec/validateDeckSpec.ts" || "${relative_path}" == "src/spec/validateSpecReview.ts" || "${relative_path}" == "src/spec/writeFileAtomic.ts" ]]; then
     continue
   fi
   copy_if_missing "${template_file}" "${DECK_DIR}/${relative_path}"
@@ -184,7 +184,7 @@ sync_managed_file "${MEDIA_PROVIDER_PROMPT_TEMPLATE}" "${MEDIA_PROVIDER_PROMPT_D
 sync_managed_file "${SPEC_CONTRACT_TEMPLATE}" "${SPEC_CONTRACT_DEST}"
 sync_managed_file "${SPEC_DERIVE_TEMPLATE}" "${SPEC_DERIVE_DEST}"
 sync_managed_file "${SPEC_NORMALIZE_TEMPLATE}" "${SPEC_NORMALIZE_DEST}"
-sync_managed_file "${SPEC_PROMOTE_TEMPLATE}" "${SPEC_PROMOTE_DEST}"
+sync_managed_file "${SPEC_RUN_TEMPLATE}" "${SPEC_RUN_DEST}"
 sync_managed_file "${SPEC_READ_TEMPLATE}" "${SPEC_READ_DEST}"
 sync_managed_file "${SPEC_RENDERER_CONTRACT_TEMPLATE}" "${SPEC_RENDERER_CONTRACT_DEST}"
 sync_managed_file "${SPEC_REVIEW_RENDER_TEMPLATE}" "${SPEC_REVIEW_RENDER_DEST}"
@@ -214,6 +214,7 @@ remove_retired_path "${DECK_DIR}/src/deck-spec-module/prompt-interpreter"
 remove_retired_path "${DECK_DIR}/src/deck-spec-module/public-api.ts"
 remove_retired_path "${DECK_DIR}/src/deck-spec-module/review-bridge"
 remove_retired_path "${DECK_DIR}/src/deck-spec-module/reviewing"
+remove_retired_path "${DECK_DIR}/src/spec/promoteDeckSpecCandidate.ts"
 
 write_project_metadata "$DECK_ROOT" "$DECK_DIR" "$(basename "$DECK_DIR")" "$(basename "$DECK_DIR")"
 

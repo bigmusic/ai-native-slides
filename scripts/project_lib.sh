@@ -177,7 +177,7 @@ src/deck-spec-module/media/providerPrompt.ts
 src/spec/contract.ts
 src/spec/deriveOutputFileName.ts
 src/spec/normalizeSystemManagedFields.ts
-src/spec/promoteDeckSpecCandidate.ts
+src/spec/runDeckSpec.ts
 src/spec/readDeckSpec.ts
 src/spec/rendererContract.ts
 src/spec/renderSpecReview.ts

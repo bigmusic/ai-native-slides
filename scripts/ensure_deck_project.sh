@@ -63,7 +63,7 @@ MEDIA_PROVIDER_PROMPT_TS="${PROJECT_DIR}/src/deck-spec-module/media/providerProm
 SPEC_CONTRACT_TS="${PROJECT_DIR}/src/spec/contract.ts"
 SPEC_DERIVE_TS="${PROJECT_DIR}/src/spec/deriveOutputFileName.ts"
 SPEC_NORMALIZE_TS="${PROJECT_DIR}/src/spec/normalizeSystemManagedFields.ts"
-SPEC_PROMOTE_TS="${PROJECT_DIR}/src/spec/promoteDeckSpecCandidate.ts"
+SPEC_RUN_TS="${PROJECT_DIR}/src/spec/runDeckSpec.ts"
 SPEC_READ_TS="${PROJECT_DIR}/src/spec/readDeckSpec.ts"
 SPEC_RENDERER_CONTRACT_TS="${PROJECT_DIR}/src/spec/rendererContract.ts"
 MEDIA_GENERATE_TS="${PROJECT_DIR}/src/asset-pipeline/generateMedia.ts"
@@ -110,7 +110,7 @@ MEDIA_PROVIDER_PROMPT_TEMPLATE="${TEMPLATE_ROOT}/src/deck-spec-module/media/prov
 SPEC_CONTRACT_TEMPLATE="${TEMPLATE_ROOT}/src/spec/contract.ts"
 SPEC_DERIVE_TEMPLATE="${TEMPLATE_ROOT}/src/spec/deriveOutputFileName.ts"
 SPEC_NORMALIZE_TEMPLATE="${TEMPLATE_ROOT}/src/spec/normalizeSystemManagedFields.ts"
-SPEC_PROMOTE_TEMPLATE="${TEMPLATE_ROOT}/src/spec/promoteDeckSpecCandidate.ts"
+SPEC_RUN_TEMPLATE="${TEMPLATE_ROOT}/src/spec/runDeckSpec.ts"
 SPEC_READ_TEMPLATE="${TEMPLATE_ROOT}/src/spec/readDeckSpec.ts"
 SPEC_RENDERER_CONTRACT_TEMPLATE="${TEMPLATE_ROOT}/src/spec/rendererContract.ts"
 SPEC_REVIEW_RENDER_TEMPLATE="${TEMPLATE_ROOT}/src/spec/renderSpecReview.ts"
@@ -341,9 +341,9 @@ if [[ -f "$SPEC_NORMALIZE_TS" ]]; then SPEC_NORMALIZE_PRESENT=true; else
   add_missing "src/spec/normalizeSystemManagedFields.ts is missing"
 fi
 
-SPEC_PROMOTE_PRESENT=false
-if [[ -f "$SPEC_PROMOTE_TS" ]]; then SPEC_PROMOTE_PRESENT=true; else
-  add_missing "src/spec/promoteDeckSpecCandidate.ts is missing"
+SPEC_RUN_PRESENT=false
+if [[ -f "$SPEC_RUN_TS" ]]; then SPEC_RUN_PRESENT=true; else
+  add_missing "src/spec/runDeckSpec.ts is missing"
 fi
 
 SPEC_READ_PRESENT=false
@@ -505,11 +505,11 @@ elif [[ "$SPEC_NORMALIZE_PRESENT" == true ]]; then
   add_warning "src/spec/normalizeSystemManagedFields.ts differs from the template-managed version"
 fi
 
-SPEC_PROMOTE_SYNCED=false
-if template_file_matches "$SPEC_PROMOTE_TEMPLATE" "$SPEC_PROMOTE_TS"; then
-  SPEC_PROMOTE_SYNCED=true
-elif [[ "$SPEC_PROMOTE_PRESENT" == true ]]; then
-  add_warning "src/spec/promoteDeckSpecCandidate.ts differs from the template-managed version"
+SPEC_RUN_SYNCED=false
+if template_file_matches "$SPEC_RUN_TEMPLATE" "$SPEC_RUN_TS"; then
+  SPEC_RUN_SYNCED=true
+elif [[ "$SPEC_RUN_PRESENT" == true ]]; then
+  add_warning "src/spec/runDeckSpec.ts differs from the template-managed version"
 fi
 
 SPEC_READ_SYNCED=false
@@ -675,8 +675,8 @@ if [[ "$ROOT_DETECTED" == true ]] && \
    [[ "$SPEC_DERIVE_SYNCED" == true ]] && \
    [[ "$SPEC_NORMALIZE_PRESENT" == true ]] && \
    [[ "$SPEC_NORMALIZE_SYNCED" == true ]] && \
-   [[ "$SPEC_PROMOTE_PRESENT" == true ]] && \
-   [[ "$SPEC_PROMOTE_SYNCED" == true ]] && \
+   [[ "$SPEC_RUN_PRESENT" == true ]] && \
+   [[ "$SPEC_RUN_SYNCED" == true ]] && \
    [[ "$SPEC_READ_PRESENT" == true ]] && \
    [[ "$SPEC_READ_SYNCED" == true ]] && \
    [[ "$SPEC_RENDERER_CONTRACT_PRESENT" == true ]] && \
@@ -725,8 +725,8 @@ if [[ "$PROJECT_GITIGNORE_PRESENT" == true ]] && \
    [[ "$SPEC_DERIVE_SYNCED" == true ]] && \
    [[ "$SPEC_NORMALIZE_PRESENT" == true ]] && \
    [[ "$SPEC_NORMALIZE_SYNCED" == true ]] && \
-   [[ "$SPEC_PROMOTE_PRESENT" == true ]] && \
-   [[ "$SPEC_PROMOTE_SYNCED" == true ]] && \
+   [[ "$SPEC_RUN_PRESENT" == true ]] && \
+   [[ "$SPEC_RUN_SYNCED" == true ]] && \
    [[ "$SPEC_READ_PRESENT" == true ]] && \
    [[ "$SPEC_READ_SYNCED" == true ]] && \
    [[ "$SPEC_RENDERER_CONTRACT_PRESENT" == true ]] && \
@@ -813,8 +813,8 @@ fi
   echo "    \"spec_derive_synced\": ${SPEC_DERIVE_SYNCED},"
   echo "    \"spec_normalize_present\": ${SPEC_NORMALIZE_PRESENT},"
   echo "    \"spec_normalize_synced\": ${SPEC_NORMALIZE_SYNCED},"
-  echo "    \"spec_promote_present\": ${SPEC_PROMOTE_PRESENT},"
-  echo "    \"spec_promote_synced\": ${SPEC_PROMOTE_SYNCED},"
+  echo "    \"spec_run_present\": ${SPEC_RUN_PRESENT},"
+  echo "    \"spec_run_synced\": ${SPEC_RUN_SYNCED},"
   echo "    \"spec_read_present\": ${SPEC_READ_PRESENT},"
   echo "    \"spec_read_synced\": ${SPEC_READ_SYNCED},"
   echo "    \"spec_renderer_contract_present\": ${SPEC_RENDERER_CONTRACT_PRESENT},"
