@@ -9,10 +9,6 @@ import {
 	planDeckSpecFromPrompt,
 } from "../deck-spec-module/public-api.js";
 import {
-	type LegacySpecPromotionDependencies,
-	runLegacySpecPromotionCli,
-} from "./compat/legacyPromoteDeckSpecCandidate.js";
-import {
 	resolveDeckSpecPath,
 	resolveProjectDir,
 	resolveSpecCandidatePath,
@@ -99,7 +95,6 @@ async function resolvePromptPlanningApiKey(
 export async function runSpecCli(
 	args: string[],
 	io: CliIo = defaultCliIo,
-	legacyDependencies: LegacySpecPromotionDependencies = {},
 ): Promise<number> {
 	const parsedArgs = parseSpecCliArgs(args);
 	if ("error" in parsedArgs) {
@@ -110,7 +105,9 @@ export async function runSpecCli(
 
 	const projectDir = parsedArgs.projectDir;
 	if (typeof parsedArgs.prompt !== "string") {
-		return runLegacySpecPromotionCli(projectDir, io, legacyDependencies);
+		io.stderr("Missing required --prompt value.");
+		io.stderr('Usage: pnpm spec -- --prompt "<prompt>"');
+		return 1;
 	}
 
 	const candidatePath = resolveSpecCandidatePath(projectDir);
@@ -124,7 +121,6 @@ export async function runSpecCli(
 		const apiKey = await resolvePromptPlanningApiKey(projectDir);
 		const deckSpec = await planDeckSpecFromPrompt(parsedArgs.prompt, {
 			apiKey,
-			projectDir,
 			projectSlug: path.basename(projectDir),
 			onDebugResult: parsedArgs.debug
 				? async (result) => {

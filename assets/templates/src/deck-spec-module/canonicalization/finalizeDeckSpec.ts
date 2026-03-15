@@ -1,6 +1,3 @@
-import path from "node:path";
-import process from "node:process";
-
 import deckSpecSchema from "../../../spec/deck-spec.schema.json" with {
 	type: "json",
 };
@@ -24,11 +21,10 @@ import {
 import { createDeterministicSemanticReview } from "../review-bridge/createSemanticReview.js";
 
 export type PlanDeckSpecFromPromptOptions = {
-	projectDir?: string;
-	projectSlug?: string;
+	projectSlug: string;
 	generatedAt?: string;
 	specVersion?: string;
-	apiKey?: string;
+	apiKey: string;
 	model?: string;
 	seed?: number;
 	onDebugResult?: (
@@ -44,10 +40,6 @@ export type PlanDeckSpecFromPromptDebugResult = {
 };
 
 const virtualProjectPrefix = "/virtual";
-
-function resolveProjectDir(projectDir?: string): string {
-	return path.resolve(projectDir ?? process.cwd());
-}
 
 function createPlanningAttemptDiagnostics(
 	input:
@@ -145,17 +137,23 @@ function createSemanticReviewError(
 const geminiApiKeyEnvName = "GEMINI_API_KEY";
 
 function resolvePlannerApiKey(options: PlanDeckSpecFromPromptOptions): string {
-	if (typeof options.apiKey === "string" && options.apiKey.trim().length > 0) {
+	if (options.apiKey.trim().length > 0) {
 		return options.apiKey.trim();
 	}
 
-	const processEnvKey = process.env[geminiApiKeyEnvName]?.trim();
-	if (processEnvKey) {
-		return processEnvKey;
+	throw createPlanningFailureError(
+		`Missing ${geminiApiKeyEnvName}. Pass apiKey in options.`,
+		createPlanningDiagnostics([]),
+	);
+}
+
+function resolveProjectSlug(options: PlanDeckSpecFromPromptOptions): string {
+	if (options.projectSlug.trim().length > 0) {
+		return options.projectSlug.trim();
 	}
 
 	throw createPlanningFailureError(
-		`Missing ${geminiApiKeyEnvName}. Pass apiKey in options or set it in the current shell.`,
+		"Missing projectSlug. Pass projectSlug in options.",
 		createPlanningDiagnostics([]),
 	);
 }
@@ -165,11 +163,8 @@ function normalizeCandidateDeckSpec(
 	options: PlanDeckSpecFromPromptOptions,
 	sourcePrompt: string,
 ): DeckSpec {
-	const resolvedProjectDir = resolveProjectDir(options.projectDir);
-	const projectSlug = options.projectSlug ?? path.basename(resolvedProjectDir);
-
 	return normalizeSystemManagedFields(candidateDocument as DeckSpecCandidate, {
-		projectSlug,
+		projectSlug: resolveProjectSlug(options),
 		sourcePrompt,
 		generatedAt: options.generatedAt,
 		specVersion: options.specVersion,
@@ -239,11 +234,9 @@ async function runPlanningAttempt(
 		options,
 		sourcePrompt,
 	);
-	const projectSlug =
-		options.projectSlug ?? path.basename(resolveProjectDir(options.projectDir));
 	const validationResult = validateCanonicalDeckSpec(
 		candidateDeckSpec,
-		projectSlug,
+		resolveProjectSlug(options),
 	);
 
 	if (!validationResult.ok) {
@@ -279,7 +272,7 @@ async function runPlanningAttempt(
 
 async function planDeckSpecFromPromptDetailed(
 	prompt: string,
-	options: PlanDeckSpecFromPromptOptions = {},
+	options: PlanDeckSpecFromPromptOptions,
 ): Promise<PlanDeckSpecFromPromptDebugResult> {
 	const trimmedPrompt = prompt.trim();
 	if (trimmedPrompt.length < 16) {
@@ -362,7 +355,7 @@ async function planDeckSpecFromPromptDetailed(
 
 export async function planDeckSpecFromPrompt(
 	prompt: string,
-	options: PlanDeckSpecFromPromptOptions = {},
+	options: PlanDeckSpecFromPromptOptions,
 ): Promise<DeckSpec> {
 	const result = await planDeckSpecFromPromptDetailed(prompt, options);
 	await options.onDebugResult?.(result);
