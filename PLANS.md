@@ -1,6 +1,7 @@
 # Execution Plan: Shared Deck-Spec Runtime and Media Materialization
 
 This file is the single source of truth for the current shared-root / shared-package refactor.
+For module-internal design detail, use `/Volumes/BiGROG/skills-test/ai-native-slides/DECK-SPEC-MODULE-MATERIALIZATION.md` as the maintainer-only companion reference for this plan.
 
 ## Context and Orientation
 
@@ -8,6 +9,7 @@ This file is the single source of truth for the current shared-root / shared-pac
 - Skill repo: `/Volumes/BiGROG/skills-test/ai-native-slides`
 - Demo deck root: `/Volumes/BiGROG/skills-test/ai-education-deck`
 - Demo project: `/Volumes/BiGROG/skills-test/ai-education-deck/projects/ai-native-product-deck`
+- Maintainer-only companion design reference: `/Volumes/BiGROG/skills-test/ai-native-slides/DECK-SPEC-MODULE-MATERIALIZATION.md`
 - Development loop:
   - prove behavior in the demo deck root and demo project
   - sync reusable changes back into the skill repo templates, scripts, and docs
@@ -119,6 +121,7 @@ Current open gaps:
 - [x] 2026-03-15 15:37 PDT: aligned `README.md`, `SKILL.md`, and `references/project-workflow.md` with the current code surface so they now describe the shared module as a stateless black box, wrapper-owned path selection, explicit output-path requirements, and non-mutating failure semantics.
 - [x] 2026-03-15 15:57 PDT: expanded this execution plan to cover shared black-box media materialization, phase-aware publish semantics, unified run artifacts, and the requirement for a dedicated design note instead of a second `PLANS.md`.
 - [x] 2026-03-15 16:08 PDT: moved the black-box design note to `/Volumes/BiGROG/skills-test/ai-native-slides/DECK-SPEC-MODULE-MATERIALIZATION.md` so it is clearly maintainer-facing and no longer mixed into user-facing `references/`.
+- [x] 2026-03-15 16:12 PDT: clarified in `PLANS.md` that `DECK-SPEC-MODULE-MATERIALIZATION.md` is the maintainer-only companion design reference for black-box development and should not be surfaced through `SKILL.md`.
 - [ ] 2026-03-15 15:09 PDT: provider-backed acceptance is still open. Current `spec:live` attempts reached the provider path but failed with `planning_failed` (`fetch failed`) and `contract_validation_failed` after fallback repair.
 - [ ] 2026-03-15 15:57 PDT: the design and migration work for moving Gemini text-to-image into the shared black box has started, but the contract, wrappers, tests, and docs are not yet implemented.
 
