@@ -25,6 +25,7 @@ slide-deck workflow with a shared-runtime model:
   - demo deck root: `/Volumes/BiGROG/skills-test/ai-education-deck`
   - demo project: `/Volumes/BiGROG/skills-test/ai-education-deck/projects/ai-native-product-deck`
 - Reusable workflow and scaffold changes should be developed and validated in the demo project first, then synced back into the skill repo templates, scripts, and docs.
+- The active refactor slice replaces the old return-value planner boundary with a shared-root, writer-first deck-spec black box under `packages/deck-spec-module/`; project-local `spec` and planning code are being reduced to thin wrappers that forward into that shared package.
 - Project-local wrappers remain the current stable interface.
   - Users run `pnpm spec -- --prompt "<prompt>"`, `pnpm spec:validate`, `pnpm media`, `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, and `pnpm validate` from the project directory
   - The project still uses the shared root `node_modules/` and root `.venv/`

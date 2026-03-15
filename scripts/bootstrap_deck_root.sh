@@ -43,11 +43,15 @@ ROOT_TEMPLATE_DIR="${SKILL_ROOT}/assets/root_templates"
 ROOT_GITIGNORE_TEMPLATE="${ROOT_TEMPLATE_DIR}/.gitignore"
 ROOT_NPMRC_TEMPLATE="${ROOT_TEMPLATE_DIR}/.npmrc"
 ROOT_PACKAGE_TEMPLATE="${ROOT_TEMPLATE_DIR}/package.json"
+ROOT_WORKSPACE_TEMPLATE="${ROOT_TEMPLATE_DIR}/pnpm-workspace.yaml"
 ROOT_GITIGNORE_DEST="${DECK_ROOT}/.gitignore"
 ROOT_NPMRC_DEST="${DECK_ROOT}/.npmrc"
 ROOT_PACKAGE_JSON="${DECK_ROOT}/package.json"
+ROOT_WORKSPACE_DEST="${DECK_ROOT}/pnpm-workspace.yaml"
 HELPERS_SRC="${SKILL_ROOT}/assets/pptxgenjs_helpers"
 HELPERS_DEST="${DECK_ROOT}/assets/pptxgenjs_helpers"
+ROOT_PACKAGES_SRC="${ROOT_TEMPLATE_DIR}/packages"
+ROOT_PACKAGES_DEST="${DECK_ROOT}/packages"
 BIOME_TEMPLATE="${SKILL_ROOT}/biome.jsonc"
 BIOME_DEST="${DECK_ROOT}/biome.jsonc"
 TSCONFIG_BASE_TEMPLATE="${SKILL_ROOT}/tsconfig.base.json"
@@ -82,6 +86,10 @@ if [[ -f "$ROOT_PACKAGE_TEMPLATE" ]]; then
   sync_managed_file "$ROOT_PACKAGE_TEMPLATE" "$ROOT_PACKAGE_JSON"
 fi
 
+if [[ -f "$ROOT_WORKSPACE_TEMPLATE" ]]; then
+  sync_managed_file "$ROOT_WORKSPACE_TEMPLATE" "$ROOT_WORKSPACE_DEST"
+fi
+
 if [[ -f "$ROOT_GITIGNORE_TEMPLATE" ]]; then
   sync_managed_file "$ROOT_GITIGNORE_TEMPLATE" "$ROOT_GITIGNORE_DEST"
 fi
@@ -99,6 +107,9 @@ if [[ -f "$TSCONFIG_BASE_TEMPLATE" ]]; then
 fi
 
 rsync -a --delete "${HELPERS_SRC}/" "${HELPERS_DEST}/"
+if [[ -d "$ROOT_PACKAGES_SRC" ]]; then
+  rsync -a --delete "${ROOT_PACKAGES_SRC}/" "${ROOT_PACKAGES_DEST}/"
+fi
 write_root_metadata "$DECK_ROOT"
 
 echo "Synced shared helper assets to ${HELPERS_DEST}"

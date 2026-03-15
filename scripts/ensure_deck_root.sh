@@ -50,16 +50,20 @@ ROOT_TEMPLATE_DIR="${SKILL_ROOT}/assets/root_templates"
 ROOT_GITIGNORE_TEMPLATE="${ROOT_TEMPLATE_DIR}/.gitignore"
 ROOT_NPMRC_TEMPLATE="${ROOT_TEMPLATE_DIR}/.npmrc"
 ROOT_PACKAGE_TEMPLATE="${ROOT_TEMPLATE_DIR}/package.json"
+ROOT_WORKSPACE_TEMPLATE="${ROOT_TEMPLATE_DIR}/pnpm-workspace.yaml"
 HELPERS_SRC="${SKILL_ROOT}/assets/pptxgenjs_helpers"
 HELPERS_DEST="${DECK_ROOT}/assets/pptxgenjs_helpers"
+ROOT_PACKAGES_TEMPLATE="${ROOT_TEMPLATE_DIR}/packages"
 ROOT_GITIGNORE="${DECK_ROOT}/.gitignore"
 PACKAGE_JSON="${DECK_ROOT}/package.json"
+WORKSPACE_FILE="${DECK_ROOT}/pnpm-workspace.yaml"
 NPMRC_FILE="${DECK_ROOT}/.npmrc"
 PNPM_LOCK="${DECK_ROOT}/pnpm-lock.yaml"
 BIOME_CONFIG="${DECK_ROOT}/biome.jsonc"
 TSCONFIG_BASE="${DECK_ROOT}/tsconfig.base.json"
 NODE_MODULES_DIR="${DECK_ROOT}/node_modules"
 VENV_PYTHON="${DECK_ROOT}/.venv/bin/python"
+ROOT_PACKAGES_DIR="${DECK_ROOT}/packages"
 CHECKED_AT="$(date '+%Y-%m-%dT%H:%M:%S%z')"
 
 mkdir -p "$STATE_DIR"
@@ -177,6 +181,12 @@ if [[ -f "$NPMRC_FILE" ]]; then NPMRC_PRESENT=true; else
   add_suggestion "Run \`bash \"$SKILL_ROOT/scripts/init_deck_root.sh\" \"$DECK_ROOT\"\` to restore the deck-root pnpm store config."
 fi
 
+WORKSPACE_PRESENT=false
+if [[ -f "$WORKSPACE_FILE" ]]; then WORKSPACE_PRESENT=true; else
+  add_missing "root pnpm-workspace.yaml is missing"
+  add_suggestion "Run \`bash \"$SKILL_ROOT/scripts/init_deck_root.sh\" \"$DECK_ROOT\"\` to restore the deck-root workspace config."
+fi
+
 LOCAL_PNPM_STORE_CONFIGURED=false
 if [[ -f "$NPMRC_FILE" ]] && grep -Eq '^[[:space:]]*store-dir[[:space:]]*=[[:space:]]*\.pnpm-store[[:space:]]*$' "$NPMRC_FILE"; then
   LOCAL_PNPM_STORE_CONFIGURED=true
@@ -231,6 +241,13 @@ elif [[ "$NPMRC_PRESENT" == true ]]; then
   add_warning "root .npmrc differs from the template-managed version"
 fi
 
+WORKSPACE_SYNCED=false
+if template_file_matches "$ROOT_WORKSPACE_TEMPLATE" "$WORKSPACE_FILE"; then
+  WORKSPACE_SYNCED=true
+elif [[ "$WORKSPACE_PRESENT" == true ]]; then
+  add_warning "root pnpm-workspace.yaml differs from the template-managed version"
+fi
+
 BIOME_SYNCED=false
 if template_file_matches "$SKILL_ROOT/biome.jsonc" "$BIOME_CONFIG"; then
   BIOME_SYNCED=true
@@ -254,6 +271,26 @@ else
   if [[ "$DEST_HELPERS_SIGNATURE" != "missing" ]]; then
     add_warning "shared helper assets differ from the installed skill helper assets"
     add_suggestion "Run \`bash \"$SKILL_ROOT/scripts/init_deck_root.sh\" \"$DECK_ROOT\"\` to resync shared helpers."
+  fi
+fi
+
+PACKAGES_PRESENT=false
+if [[ -d "$ROOT_PACKAGES_DIR" ]]; then
+  PACKAGES_PRESENT=true
+else
+  add_missing "shared packages directory is missing"
+  add_suggestion "Run \`bash \"$SKILL_ROOT/scripts/init_deck_root.sh\" \"$DECK_ROOT\"\` to scaffold shared packages."
+fi
+
+PACKAGES_SYNCED=false
+SOURCE_PACKAGES_SIGNATURE="$(dir_signature "$ROOT_PACKAGES_TEMPLATE")"
+DEST_PACKAGES_SIGNATURE="$(dir_signature "$ROOT_PACKAGES_DIR")"
+if [[ "$SOURCE_PACKAGES_SIGNATURE" != "missing" ]] && [[ "$SOURCE_PACKAGES_SIGNATURE" == "$DEST_PACKAGES_SIGNATURE" ]]; then
+  PACKAGES_SYNCED=true
+else
+  if [[ "$DEST_PACKAGES_SIGNATURE" != "missing" ]]; then
+    add_warning "shared packages differ from the installed skill shared packages"
+    add_suggestion "Run \`bash \"$SKILL_ROOT/scripts/init_deck_root.sh\" \"$DECK_ROOT\"\` to resync shared packages."
   fi
 fi
 
@@ -306,6 +343,8 @@ if [[ "$ROOT_METADATA_PRESENT" == true ]] && \
    [[ "$ROOT_GITIGNORE_SYNCED" == true ]] && \
    [[ "$PACKAGE_JSON_PRESENT" == true ]] && \
    [[ "$PACKAGE_JSON_SYNCED" == true ]] && \
+   [[ "$WORKSPACE_PRESENT" == true ]] && \
+   [[ "$WORKSPACE_SYNCED" == true ]] && \
    [[ "$NPMRC_PRESENT" == true ]] && \
    [[ "$NPMRC_SYNCED" == true ]] && \
    [[ "$LOCAL_PNPM_STORE_CONFIGURED" == true ]] && \
@@ -313,6 +352,8 @@ if [[ "$ROOT_METADATA_PRESENT" == true ]] && \
    [[ "$BIOME_SYNCED" == true ]] && \
    [[ "$TSCONFIG_BASE_PRESENT" == true ]] && \
    [[ "$TSCONFIG_BASE_SYNCED" == true ]] && \
+   [[ "$PACKAGES_PRESENT" == true ]] && \
+   [[ "$PACKAGES_SYNCED" == true ]] && \
    [[ "$HELPERS_PRESENT" == true ]] && \
    [[ "$HELPERS_SYNCED" == true ]] && \
    [[ "$NODE_DEPS_PRESENT" == true ]] && \
@@ -328,6 +369,8 @@ if [[ "$ROOT_METADATA_PRESENT" == true ]] && \
    [[ "$ROOT_GITIGNORE_SYNCED" == true ]] && \
    [[ "$PACKAGE_JSON_PRESENT" == true ]] && \
    [[ "$PACKAGE_JSON_SYNCED" == true ]] && \
+   [[ "$WORKSPACE_PRESENT" == true ]] && \
+   [[ "$WORKSPACE_SYNCED" == true ]] && \
    [[ "$NPMRC_PRESENT" == true ]] && \
    [[ "$NPMRC_SYNCED" == true ]] && \
    [[ "$LOCAL_PNPM_STORE_CONFIGURED" == true ]] && \
@@ -335,6 +378,8 @@ if [[ "$ROOT_METADATA_PRESENT" == true ]] && \
    [[ "$BIOME_SYNCED" == true ]] && \
    [[ "$TSCONFIG_BASE_PRESENT" == true ]] && \
    [[ "$TSCONFIG_BASE_SYNCED" == true ]] && \
+   [[ "$PACKAGES_PRESENT" == true ]] && \
+   [[ "$PACKAGES_SYNCED" == true ]] && \
    [[ "$HELPERS_PRESENT" == true ]] && \
    [[ "$HELPERS_SYNCED" == true ]]; then
   BOOTSTRAP_COMPLETE=true
@@ -361,6 +406,8 @@ fi
   echo "    \"root_gitignore_synced\": ${ROOT_GITIGNORE_SYNCED},"
   echo "    \"package_json_present\": ${PACKAGE_JSON_PRESENT},"
   echo "    \"package_json_synced\": ${PACKAGE_JSON_SYNCED},"
+  echo "    \"workspace_present\": ${WORKSPACE_PRESENT},"
+  echo "    \"workspace_synced\": ${WORKSPACE_SYNCED},"
   echo "    \"npmrc_present\": ${NPMRC_PRESENT},"
   echo "    \"npmrc_synced\": ${NPMRC_SYNCED},"
   echo "    \"local_pnpm_store_configured\": ${LOCAL_PNPM_STORE_CONFIGURED},"
@@ -369,6 +416,8 @@ fi
   echo "    \"biome_synced\": ${BIOME_SYNCED},"
   echo "    \"tsconfig_base_present\": ${TSCONFIG_BASE_PRESENT},"
   echo "    \"tsconfig_base_synced\": ${TSCONFIG_BASE_SYNCED},"
+  echo "    \"packages_present\": ${PACKAGES_PRESENT},"
+  echo "    \"packages_synced\": ${PACKAGES_SYNCED},"
   echo "    \"helpers_present\": ${HELPERS_PRESENT},"
   echo "    \"helpers_synced\": ${HELPERS_SYNCED},"
   echo "    \"node_dependencies_installed\": ${NODE_DEPS_PRESENT},"
@@ -387,6 +436,10 @@ fi
   echo "  \"helpers\": {"
   echo "    \"source_signature\": \"$(json_escape "$SOURCE_HELPERS_SIGNATURE")\","
   echo "    \"root_signature\": \"$(json_escape "$DEST_HELPERS_SIGNATURE")\""
+  echo "  },"
+  echo "  \"packages\": {"
+  echo "    \"source_signature\": \"$(json_escape "$SOURCE_PACKAGES_SIGNATURE")\","
+  echo "    \"root_signature\": \"$(json_escape "$DEST_PACKAGES_SIGNATURE")\""
   echo "  },"
   echo "  \"missing\": ["
   if [[ "${#MISSING_ITEMS[@]}" -gt 0 ]]; then
