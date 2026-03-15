@@ -30,6 +30,15 @@ The operator path must be:
 7. optionally run `pnpm spec:live -- <project-dir> --tmp-root-dir "<path>" --prompt "<prompt>" [--label "<name>"]`
 8. run `pnpm validate` in a local terminal when LibreOffice-backed checks are required
 
+Session rules that remain in scope:
+
+- one user prompt maps to one skill-owned end-to-end session
+- resolve the target project before changing files
+- if the session is already scoped, confirm the active project with `.ai-native-slides/project.json` and `.ai-native-slides/state.json`
+- for the current maintenance loop, revision prompts default to `ai-native-product-deck` unless the user explicitly asks for another project or a fresh one
+- deterministic CLI commands are guardrails inside the same session, not approval checkpoints
+- human review begins only after deliverables exist; revision feedback re-enters as a new prompt
+
 The runtime contract must stay:
 
 - shared package path: `packages/deck-spec-module/`
@@ -51,6 +60,12 @@ The runtime contract must stay:
 - project wrapper defaults:
   - canonical spec: `<project>/spec/deck-spec.json`
   - artifact root: `<deck-root>/tmp/deck-spec-module/<project-slug>/`
+- media/build rules:
+  - `pnpm media` is the only post-spec Gemini image-generation step in v1
+  - `pnpm media` reads `GEMINI_API_KEY` from the current shell or `<deck-root>/.env`
+  - `pnpm media` requires `spec/deck-spec.json.status` to be `reviewed` or `media_ready`
+  - canonical media outputs land in `media/generated-images/`
+  - `pnpm build` remains deterministic and offline
 
 Current open gap:
 
@@ -64,7 +79,7 @@ Current open gap:
 - [x] 2026-03-15 13:39 PDT: added root-level live smoke support as `pnpm spec:live -- <project-dir> --tmp-root-dir "<path>" --prompt "<prompt>" [--label "<name>"]`.
 - [x] 2026-03-15 14:26 PDT: removed remaining legacy planner/compat tails from the active workspace and refreshed the demo validation report.
 - [x] 2026-03-15 14:43 PDT: hardened the stateless boundary. Shared CLIs now require explicit output paths, project wrappers forward canonical-spec and artifact-root paths explicitly, and the package rejects writes into its own directory.
-- [x] 2026-03-15 15:03 PDT: compressed and aligned repo docs so README, FLOW, SKILL, references, and plan docs all describe the same shared-runtime contract.
+- [x] 2026-03-15 15:03 PDT: compressed and aligned repo docs so the remaining operator-facing docs describe the same shared-runtime contract.
 - [ ] 2026-03-15 15:09 PDT: provider-backed acceptance is still open. Current `spec:live` attempts reached the provider path but failed with `planning_failed` (`fetch failed`) and `contract_validation_failed` after fallback repair.
 
 ## Plan of Work
@@ -100,11 +115,13 @@ Validation:
 ## Concrete Steps
 
 - [x] Move prompt-to-spec planning, canonicalization, validation, semantic review, and artifact writing into the shared package.
+- [x] Keep converge order explicit: run `ensure_deck_root.sh` before `init_deck_root.sh` when root repair is needed, and `ensure_deck_project.sh` before `init_deck_project.sh` when scaffold repair is needed.
 - [x] Convert project `src/spec/*` into thin wrapper / re-export surfaces.
 - [x] Remove retired planner/runtime template files from the project scaffold.
 - [x] Keep media generation as a separate subsystem under `src/asset-pipeline/*`.
 - [x] Add deterministic shared-package coverage for valid output, fallback repair, semantic-review failure, prompt failure, malformed model output, and output-path guards.
 - [x] Add and document root-level `pnpm spec:live`.
+- [x] Keep deck authoring in the same session after planning succeeds: revise `src/buildDeck.ts`, `src/presentationModel.ts`, project tests, then run lint/typecheck/test/build.
 - [ ] Inspect repeated live-smoke artifact drift and decide whether prompt hardening alone is enough or a deterministic repair pass is required.
 - [ ] Rerun one successful provider-backed `pnpm spec:live` when provider/network conditions permit.
 
@@ -147,6 +164,7 @@ Acceptance bar:
 - `scripts/init_deck_root.sh` is safe to rerun. It refreshes root-managed files and dependencies without requiring destructive cleanup.
 - `scripts/init_deck_project.sh` is safe to rerun. It refreshes template-managed files without overwriting prompt-generated deck content.
 - `pnpm spec -- --prompt "<prompt>"` is safe to rerun. Canonical publish happens only on success.
+- `pnpm media` is safe to rerun. It may overwrite manifest-owned generated files but does not delete historical extras automatically in v1.
 - `pnpm spec:live` is safe to rerun. It writes into a timestamped directory under the caller-selected `--tmp-root-dir`.
 - If a provider-backed run fails, inspect the emitted artifact bundle first. Do not manually patch canonical project files as a workaround.
 
