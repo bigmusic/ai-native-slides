@@ -79,10 +79,14 @@ Finish the shared-root slide-deck workflow with a writer-first shared deck-spec 
   - historical attempts happened before `--tmp-root-dir` became mandatory.
   - current equivalent command: `cd /Volumes/BiGROG/skills-test/ai-education-deck && pnpm spec:live -- projects/ai-native-product-deck --tmp-root-dir "./tmp/deck-spec-module-live/ai-native-product-deck" --prompt "Create a six-slide deck about shared deck-spec black-box planning, validation, semantic review, and deterministic build delivery." --label "black-box-refactor"`
   - current equivalent rerun: `cd /Volumes/BiGROG/skills-test/ai-education-deck && pnpm spec:live -- projects/ai-native-product-deck --tmp-root-dir "./tmp/deck-spec-module-live/ai-native-product-deck" --prompt "Create a six-slide deck about shared deck-spec black-box planning, validation, semantic review, and deterministic build delivery." --label "black-box-refactor-rerun"`
-  - result: both attempts reached the provider layer but failed with `planning_failed` / `fetch failed`
+  - escalated retry: `cd /Volumes/BiGROG/skills-test/ai-education-deck && pnpm spec:live -- projects/ai-native-product-deck --tmp-root-dir "./tmp/deck-spec-module-live/ai-native-product-deck" --prompt "Create a six-slide deck about shared deck-spec black-box planning, validation, semantic review, and deterministic build delivery." --label "black-box-refactor-acceptance-escalated"`
+  - escalated simpler-prompt retry: `cd /Volumes/BiGROG/skills-test/ai-education-deck && pnpm spec:live -- projects/ai-native-product-deck --tmp-root-dir "./tmp/deck-spec-module-live/ai-native-product-deck" --prompt "Create a simple six-slide deck about canonical deck-spec planning, structural validation, semantic review, media generation, and deterministic build delivery. Keep the slide structure concrete and simple." --label "black-box-refactor-acceptance-simple"`
+  - result: acceptance is still open. Historical attempts and the simpler-prompt retry failed with `planning_failed` / `fetch failed`, while the escalated `black-box-refactor-acceptance-escalated` retry reached provider output and failed later with `contract_validation_failed`.
   - artifacts:
     - `/Volumes/BiGROG/skills-test/ai-education-deck/tmp/deck-spec-module-live/ai-native-product-deck/20260315T204018Z-black-box-refactor`
     - `/Volumes/BiGROG/skills-test/ai-education-deck/tmp/deck-spec-module-live/ai-native-product-deck/20260315T205809Z-black-box-refactor-rerun`
+    - `/Volumes/BiGROG/skills-test/ai-education-deck/tmp/deck-spec-module-live/ai-native-product-deck/20260315T220551Z-black-box-refactor-acceptance-escalated`
+    - `/Volumes/BiGROG/skills-test/ai-education-deck/tmp/deck-spec-module-live/ai-native-product-deck/20260315T220805Z-black-box-refactor-acceptance-simple`
 
 ## Remaining Follow-Up
 

@@ -60,6 +60,7 @@ The resulting runtime contract must be:
 - [x] 2026-03-15 14:50 PDT: reviewed completion status against the live runtime, corrected stale plan commands to match the guarded CLI contract, reran shared-package direct validate plus prompt-workflow coverage, and confirmed root preflight stayed green after test execution.
 - [x] 2026-03-15 14:56 PDT: reran deck-root preflight and the shared-package direct validate after the plan cleanup, producing a fresh validation report and confirming the docs now describe only rerunnable commands.
 - [x] 2026-03-15 15:03 PDT: finished a repo-wide markdown audit, correcting the remaining command-surface and Gemini-dependency drift in `FLOW.md`, `SKILL.md`, and `references/project-workflow.md` so the user-facing docs now match the guarded shared-runtime contract.
+- [x] 2026-03-15 15:09 PDT: retried provider-backed live smoke with the current guarded command. One escalated run reached the provider and failed at `contract_validation_failed` after the internal repair attempt, while another simpler-prompt escalated run still failed with `planning_failed` / `fetch failed`, so acceptance remains open but the external provider path is no longer blocked purely at fetch time.
 - [ ] 2026-03-15 13:58 PDT: reran `pnpm spec:live` after the deterministic matrix turned green again. The command still reached the provider layer but failed with `planning_failed` / `fetch failed`, so provider-backed acceptance remains open even though local wiring is confirmed.
 - [ ] 2026-03-15 13:40 PDT: one real live smoke attempt reached the provider layer but failed with `planning_failed` / `fetch failed`, so the command wiring is verified but the provider-backed acceptance still needs a successful rerun when network/provider conditions are stable.
 
@@ -148,11 +149,19 @@ Provider-backed acceptance on 2026-03-15:
   - `cd /Volumes/BiGROG/skills-test/ai-education-deck && pnpm spec:live -- projects/ai-native-product-deck --tmp-root-dir "./tmp/deck-spec-module-live/ai-native-product-deck" --prompt "Create a six-slide deck about shared deck-spec black-box planning, validation, semantic review, and deterministic build delivery." --label "black-box-refactor"`
 - current equivalent rerun command with alternate label:
   - `cd /Volumes/BiGROG/skills-test/ai-education-deck && pnpm spec:live -- projects/ai-native-product-deck --tmp-root-dir "./tmp/deck-spec-module-live/ai-native-product-deck" --prompt "Create a six-slide deck about shared deck-spec black-box planning, validation, semantic review, and deterministic build delivery." --label "black-box-refactor-rerun"`
+- escalated acceptance retry:
+  - `cd /Volumes/BiGROG/skills-test/ai-education-deck && pnpm spec:live -- projects/ai-native-product-deck --tmp-root-dir "./tmp/deck-spec-module-live/ai-native-product-deck" --prompt "Create a six-slide deck about shared deck-spec black-box planning, validation, semantic review, and deterministic build delivery." --label "black-box-refactor-acceptance-escalated"`
+- escalated simpler-prompt retry:
+  - `cd /Volumes/BiGROG/skills-test/ai-education-deck && pnpm spec:live -- projects/ai-native-product-deck --tmp-root-dir "./tmp/deck-spec-module-live/ai-native-product-deck" --prompt "Create a simple six-slide deck about canonical deck-spec planning, structural validation, semantic review, media generation, and deterministic build delivery. Keep the slide structure concrete and simple." --label "black-box-refactor-acceptance-simple"`
 - observed result:
-  - both attempts failed with `planning_failed`
-  - provider-layer message on both attempts: `fetch failed`
+  - historical attempts failed with `planning_failed`
+  - the `black-box-refactor-acceptance-escalated` retry failed with `contract_validation_failed`
+  - the `black-box-refactor-acceptance-simple` retry failed with `planning_failed`
+  - observed provider-layer messages included both `fetch failed` and `Planner model returned candidates that failed canonical validation after the internal repair attempt.`
 - artifacts were written under `/Volumes/BiGROG/skills-test/ai-education-deck/tmp/deck-spec-module-live/ai-native-product-deck/20260315T204018Z-black-box-refactor`
   and `/Volumes/BiGROG/skills-test/ai-education-deck/tmp/deck-spec-module-live/ai-native-product-deck/20260315T205809Z-black-box-refactor-rerun`
+  and `/Volumes/BiGROG/skills-test/ai-education-deck/tmp/deck-spec-module-live/ai-native-product-deck/20260315T220551Z-black-box-refactor-acceptance-escalated`
+  and `/Volumes/BiGROG/skills-test/ai-education-deck/tmp/deck-spec-module-live/ai-native-product-deck/20260315T220805Z-black-box-refactor-acceptance-simple`
 
 Acceptance bar:
 
