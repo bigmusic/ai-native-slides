@@ -47,6 +47,9 @@ MAIN_TEMPLATE="${TEMPLATE_ROOT}/src/main.ts"
 MEDIA_GENERATE_TEMPLATE="${TEMPLATE_ROOT}/src/asset-pipeline/generateMedia.ts"
 MEDIA_POLICY_TEMPLATE="${TEMPLATE_ROOT}/src/asset-pipeline/imagePolicy.ts"
 MEDIA_PATHS_TEMPLATE="${TEMPLATE_ROOT}/src/asset-pipeline/paths.ts"
+MEDIA_PROVIDER_TEMPLATE="${TEMPLATE_ROOT}/src/deck-spec-module/media/geminiImageProvider.ts"
+MEDIA_PROVIDER_ENV_TEMPLATE="${TEMPLATE_ROOT}/src/deck-spec-module/media/providerEnv.ts"
+MEDIA_PROVIDER_PROMPT_TEMPLATE="${TEMPLATE_ROOT}/src/deck-spec-module/media/providerPrompt.ts"
 SPEC_CONTRACT_TEMPLATE="${TEMPLATE_ROOT}/src/spec/contract.ts"
 SPEC_DERIVE_TEMPLATE="${TEMPLATE_ROOT}/src/spec/deriveOutputFileName.ts"
 SPEC_NORMALIZE_TEMPLATE="${TEMPLATE_ROOT}/src/spec/normalizeSystemManagedFields.ts"
@@ -69,6 +72,9 @@ MAIN_DEST="${DECK_DIR}/src/main.ts"
 MEDIA_GENERATE_DEST="${DECK_DIR}/src/asset-pipeline/generateMedia.ts"
 MEDIA_POLICY_DEST="${DECK_DIR}/src/asset-pipeline/imagePolicy.ts"
 MEDIA_PATHS_DEST="${DECK_DIR}/src/asset-pipeline/paths.ts"
+MEDIA_PROVIDER_DEST="${DECK_DIR}/src/deck-spec-module/media/geminiImageProvider.ts"
+MEDIA_PROVIDER_ENV_DEST="${DECK_DIR}/src/deck-spec-module/media/providerEnv.ts"
+MEDIA_PROVIDER_PROMPT_DEST="${DECK_DIR}/src/deck-spec-module/media/providerPrompt.ts"
 SPEC_CONTRACT_DEST="${DECK_DIR}/src/spec/contract.ts"
 SPEC_DERIVE_DEST="${DECK_DIR}/src/spec/deriveOutputFileName.ts"
 SPEC_NORMALIZE_DEST="${DECK_DIR}/src/spec/normalizeSystemManagedFields.ts"
@@ -146,7 +152,7 @@ mkdir -p \
 
 while IFS= read -r template_file; do
   relative_path="${template_file#"${TEMPLATE_ROOT}/"}"
-  if [[ "${relative_path}" == "validate-local.sh" || "${relative_path}" == "run-project.sh" || "${relative_path}" == "package.json" || "${relative_path}" == "tsconfig.json" || "${relative_path}" == "vitest.config.ts" || "${relative_path}" == ".gitignore" || "${relative_path}" == "spec/deck-spec.schema.json" || "${relative_path}" == "src/main.ts" || "${relative_path}" == "src/asset-pipeline/generateMedia.ts" || "${relative_path}" == "src/asset-pipeline/imagePolicy.ts" || "${relative_path}" == "src/asset-pipeline/paths.ts" || "${relative_path}" == "src/spec/contract.ts" || "${relative_path}" == "src/spec/deriveOutputFileName.ts" || "${relative_path}" == "src/spec/normalizeSystemManagedFields.ts" || "${relative_path}" == "src/spec/promoteDeckSpecCandidate.ts" || "${relative_path}" == "src/spec/readDeckSpec.ts" || "${relative_path}" == "src/spec/rendererContract.ts" || "${relative_path}" == "src/spec/renderSpecReview.ts" || "${relative_path}" == "src/spec/reviewContract.ts" || "${relative_path}" == "src/spec/validateDeckSpec.ts" || "${relative_path}" == "src/spec/validateSpecReview.ts" || "${relative_path}" == "src/spec/writeFileAtomic.ts" ]]; then
+  if [[ "${relative_path}" == "validate-local.sh" || "${relative_path}" == "run-project.sh" || "${relative_path}" == "package.json" || "${relative_path}" == "tsconfig.json" || "${relative_path}" == "vitest.config.ts" || "${relative_path}" == ".gitignore" || "${relative_path}" == "spec/deck-spec.schema.json" || "${relative_path}" == "src/main.ts" || "${relative_path}" == "src/asset-pipeline/generateMedia.ts" || "${relative_path}" == "src/asset-pipeline/imagePolicy.ts" || "${relative_path}" == "src/asset-pipeline/paths.ts" || "${relative_path}" == "src/deck-spec-module/media/geminiImageProvider.ts" || "${relative_path}" == "src/deck-spec-module/media/providerEnv.ts" || "${relative_path}" == "src/deck-spec-module/media/providerPrompt.ts" || "${relative_path}" == "src/spec/contract.ts" || "${relative_path}" == "src/spec/deriveOutputFileName.ts" || "${relative_path}" == "src/spec/normalizeSystemManagedFields.ts" || "${relative_path}" == "src/spec/promoteDeckSpecCandidate.ts" || "${relative_path}" == "src/spec/readDeckSpec.ts" || "${relative_path}" == "src/spec/rendererContract.ts" || "${relative_path}" == "src/spec/renderSpecReview.ts" || "${relative_path}" == "src/spec/reviewContract.ts" || "${relative_path}" == "src/spec/validateDeckSpec.ts" || "${relative_path}" == "src/spec/validateSpecReview.ts" || "${relative_path}" == "src/spec/writeFileAtomic.ts" ]]; then
     continue
   fi
   copy_if_missing "${template_file}" "${DECK_DIR}/${relative_path}"
@@ -172,6 +178,9 @@ sync_managed_file "${MAIN_TEMPLATE}" "${MAIN_DEST}"
 sync_managed_file "${MEDIA_GENERATE_TEMPLATE}" "${MEDIA_GENERATE_DEST}"
 sync_managed_file "${MEDIA_POLICY_TEMPLATE}" "${MEDIA_POLICY_DEST}"
 sync_managed_file "${MEDIA_PATHS_TEMPLATE}" "${MEDIA_PATHS_DEST}"
+sync_managed_file "${MEDIA_PROVIDER_TEMPLATE}" "${MEDIA_PROVIDER_DEST}"
+sync_managed_file "${MEDIA_PROVIDER_ENV_TEMPLATE}" "${MEDIA_PROVIDER_ENV_DEST}"
+sync_managed_file "${MEDIA_PROVIDER_PROMPT_TEMPLATE}" "${MEDIA_PROVIDER_PROMPT_DEST}"
 sync_managed_file "${SPEC_CONTRACT_TEMPLATE}" "${SPEC_CONTRACT_DEST}"
 sync_managed_file "${SPEC_DERIVE_TEMPLATE}" "${SPEC_DERIVE_DEST}"
 sync_managed_file "${SPEC_NORMALIZE_TEMPLATE}" "${SPEC_NORMALIZE_DEST}"
@@ -183,15 +192,28 @@ sync_managed_file "${SPEC_REVIEW_CONTRACT_TEMPLATE}" "${SPEC_REVIEW_CONTRACT_DES
 sync_managed_file "${SPEC_VALIDATE_TEMPLATE}" "${SPEC_VALIDATE_DEST}"
 sync_managed_file "${SPEC_REVIEW_VALIDATE_TEMPLATE}" "${SPEC_REVIEW_VALIDATE_DEST}"
 sync_managed_file "${SPEC_WRITE_TEMPLATE}" "${SPEC_WRITE_DEST}"
-
-while IFS= read -r template_file; do
-  relative_path="${template_file#"${TEMPLATE_ROOT}/"}"
-  sync_managed_file "${template_file}" "${DECK_DIR}/${relative_path}"
-done < <(find "${TEMPLATE_ROOT}/src/deck-spec-module" -type f | sort)
 chmod +x "${RUN_PROJECT_DEST}"
 
 sync_managed_file "${VALIDATE_TEMPLATE}" "${VALIDATE_DEST}"
 chmod +x "${VALIDATE_DEST}"
+
+remove_retired_path() {
+  local target_path="$1"
+
+  if [[ -e "$target_path" ]]; then
+    rm -rf "$target_path"
+    echo "Removed retired ${target_path}"
+  fi
+}
+
+remove_retired_path "${DECK_DIR}/src/deck-spec-module/asset-planning"
+remove_retired_path "${DECK_DIR}/src/deck-spec-module/canonicalization"
+remove_retired_path "${DECK_DIR}/src/deck-spec-module/errors.ts"
+remove_retired_path "${DECK_DIR}/src/deck-spec-module/planning"
+remove_retired_path "${DECK_DIR}/src/deck-spec-module/prompt-interpreter"
+remove_retired_path "${DECK_DIR}/src/deck-spec-module/public-api.ts"
+remove_retired_path "${DECK_DIR}/src/deck-spec-module/review-bridge"
+remove_retired_path "${DECK_DIR}/src/deck-spec-module/reviewing"
 
 write_project_metadata "$DECK_ROOT" "$DECK_DIR" "$(basename "$DECK_DIR")" "$(basename "$DECK_DIR")"
 

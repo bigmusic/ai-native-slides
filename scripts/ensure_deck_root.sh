@@ -65,6 +65,7 @@ NODE_MODULES_DIR="${DECK_ROOT}/node_modules"
 VENV_PYTHON="${DECK_ROOT}/.venv/bin/python"
 ROOT_PACKAGES_DIR="${DECK_ROOT}/packages"
 CHECKED_AT="$(date '+%Y-%m-%dT%H:%M:%S%z')"
+DIR_SIGNATURE_TEMP_DIR="${STATE_DIR}/tmp"
 
 mkdir -p "$STATE_DIR"
 
@@ -86,7 +87,7 @@ dir_signature() {
   fi
 
   local tmp_file
-  tmp_file="$(mktemp)"
+  tmp_file="$(create_workspace_temp_file "$DIR_SIGNATURE_TEMP_DIR" "dir-signature")"
   while IFS= read -r file; do
     local rel="${file#"$dir"/}"
     local sum

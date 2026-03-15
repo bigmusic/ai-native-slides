@@ -54,6 +54,14 @@ write_file_if_changed() {
   mv "$tmp_path" "$dest_path"
 }
 
+create_workspace_temp_file() {
+  local base_dir="$1"
+  local prefix="$2"
+
+  mkdir -p "$base_dir"
+  mktemp "$base_dir/${prefix}.XXXXXX"
+}
+
 slugify_project_name() {
   local name="$1"
   local slug
@@ -163,21 +171,9 @@ src/main.ts
 src/asset-pipeline/generateMedia.ts
 src/asset-pipeline/imagePolicy.ts
 src/asset-pipeline/paths.ts
-src/deck-spec-module/asset-planning/assetBlueprints.ts
-src/deck-spec-module/canonicalization/finalizeDeckSpec.ts
-src/deck-spec-module/errors.ts
 src/deck-spec-module/media/geminiImageProvider.ts
 src/deck-spec-module/media/providerEnv.ts
 src/deck-spec-module/media/providerPrompt.ts
-src/deck-spec-module/planning/geminiPlannerModel.ts
-src/deck-spec-module/planning/plannerPrompt.ts
-src/deck-spec-module/prompt-interpreter/promptModel.ts
-src/deck-spec-module/public-api.ts
-src/deck-spec-module/review-bridge/createSemanticReview.ts
-src/deck-spec-module/reviewing/materialQuality.ts
-src/deck-spec-module/reviewing/promptQuality.ts
-src/deck-spec-module/reviewing/reviewTypes.ts
-src/deck-spec-module/reviewing/scorecard.ts
 src/spec/contract.ts
 src/spec/deriveOutputFileName.ts
 src/spec/normalizeSystemManagedFields.ts
@@ -240,7 +236,7 @@ write_root_metadata() {
   fi
 
   local tmp_file
-  tmp_file="$(mktemp)"
+  tmp_file="$(create_workspace_temp_file "$(dirname "$metadata_path")" "root-metadata")"
 
   mkdir -p "$(dirname "$metadata_path")"
 
@@ -338,7 +334,7 @@ write_project_metadata() {
   fi
 
   local tmp_file
-  tmp_file="$(mktemp)"
+  tmp_file="$(create_workspace_temp_file "$(dirname "$metadata_path")" "project-metadata")"
 
   render_project_metadata_file \
     "$deck_root" \

@@ -57,6 +57,9 @@ PACKAGE_JSON="${PROJECT_DIR}/package.json"
 TSCONFIG_JSON="${PROJECT_DIR}/tsconfig.json"
 VITEST_CONFIG="${PROJECT_DIR}/vitest.config.ts"
 SRC_MAIN_TS="${PROJECT_DIR}/src/main.ts"
+MEDIA_PROVIDER_TS="${PROJECT_DIR}/src/deck-spec-module/media/geminiImageProvider.ts"
+MEDIA_PROVIDER_ENV_TS="${PROJECT_DIR}/src/deck-spec-module/media/providerEnv.ts"
+MEDIA_PROVIDER_PROMPT_TS="${PROJECT_DIR}/src/deck-spec-module/media/providerPrompt.ts"
 SPEC_CONTRACT_TS="${PROJECT_DIR}/src/spec/contract.ts"
 SPEC_DERIVE_TS="${PROJECT_DIR}/src/spec/deriveOutputFileName.ts"
 SPEC_NORMALIZE_TS="${PROJECT_DIR}/src/spec/normalizeSystemManagedFields.ts"
@@ -101,6 +104,9 @@ MAIN_TEMPLATE="${TEMPLATE_ROOT}/src/main.ts"
 MEDIA_GENERATE_TEMPLATE="${TEMPLATE_ROOT}/src/asset-pipeline/generateMedia.ts"
 MEDIA_POLICY_TEMPLATE="${TEMPLATE_ROOT}/src/asset-pipeline/imagePolicy.ts"
 MEDIA_PATHS_TEMPLATE="${TEMPLATE_ROOT}/src/asset-pipeline/paths.ts"
+MEDIA_PROVIDER_TEMPLATE="${TEMPLATE_ROOT}/src/deck-spec-module/media/geminiImageProvider.ts"
+MEDIA_PROVIDER_ENV_TEMPLATE="${TEMPLATE_ROOT}/src/deck-spec-module/media/providerEnv.ts"
+MEDIA_PROVIDER_PROMPT_TEMPLATE="${TEMPLATE_ROOT}/src/deck-spec-module/media/providerPrompt.ts"
 SPEC_CONTRACT_TEMPLATE="${TEMPLATE_ROOT}/src/spec/contract.ts"
 SPEC_DERIVE_TEMPLATE="${TEMPLATE_ROOT}/src/spec/deriveOutputFileName.ts"
 SPEC_NORMALIZE_TEMPLATE="${TEMPLATE_ROOT}/src/spec/normalizeSystemManagedFields.ts"
@@ -203,7 +209,7 @@ if [[ "$PROJECT_METADATA_PRESENT" == true ]]; then
     PROJECT_METADATA_NAME="$PROJECT_NAME_HINT"
   fi
 
-  EXPECTED_PROJECT_METADATA="$(mktemp)"
+  EXPECTED_PROJECT_METADATA="$(create_workspace_temp_file "$STATE_DIR" "expected-project-metadata")"
   render_project_metadata_file \
     "$DECK_ROOT" \
     "$PROJECT_DIR" \
@@ -288,6 +294,21 @@ fi
 DECK_ENTRY_PRESENT=false
 if [[ -f "$SRC_MAIN_TS" ]]; then DECK_ENTRY_PRESENT=true; else
   add_missing "src/main.ts is missing"
+fi
+
+MEDIA_PROVIDER_PRESENT=false
+if [[ -f "$MEDIA_PROVIDER_TS" ]]; then MEDIA_PROVIDER_PRESENT=true; else
+  add_missing "src/deck-spec-module/media/geminiImageProvider.ts is missing"
+fi
+
+MEDIA_PROVIDER_ENV_PRESENT=false
+if [[ -f "$MEDIA_PROVIDER_ENV_TS" ]]; then MEDIA_PROVIDER_ENV_PRESENT=true; else
+  add_missing "src/deck-spec-module/media/providerEnv.ts is missing"
+fi
+
+MEDIA_PROVIDER_PROMPT_PRESENT=false
+if [[ -f "$MEDIA_PROVIDER_PROMPT_TS" ]]; then MEDIA_PROVIDER_PROMPT_PRESENT=true; else
+  add_missing "src/deck-spec-module/media/providerPrompt.ts is missing"
 fi
 
 MEDIA_GENERATE_PRESENT=false
@@ -419,6 +440,27 @@ if template_file_matches "$MAIN_TEMPLATE" "$SRC_MAIN_TS"; then
   DECK_ENTRY_SYNCED=true
 elif [[ "$DECK_ENTRY_PRESENT" == true ]]; then
   add_warning "src/main.ts differs from the template-managed version"
+fi
+
+MEDIA_PROVIDER_SYNCED=false
+if template_file_matches "$MEDIA_PROVIDER_TEMPLATE" "$MEDIA_PROVIDER_TS"; then
+  MEDIA_PROVIDER_SYNCED=true
+elif [[ "$MEDIA_PROVIDER_PRESENT" == true ]]; then
+  add_warning "src/deck-spec-module/media/geminiImageProvider.ts differs from the template-managed version"
+fi
+
+MEDIA_PROVIDER_ENV_SYNCED=false
+if template_file_matches "$MEDIA_PROVIDER_ENV_TEMPLATE" "$MEDIA_PROVIDER_ENV_TS"; then
+  MEDIA_PROVIDER_ENV_SYNCED=true
+elif [[ "$MEDIA_PROVIDER_ENV_PRESENT" == true ]]; then
+  add_warning "src/deck-spec-module/media/providerEnv.ts differs from the template-managed version"
+fi
+
+MEDIA_PROVIDER_PROMPT_SYNCED=false
+if template_file_matches "$MEDIA_PROVIDER_PROMPT_TEMPLATE" "$MEDIA_PROVIDER_PROMPT_TS"; then
+  MEDIA_PROVIDER_PROMPT_SYNCED=true
+elif [[ "$MEDIA_PROVIDER_PROMPT_PRESENT" == true ]]; then
+  add_warning "src/deck-spec-module/media/providerPrompt.ts differs from the template-managed version"
 fi
 
 MEDIA_GENERATE_SYNCED=false
@@ -615,6 +657,12 @@ if [[ "$ROOT_DETECTED" == true ]] && \
    [[ "$VALIDATE_WRAPPER_SYNCED" == true ]] && \
    [[ "$DECK_ENTRY_PRESENT" == true ]] && \
    [[ "$DECK_ENTRY_SYNCED" == true ]] && \
+   [[ "$MEDIA_PROVIDER_PRESENT" == true ]] && \
+   [[ "$MEDIA_PROVIDER_SYNCED" == true ]] && \
+   [[ "$MEDIA_PROVIDER_ENV_PRESENT" == true ]] && \
+   [[ "$MEDIA_PROVIDER_ENV_SYNCED" == true ]] && \
+   [[ "$MEDIA_PROVIDER_PROMPT_PRESENT" == true ]] && \
+   [[ "$MEDIA_PROVIDER_PROMPT_SYNCED" == true ]] && \
    [[ "$MEDIA_GENERATE_PRESENT" == true ]] && \
    [[ "$MEDIA_GENERATE_SYNCED" == true ]] && \
    [[ "$MEDIA_POLICY_PRESENT" == true ]] && \
