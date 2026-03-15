@@ -27,17 +27,17 @@ const fixturePlanPath = path.join(
 	"deck-spec.fixture.json",
 );
 
-export const plannerAgentScenarioIds = [
+export const deckSpecScenarioIds = [
 	"strong_plan_strong_prompts_pass",
 	"weak_image_prompts_warn",
 	"audience_tone_drift_warn",
 	"missing_requirement_or_visual_fail",
 	"unsafe_or_generic_prompt_warn_or_fail",
 ] as const;
-export type PlannerAgentScenarioId = (typeof plannerAgentScenarioIds)[number];
+export type DeckSpecScenarioId = (typeof deckSpecScenarioIds)[number];
 
-export type PlannerAgentScenario = {
-	id: PlannerAgentScenarioId;
+export type DeckSpecScenario = {
+	id: DeckSpecScenarioId;
 	expected_status: SpecReviewResult["status"];
 	source_prompt: string;
 	plan: DeckSpec;
@@ -66,7 +66,7 @@ function mutatePromptFixture(
 	mutator(asset);
 }
 
-export async function loadPlannerAgentBaselinePlan(): Promise<DeckSpec> {
+export async function loadDeckSpecBaselinePlan(): Promise<DeckSpec> {
 	return JSON.parse(await readFile(fixturePlanPath, "utf8")) as DeckSpec;
 }
 
@@ -82,10 +82,10 @@ export function createPlanCandidateFromScenarioPlan(
 	return candidatePlan;
 }
 
-export async function createPlannerAgentScenario(
-	scenarioId: PlannerAgentScenarioId,
-): Promise<PlannerAgentScenario> {
-	const baselinePlan = clonePlan(await loadPlannerAgentBaselinePlan());
+export async function createDeckSpecScenario(
+	scenarioId: DeckSpecScenarioId,
+): Promise<DeckSpecScenario> {
+	const baselinePlan = clonePlan(await loadDeckSpecBaselinePlan());
 
 	switch (scenarioId) {
 		case "strong_plan_strong_prompts_pass":
@@ -256,7 +256,7 @@ function createFindingsFromSignals(
 	}));
 }
 
-function createMissingRequirements(scenario: PlannerAgentScenario): string[] {
+function createMissingRequirements(scenario: DeckSpecScenario): string[] {
 	switch (scenario.id) {
 		case "missing_requirement_or_visual_fail":
 			return [
@@ -272,7 +272,7 @@ function createMissingRequirements(scenario: PlannerAgentScenario): string[] {
 }
 
 export function createReviewCandidateForScenario(
-	scenario: PlannerAgentScenario,
+	scenario: DeckSpecScenario,
 	materialSignals: MaterialQualitySignal[],
 	promptSignals: PromptQualitySignal[],
 ): SpecReviewResult {

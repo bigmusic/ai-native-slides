@@ -221,6 +221,8 @@ rendered
 output/rendered
 node_modules/.vite
 node_modules/.vite-temp
+src/planner-agent
+src/spec/compat
 EOF
 }
 

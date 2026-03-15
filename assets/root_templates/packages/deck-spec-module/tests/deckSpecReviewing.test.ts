@@ -19,9 +19,9 @@ import {
 } from "../src/deck-spec-module/reviewing/scorecard.js";
 import { validateSpecReviewDocument } from "../src/spec/validateSpecReview.js";
 import {
-	createPlannerAgentScenario,
-	loadPlannerAgentBaselinePlan,
-} from "./plannerAgentScenarioFixtures.js";
+	createDeckSpecScenario,
+	loadDeckSpecBaselinePlan,
+} from "./deckSpecScenarioFixtures.js";
 
 describe("deck-spec-module reviewing", () => {
 	it("calculates rounded section and overall averages deterministically", () => {
@@ -100,7 +100,7 @@ describe("deck-spec-module reviewing", () => {
 	});
 
 	it("flags placeholder deck copy deterministically", async () => {
-		const plan = await loadPlannerAgentBaselinePlan();
+		const plan = await loadDeckSpecBaselinePlan();
 		const placeholderAssets = [
 			...plan.asset_manifest.text_assets,
 			{
@@ -128,7 +128,7 @@ describe("deck-spec-module reviewing", () => {
 			"missing_requirement_or_visual_fail",
 			"unsafe_or_generic_prompt_warn_or_fail",
 		] as const) {
-			const scenario = await createPlannerAgentScenario(scenarioId);
+			const scenario = await createDeckSpecScenario(scenarioId);
 			const materialSignalIds = collectMaterialQualitySignals(
 				scenario.source_prompt,
 				scenario.plan,
@@ -162,7 +162,7 @@ describe("deck-spec-module reviewing", () => {
 	});
 
 	it("flags missing required visual mappings and underdeveloped copy deterministically", async () => {
-		const plan = await loadPlannerAgentBaselinePlan();
+		const plan = await loadDeckSpecBaselinePlan();
 		const heroMessage = plan.asset_manifest.text_assets.find(
 			(asset) => asset.asset_id === "hero_message",
 		);
@@ -200,7 +200,7 @@ describe("deck-spec-module reviewing", () => {
 	});
 
 	it("creates review visual prompt summaries with slot and objective context", async () => {
-		const plan = await loadPlannerAgentBaselinePlan();
+		const plan = await loadDeckSpecBaselinePlan();
 		const summaries = createReviewVisualPromptSummaries(plan);
 		const heroSummary = summaries.find(
 			(summary) => summary.asset_id === "hero_visual_asset",

@@ -214,6 +214,8 @@ remove_retired_path "${DECK_DIR}/src/deck-spec-module/prompt-interpreter"
 remove_retired_path "${DECK_DIR}/src/deck-spec-module/public-api.ts"
 remove_retired_path "${DECK_DIR}/src/deck-spec-module/review-bridge"
 remove_retired_path "${DECK_DIR}/src/deck-spec-module/reviewing"
+remove_retired_path "${DECK_DIR}/src/planner-agent"
+remove_retired_path "${DECK_DIR}/src/spec/compat"
 remove_retired_path "${DECK_DIR}/src/spec/promoteDeckSpecCandidate.ts"
 
 write_project_metadata "$DECK_ROOT" "$DECK_DIR" "$(basename "$DECK_DIR")" "$(basename "$DECK_DIR")"

@@ -21,8 +21,8 @@ import {
 import { validateDeckSpecDocument } from "../src/spec/validateDeckSpec.js";
 import {
 	createPlanCandidateFromScenarioPlan,
-	loadPlannerAgentBaselinePlan,
-} from "./plannerAgentScenarioFixtures.js";
+	loadDeckSpecBaselinePlan,
+} from "./deckSpecScenarioFixtures.js";
 import { createProjectTempDir } from "./testTempDir.js";
 
 vi.mock("../src/deck-spec-module/planning/geminiPlannerModel.js", () => ({
@@ -201,7 +201,7 @@ describe("deck-spec-module public API", () => {
 	});
 
 	it("writes a reviewed canonical deck spec plus artifacts when the planner model yields a valid candidate", async () => {
-		const baselinePlan = await loadPlannerAgentBaselinePlan();
+		const baselinePlan = await loadDeckSpecBaselinePlan();
 		const paths = await createModulePaths();
 		mockedGenerateDeckSpecCandidateWithGemini.mockResolvedValue(
 			createPlanCandidateFromScenarioPlan(baselinePlan),
@@ -234,7 +234,7 @@ describe("deck-spec-module public API", () => {
 	});
 
 	it("uses one internal repair attempt when the first candidate fails semantic review", async () => {
-		const baselinePlan = await loadPlannerAgentBaselinePlan();
+		const baselinePlan = await loadDeckSpecBaselinePlan();
 		const paths = await createModulePaths();
 		mockedGenerateDeckSpecCandidateWithGemini
 			.mockResolvedValueOnce(createPlanCandidateFromScenarioPlan(baselinePlan))
@@ -260,7 +260,7 @@ describe("deck-spec-module public API", () => {
 	});
 
 	it("throws semantic_review_failed when the repair attempt still does not satisfy eval", async () => {
-		const baselinePlan = await loadPlannerAgentBaselinePlan();
+		const baselinePlan = await loadDeckSpecBaselinePlan();
 		mockedGenerateDeckSpecCandidateWithGemini
 			.mockResolvedValueOnce(
 				cloneCandidate(createPlanCandidateFromScenarioPlan(baselinePlan)),
@@ -286,7 +286,7 @@ describe("deck-spec-module public API", () => {
 	});
 
 	it("throws contract_validation_failed instead of crashing when malformed model output misses required nested fields", async () => {
-		const baselinePlan = await loadPlannerAgentBaselinePlan();
+		const baselinePlan = await loadDeckSpecBaselinePlan();
 		const malformedCandidate = createContractDriftCandidate(baselinePlan);
 		mockedGenerateDeckSpecCandidateWithGemini
 			.mockResolvedValueOnce(structuredClone(malformedCandidate))
@@ -332,7 +332,7 @@ describe("deck-spec-module public API", () => {
 	});
 
 	it("does not overwrite an existing canonical spec when the final publish step cannot write atomically", async () => {
-		const baselinePlan = await loadPlannerAgentBaselinePlan();
+		const baselinePlan = await loadDeckSpecBaselinePlan();
 		const paths = await createModulePaths();
 		const specDir = path.dirname(paths.canonicalSpecPath);
 		const previousCanonicalSpec = '{"sentinel":"keep-existing-canonical-spec"}\n';
@@ -364,7 +364,7 @@ describe("deck-spec-module public API", () => {
 	});
 
 	it("keeps failure diagnostics path-free in both the thrown error and diagnostics artifact", async () => {
-		const baselinePlan = await loadPlannerAgentBaselinePlan();
+		const baselinePlan = await loadDeckSpecBaselinePlan();
 		const malformedCandidate = createContractDriftCandidate(baselinePlan);
 		const paths = await createModulePaths();
 		mockedGenerateDeckSpecCandidateWithGemini

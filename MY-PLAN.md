@@ -66,6 +66,12 @@ Finish the shared-root slide-deck workflow with a writer-first shared deck-spec 
   - `cd /Volumes/BiGROG/skills-test/ai-education-deck/projects/ai-native-product-deck && pnpm test`
   - `cd /Volumes/BiGROG/skills-test/ai-education-deck/projects/ai-native-product-deck && pnpm build`
   - `cd /Volumes/BiGROG/skills-test/ai-education-deck/projects/ai-native-product-deck && pnpm spec:validate`
+  - `cd /Volumes/BiGROG/skills-test/ai-education-deck/projects/ai-native-product-deck && pnpm validate`
+- Legacy tail cleanup verified on 2026-03-15:
+  - empty `src/planner-agent` and `src/spec/compat` directories were removed from the demo project
+  - the shared package no longer carries an empty `src/spec/compat` directory after root sync
+  - shared package and demo project test fixtures were renamed away from `plannerAgent*`
+  - the demo validation report was refreshed and no longer mentions `--debug`
 - Live smoke status on 2026-03-15:
   - command: `cd /Volumes/BiGROG/skills-test/ai-education-deck && pnpm spec:live -- projects/ai-native-product-deck --prompt "Create a six-slide deck about shared deck-spec black-box planning, validation, semantic review, and deterministic build delivery." --label "black-box-refactor"`
   - rerun: `cd /Volumes/BiGROG/skills-test/ai-education-deck && pnpm spec:live -- projects/ai-native-product-deck --prompt "Create a six-slide deck about shared deck-spec black-box planning, validation, semantic review, and deterministic build delivery." --label "black-box-refactor-rerun"`
