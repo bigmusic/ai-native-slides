@@ -47,7 +47,8 @@
 ## 3. Spec And Semantic Review
 
 - Use `pnpm spec -- --prompt "<prompt>"` as the main prompt-driven entrypoint.
-- The project wrapper forwards into the shared `deck-spec-module`, which calls the external planner model, normalizes the candidate, validates it, runs semantic review, and performs one internal repair retry before any canonical publish.
+- The project wrapper forwards into the shared `deck-spec-module` with explicit canonical-spec and artifact-root paths. The shared CLI refuses to infer those runtime output paths on its own.
+- The shared module then calls the external planner model, normalizes the candidate, validates it, runs semantic review, and performs one internal repair retry before any canonical publish.
 - On success, the command writes canonical `spec/deck-spec.json` with `status = reviewed`.
 - On failure, the canonical target stays untouched and the CLI reports a stable failure kind derived from the module error.
 - Every run writes the module artifact bundle to the caller-selected artifact root.
@@ -62,7 +63,7 @@
 ## 4. Media Generation
 
 - `pnpm media` processes only `required: true` `image_assets` and `shared_assets` from canonical `spec/deck-spec.json`.
-- This is the only Gemini-dependent step in v1.
+- `pnpm media` is the only post-spec Gemini image-generation step in v1. Prompt-driven spec planning also depends on Gemini, but only inside the shared `deck-spec-module`.
 - It reruns structural validation at the same level as `pnpm spec:validate`, and requires `spec/deck-spec.json.status` to be `reviewed` or `media_ready`.
 - `pnpm media` reads `GEMINI_API_KEY` only from the current shell or `<deck-root>/.env`; project-level `.env` files are out of scope in v1.
 - Canonical outputs land at `media/generated-images/<output_file_name>`.
