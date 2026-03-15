@@ -111,23 +111,13 @@ Template-managed files are copied from `assets/templates/` and can be refreshed 
 - `src/asset-pipeline/generateMedia.ts`
 - `src/asset-pipeline/imagePolicy.ts`
 - `src/asset-pipeline/paths.ts`
-- `src/deck-spec-module/public-api.ts`
-- `src/deck-spec-module/prompt-interpreter/promptModel.ts`
-- `src/deck-spec-module/asset-planning/assetBlueprints.ts`
-- `src/deck-spec-module/canonicalization/finalizeDeckSpec.ts`
-- `src/deck-spec-module/review-bridge/createSemanticReview.ts`
-- `src/deck-spec-module/reviewing/materialQuality.ts`
-- `src/deck-spec-module/reviewing/promptQuality.ts`
-- `src/deck-spec-module/reviewing/scorecard.ts`
-- `src/deck-spec-module/planning/geminiPlannerModel.ts`
-- `src/deck-spec-module/planning/plannerPrompt.ts`
 - `src/deck-spec-module/media/providerEnv.ts`
 - `src/deck-spec-module/media/providerPrompt.ts`
 - `src/deck-spec-module/media/geminiImageProvider.ts`
 - `src/spec/contract.ts`
 - `src/spec/deriveOutputFileName.ts`
 - `src/spec/normalizeSystemManagedFields.ts`
-- `src/spec/promoteDeckSpecCandidate.ts`
+- `src/spec/runDeckSpec.ts`
 - `src/spec/readDeckSpec.ts`
 - `src/spec/rendererContract.ts`
 - `src/spec/renderSpecReview.ts`
@@ -191,11 +181,20 @@ pnpm build
 
 Before running that loop, resolve whether the prompt is creating a new project or revising an existing one. For operator-facing prompt wording, prefer explicit phrasing such as `Create project <slug>` or `Revise project <slug>`.
 
-`pnpm spec -- --prompt "<prompt>"` is now the single happy-path planning command. The CLI calls the stateless deck-spec module, the module calls the external planner model, and the module itself owns normalization, structural validation, semantic review, and one internal repair retry. On success the CLI writes canonical `spec/deck-spec.json`. On failure it leaves the canonical target untouched and reports a stable failure kind.
+`pnpm spec -- --prompt "<prompt>"` is now the single happy-path planning command. The project wrapper forwards into the shared package at `<deck-root>/packages/deck-spec-module/`. The module itself owns normalization, structural validation, semantic review, one internal repair retry, canonical publish, and artifact-bundle writes. On failure it leaves the canonical target untouched and reports a stable failure kind.
 
 `pnpm spec:validate` performs structural validation only. It checks the canonical `spec/deck-spec.json` against `spec/deck-spec.schema.json` plus local rule validation, and it does not mutate project files.
 
-`pnpm spec -- --prompt "<prompt>" --debug` is the only recommended diagnostics mode for the happy path. It writes `tmp/spec-candidate.json`, `tmp/spec-review.json`, `tmp/spec-diagnostics.json`, and `output/spec-review.md` after a prompt-driven run. Default runs should not emit those files.
+Every `pnpm spec -- --prompt "<prompt>"` run writes the same fixed artifact bundle under `<deck-root>/tmp/deck-spec-module/<project-slug>/` by default:
+
+- `result.json`
+- `diagnostics.json`
+- `candidate.primary.json`
+- `candidate.fallback.json`
+- `review.final.json`
+- `report.md`
+
+`pnpm spec:live -- <project-dir> --prompt "<prompt>" [--label "<name>"]` is the opt-in provider-backed smoke from the deck root. It writes only to `<deck-root>/tmp/deck-spec-module-live/...` and does not mutate the project canonical spec.
 
 `pnpm media` is the only Gemini-dependent command in v1. It reads `GEMINI_API_KEY` from the current shell or from `<deck-root>/.env`, requires `spec/deck-spec.json.status` to be `reviewed` or `media_ready`, and writes canonical deck-ready files into `media/generated-images/`.
 

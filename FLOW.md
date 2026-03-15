@@ -21,7 +21,7 @@
   - resolve the target project before changing files
   - converge the deck root and project scaffold
   - run `pnpm spec -- --prompt "<prompt>"`
-  - inspect the emitted debug and review artifacts when needed
+  - inspect the emitted module artifact bundle when needed
   - generate media, author or revise deck source, and run validation-oriented commands
   - produce deliverables
 - Deterministic CLI commands are guardrails inside that same skill session. They are not human approval checkpoints and not external-agent boundaries.
@@ -47,21 +47,17 @@
 ## 3. Spec And Semantic Review
 
 - Use `pnpm spec -- --prompt "<prompt>"` as the main prompt-driven entrypoint.
-- The CLI invokes the stateless deck-spec module, which calls the external planner model, normalizes the candidate, validates it, runs semantic review, and performs one internal repair retry before any canonical publish.
+- The project wrapper forwards into the shared `deck-spec-module`, which calls the external planner model, normalizes the candidate, validates it, runs semantic review, and performs one internal repair retry before any canonical publish.
 - On success, the command writes canonical `spec/deck-spec.json` with `status = reviewed`.
 - On failure, the canonical target stays untouched and the CLI reports a stable failure kind derived from the module error.
-- By default the command does not write candidate or review debug artifacts.
+- Every run writes the module artifact bundle to the caller-selected artifact root.
 
-### 3.1 Optional Debug Surfaces
+### 3.1 Validate The Deck Spec Contract
 
-- `pnpm spec -- --prompt "<prompt>" --debug` writes `tmp/spec-candidate.json`, `tmp/spec-review.json`, `tmp/spec-diagnostics.json`, and `output/spec-review.md`.
-
-### 3.2 Validate The Deck Spec Contract
-
-- `spec/deck-spec.schema.json`, `src/deck-spec-module/*`, and `src/spec/*` are scaffold-managed files for the primary workflow.
+- `spec/deck-spec.schema.json`, `src/spec/*`, and `src/deck-spec-module/media/*` are scaffold-managed files for the primary workflow.
 - `spec/deck-spec.json` is canonical project input.
 - Run `pnpm spec:validate` for structural validation.
-- This step validates the contract only. It does not do semantic review and does not generate media.
+- This step forwards into the shared validate module, validates the contract only, and does not generate media.
 
 ## 4. Media Generation
 

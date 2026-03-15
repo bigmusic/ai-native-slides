@@ -100,18 +100,25 @@ The skill exists to keep orchestration and deck authoring outside the planning m
 
 - Skill agent responsibilities:
   - interpret the user request and route the target project
-  - call the stateless `deck-spec module` entrypoint
+  - call the shared `deck-spec-module` entrypoints through thin project wrappers
   - author and edit TypeScript deck code
   - run validation commands and interpret the results
   - own the end-to-end session until deliverables exist
-- Local CLI/workflow responsibilities:
-  - call the module entrypoint
+- Shared `deck-spec-module` responsibilities:
+  - run external-model planning
+  - canonicalize the candidate into the formal contract
+  - run structural validation
+  - run semantic review
+  - perform one internal repair retry
   - write canonical `spec/deck-spec.json`
-  - optionally write debug artifacts only when `--debug` is requested
-  - build the PPT deterministically from local inputs
-  - write generated media to canonical paths
+  - write the fixed artifact bundle for every run
+- Project wrapper responsibilities:
+  - discover deck-root and project-root context
+  - choose default `canonicalSpecPath` and `artifactRootDir`
+  - forward `spec` and `spec:validate` into the shared package
+  - keep deterministic build and media commands separate from planning
 - Gemini responsibilities:
-  - spec candidate generation inside the stateless deck-spec module
+  - spec generation inside the shared `deck-spec-module`
   - image generation during `pnpm media`
   - no deck composition
 - Human responsibilities:
@@ -121,14 +128,25 @@ The skill exists to keep orchestration and deck authoring outside the planning m
 
 ## Current Skill-Phase Contract
 
-The current workflow keeps prompt-to-spec generation, semantic review, and one internal repair retry inside one stateless deck-spec module while leaving filesystem writes to the local CLI:
+The current workflow hard-cuts planning and contract validation into the shared package at `<deck-root>/packages/deck-spec-module/`:
 
-- `pnpm spec -- --prompt "<prompt>"` is the main path. It calls `src/deck-spec-module/public-api.ts`, lets the module call the external planner model, validates and semantically reviews the result inside the module, then writes canonical `spec/deck-spec.json`.
-- The module boundary is explicit: `planDeckSpecFromPrompt(prompt, { apiKey, projectSlug, ... })` owns prompt interpretation, canonicalization, validation, and semantic review, and it does not read filesystem paths or ambient shell state to infer planning identity.
-- `pnpm spec -- --prompt "<prompt>" --debug` additionally writes debug artifacts such as `tmp/spec-candidate.json`, `tmp/spec-review.json`, `tmp/spec-diagnostics.json`, and `output/spec-review.md`.
-- The stateless core now lives under `src/deck-spec-module/`, with `src/spec/*` and `src/asset-pipeline/generateMedia.ts` acting as thin filesystem and CLI adapters around that core.
-- Semantic review artifacts still include dimension scorecards for deck materials and image prompts, but the publish gate now stays entirely inside the module rather than in a workflow-owned promotion phase.
-- Validation/eval, not exact byte-for-byte determinism, is the success bar for planner output because spec content is model-generated.
+- `pnpm spec -- --prompt "<prompt>"` is the main path. The project wrapper forwards into `runDeckSpecModule({ prompt, projectSlug, apiKey, model?, seed?, paths: { canonicalSpecPath, artifactRootDir } })`.
+- The official validate entrypoint is `runDeckSpecValidateModule({ canonicalSpecPath, reportPath? })`.
+- The shared module is writer-first. It owns planning, canonicalization, structural validation, semantic review, one repair retry, canonical spec publish, and artifact-bundle writes.
+- Every prompt-driven run writes the same fixed bundle under the caller-provided artifact root:
+  - `result.json`
+  - `diagnostics.json`
+  - `candidate.primary.json`
+  - `candidate.fallback.json`
+  - `review.final.json`
+  - `report.md`
+- The project scaffold keeps only thin wrappers plus project-specific content:
+  - `src/spec/*`
+  - `src/deck-spec-module/media/*`
+  - `src/asset-pipeline/*`
+- There is no supported `--debug` mode and no supported value-only planner API.
+- `pnpm spec:live -- <project-dir> --prompt "<prompt>" [--label "<name>"]` is the opt-in provider-backed acceptance command from the deck root. It writes only to temp output and does not mutate the project canonical spec.
+- Validation/eval, not exact byte-for-byte determinism, is the success bar for model-generated spec content.
 
 Human review is intentionally late in the loop: inspect the final `.pptx`, the source, the generated media, and the validation outputs after the skill finishes, then send revision feedback as a new `Revise project <slug>` prompt if another run is needed.
 

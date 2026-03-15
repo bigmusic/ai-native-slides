@@ -53,9 +53,9 @@ Routing rules:
 - `assets/pptxgenjs_helpers/`: shared helper code copied into the deck root.
 - `assets/templates/`: project-scaffold templates and wrappers copied into each project.
 - `assets/content_starters/`: optional reference starters for prompt-generated deck content.
-- `pnpm spec -- --prompt "<prompt>"`: main happy-path entrypoint. It calls the stateless deck-spec module, lets the module invoke the external planner model, and writes canonical `spec/deck-spec.json` only after module-internal validation/eval succeeds.
-- `pnpm spec -- --prompt "<prompt>" --debug`: optional debug mode. It additionally writes `tmp/spec-candidate.json`, `tmp/spec-review.json`, `tmp/spec-diagnostics.json`, and `output/spec-review.md`.
-- `pnpm spec:validate`: validates the canonical `spec/deck-spec.json` against the scaffold-managed contract without mutating project files.
+- `pnpm spec -- --prompt "<prompt>"`: main happy-path entrypoint. The project wrapper forwards into the shared `deck-spec-module`, and the module itself writes canonical `spec/deck-spec.json` plus a fixed artifact bundle after module-internal validation/eval succeeds.
+- `pnpm spec:validate`: validates the canonical `spec/deck-spec.json` by forwarding into the shared validate module without mutating project files.
+- `pnpm spec:live -- <project-dir> --prompt "<prompt>" [--label "<name>"]`: opt-in provider-backed smoke from the deck root. It writes only to temp output and does not mutate the project canonical spec.
 - `pnpm media`: reads required image assets from canonical `spec/deck-spec.json`, uses Gemini image generation, and writes deck-ready outputs into `media/generated-images/`.
 
 ## Responsibility Boundaries
@@ -64,15 +64,17 @@ Routing rules:
   - TypeScript deck authoring and edits
   - command orchestration and validation interpretation
   - the end-to-end session from prompt intake through deliverable generation
-- Local workflow owns:
-  - canonical spec file writes
-  - structural validation
-  - deterministic build output
-  - canonical artifact paths and file writes
 - Stateless deck-spec module owns:
   - external-model prompt-to-canonical-spec planning
   - internal asset planning and filename derivation
   - module-internal validation/eval and one repair retry prior to publish
+  - canonical spec file writes
+  - fixed artifact-bundle writes
+- Project wrapper owns:
+  - deck-root / project-root discovery
+  - default path selection for `canonicalSpecPath` and `artifactRootDir`
+  - forwarding CLI invocations into the shared package
+  - deterministic build output outside planning
 - Gemini owns:
   - spec generation inside the stateless deck-spec module
   - image synthesis during `pnpm media`
@@ -99,13 +101,13 @@ Routing rules:
 7. Let `scripts/init_deck_root.sh` restore the deck-root `.npmrc` and run `pnpm install` in Codex so the shared store stays inside `<deck-root>/.pnpm-store`. LibreOffice-backed validation is still human-in-the-loop in Codex and requires a local-terminal rerun.
 8. Set the slide size up front. Default to 16:9 (`LAYOUT_WIDE`) unless the source material clearly uses another aspect ratio.
 9. Generate or revise project content only after both root and project scaffolds are ready. Write `src/buildDeck.ts`, `src/presentationModel.ts`, and project tests from the routed prompt and the target project's current state.
-10. Treat `spec/deck-spec.schema.json`, `src/deck-spec-module/*`, and `src/spec/*` as template-managed contract files. Treat `spec/deck-spec.json` as canonical project input when it exists.
+10. Treat `spec/deck-spec.schema.json`, `src/spec/*`, and `src/deck-spec-module/media/*` as template-managed contract files. Treat `spec/deck-spec.json` as canonical project input when it exists.
 11. Use `pnpm spec -- --prompt "<prompt>"` as the main happy-path command. It invokes the stateless deck-spec module, which calls the external planner model, validates/evaluates internally, retries once internally when needed, and writes canonical `spec/deck-spec.json` only on success.
-12. Use `pnpm spec -- --prompt "<prompt>" --debug` only when you need debug artifacts. Default runs should not write candidate or review scratch files.
-13. If `pnpm spec` exits with failure, inspect `tmp/spec-diagnostics.json` only when you explicitly used `--debug`, then revise the prompt or rerun the command. Do not manually patch canonical `spec/deck-spec.json` as a substitute for rerunning the prompt-driven flow.
+12. Every `pnpm spec` run writes the module artifact bundle under the selected artifact root. For the default project wrapper, that path is `<deck-root>/tmp/deck-spec-module/<project-slug>/`.
+13. If `pnpm spec` exits with failure, inspect the emitted module artifact bundle, then revise the prompt or rerun the command. Do not manually patch canonical `spec/deck-spec.json` as a substitute for rerunning the prompt-driven flow.
 14. Put `GEMINI_API_KEY` in the current shell or in `<deck-root>/.env`. `pnpm media` is the only Gemini-dependent command in v1, and it does not read project-level `.env` files.
 15. When maintaining this skill, develop and validate the behavior in the demo project first, then sync reusable template, script, and doc changes back into the skill repo before considering the work complete.
-16. Use `pnpm spec -- --prompt "<prompt>"`, `pnpm spec:validate`, `pnpm media`, `pnpm lint`, `pnpm typecheck`, `pnpm test`, and `pnpm build` as the fast local loop. The intended operator path is prompt in -> route to a project -> one skill-owned session runs `pnpm spec -- --prompt "<prompt>"` -> canonical publish -> `pnpm media` -> deliverables out. `pnpm spec --debug` is optional diagnostics mode, `pnpm spec:validate` remains structural validation, `pnpm media` is the only post-spec Gemini step and requires `spec/deck-spec.json.status` to be `reviewed` or `media_ready`, and `pnpm build` remains deterministic and offline. Prefer `pnpm validate` only when you need full render, font, and overflow checks; inside Codex, a blocked validation run should print the local rerun command plus the raw `soffice` command blocks in terminal output, not only in the markdown report.
+16. Use `pnpm spec -- --prompt "<prompt>"`, `pnpm spec:validate`, `pnpm media`, `pnpm lint`, `pnpm typecheck`, `pnpm test`, and `pnpm build` as the fast local loop. `pnpm spec:live -- <project-dir> --prompt "<prompt>"` is the opt-in provider-backed smoke. The intended operator path is prompt in -> route to a project -> one skill-owned session runs `pnpm spec -- --prompt "<prompt>"` -> canonical publish plus artifact bundle -> `pnpm media` -> deliverables out. `pnpm spec:validate` remains structural validation, `pnpm media` is the only post-spec Gemini step and requires `spec/deck-spec.json.status` to be `reviewed` or `media_ready`, and `pnpm build` remains deterministic and offline. Prefer `pnpm validate` only when you need full render, font, and overflow checks; inside Codex, a blocked validation run should print the local rerun command plus the raw `soffice` command blocks in terminal output, not only in the markdown report.
 17. Build the deck in TypeScript with explicit fonts, stable spacing, and editable PowerPoint-native elements when practical. `build` remains deterministic and does not call Gemini.
 18. Deliver the `.pptx`, the authoring `.ts`, and any generated media required to rebuild the deck.
 19. Post-deliverable review feedback is handled as a new prompt. Resolve the target project again and rerun the end-to-end workflow there instead of manually editing intermediate candidate files.
