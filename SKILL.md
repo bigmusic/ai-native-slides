@@ -65,11 +65,17 @@ Routing rules:
   - command orchestration and validation interpretation
   - the end-to-end session from prompt intake through deliverable generation
 - Stateless deck-spec module owns:
+  - a stateless black-box boundary behind explicit caller inputs
   - external-model prompt-to-canonical-spec planning
   - internal asset planning and filename derivation
   - module-internal validation/eval and one repair retry prior to publish
   - canonical spec file writes
   - fixed artifact-bundle writes
+- Stateless deck-spec module does not own:
+  - deck-root / project-root discovery
+  - default runtime path selection
+  - project-local mutable state
+  - hidden package-local output directories
 - Project wrapper owns:
   - deck-root / project-root discovery
   - default path selection for `canonicalSpecPath` and `artifactRootDir`
@@ -102,7 +108,7 @@ Routing rules:
 8. Set the slide size up front. Default to 16:9 (`LAYOUT_WIDE`) unless the source material clearly uses another aspect ratio.
 9. Generate or revise project content only after both root and project scaffolds are ready. Write `src/buildDeck.ts`, `src/presentationModel.ts`, and project tests from the routed prompt and the target project's current state.
 10. Treat `spec/deck-spec.schema.json`, `src/spec/*`, and `src/deck-spec-module/media/*` as template-managed contract files. Treat `spec/deck-spec.json` as canonical project input when it exists.
-11. Use `pnpm spec -- --prompt "<prompt>"` as the main happy-path command. The project wrapper must pass explicit canonical-spec and artifact-root paths into the shared CLI. That CLI fails fast if the output paths are omitted, and then invokes the stateless deck-spec module, which calls the external planner model, validates/evaluates internally, retries once internally when needed, and writes canonical `spec/deck-spec.json` only on success.
+11. Use `pnpm spec -- --prompt "<prompt>"` as the main happy-path command. The project wrapper must pass explicit canonical-spec and artifact-root paths into the shared CLI. That CLI fails fast if the output paths are omitted, and then invokes the stateless deck-spec module. Treat that module as a black box: it consumes explicit inputs, does not discover project context on its own, does not infer output paths, and writes canonical `spec/deck-spec.json` only on success.
 12. Every `pnpm spec` run writes the module artifact bundle under the selected artifact root. For the default project wrapper, that path is `<deck-root>/tmp/deck-spec-module/<project-slug>/`.
 13. If `pnpm spec` exits with failure, inspect the emitted module artifact bundle, then revise the prompt or rerun the command. Do not manually patch canonical `spec/deck-spec.json` as a substitute for rerunning the prompt-driven flow.
 14. Put `GEMINI_API_KEY` in the current shell or in `<deck-root>/.env`. `pnpm spec`, `pnpm spec:live`, and `pnpm media` may all require that key in v1. `pnpm media` remains the only post-spec Gemini image-generation step, and it does not read project-level `.env` files.

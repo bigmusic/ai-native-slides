@@ -181,7 +181,7 @@ pnpm build
 
 Before running that loop, resolve whether the prompt is creating a new project or revising an existing one. For operator-facing prompt wording, prefer explicit phrasing such as `Create project <slug>` or `Revise project <slug>`.
 
-`pnpm spec -- --prompt "<prompt>"` is now the single happy-path planning command. The project wrapper forwards into the shared package at `<deck-root>/packages/deck-spec-module/` with explicit canonical-spec and artifact-root paths. The shared CLI fails fast if those output paths are omitted. The module itself owns normalization, structural validation, semantic review, one internal repair retry, canonical publish, and artifact-bundle writes. On failure it leaves the canonical target untouched and reports a stable failure kind.
+`pnpm spec -- --prompt "<prompt>"` is now the single happy-path planning command. The project wrapper forwards into the shared package at `<deck-root>/packages/deck-spec-module/` with explicit canonical-spec and artifact-root paths. The shared CLI fails fast if those output paths are omitted. Treat the shared module as a stateless black box: wrappers own project discovery and default path selection, while the module consumes explicit inputs, owns normalization, structural validation, semantic review, one internal repair retry, canonical publish, and artifact-bundle writes. On failure it leaves the canonical target untouched and reports a stable failure kind.
 
 `pnpm spec:validate` performs structural validation only. It checks the canonical `spec/deck-spec.json` against `spec/deck-spec.schema.json` plus local rule validation, and it does not mutate project files.
 

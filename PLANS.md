@@ -88,6 +88,7 @@ Current open gap:
 - [x] 2026-03-15 14:43 PDT: hardened the stateless boundary. Shared CLIs now require explicit output paths, project wrappers forward canonical-spec and artifact-root paths explicitly, and the package rejects writes into its own directory.
 - [x] 2026-03-15 15:03 PDT: compressed and aligned repo docs so the remaining operator-facing docs describe the same shared-runtime contract.
 - [x] 2026-03-15 15:30 PDT: tightened the plan wording so `deck-spec-module` is described explicitly as a stateless black box with caller-owned discovery and path selection, module-owned publish semantics, and no hidden package-local writes.
+- [x] 2026-03-15 15:37 PDT: aligned `README.md`, `SKILL.md`, and `references/project-workflow.md` with the current code surface so they now describe the shared module as a stateless black box, wrapper-owned path selection, explicit output-path requirements, and non-mutating failure semantics.
 - [ ] 2026-03-15 15:09 PDT: provider-backed acceptance is still open. Current `spec:live` attempts reached the provider path but failed with `planning_failed` (`fetch failed`) and `contract_validation_failed` after fallback repair.
 
 ## Plan of Work

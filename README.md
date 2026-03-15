@@ -21,6 +21,8 @@ This repository is not intended to hold finished decks, rendered outputs, or loc
 
 Normal skill use should start from `SKILL.md` and the user-facing scripts only. Files under `scripts/maintenance/` are not part of the normal deck-authoring workflow; they exist for maintaining the skill itself, validating template recovery paths, migrating older layouts, and syncing or repairing the reusable scaffold layer.
 
+For the current execution state of the shared-runtime refactor, use `PLANS.md` as the living source of truth.
+
 ## Development Environment In This Workspace
 
 The current workspace is split into two roles:
@@ -105,6 +107,7 @@ The skill exists to keep orchestration and deck authoring outside the planning m
   - run validation commands and interpret the results
   - own the end-to-end session until deliverables exist
 - Shared `deck-spec-module` responsibilities:
+  - behave as a stateless black box behind explicit inputs
   - run external-model planning
   - canonicalize the candidate into the formal contract
   - run structural validation
@@ -130,9 +133,13 @@ The skill exists to keep orchestration and deck authoring outside the planning m
 
 The current workflow hard-cuts planning and contract validation into the shared package at `<deck-root>/packages/deck-spec-module/`:
 
-- `pnpm spec -- --prompt "<prompt>"` is the main path. The project wrapper forwards into `runDeckSpecModule({ prompt, projectSlug, apiKey, model?, seed?, paths: { canonicalSpecPath, artifactRootDir } })`.
+- `pnpm spec -- --prompt "<prompt>"` is the main path. The project wrapper forwards into the shared CLI with explicit `--canonical-spec-path` and `--artifact-root-dir` values, and that CLI forwards into `runDeckSpecModule({ prompt, projectSlug, apiKey, model?, seed?, paths: { canonicalSpecPath, artifactRootDir } })`.
 - The official validate entrypoint is `runDeckSpecValidateModule({ canonicalSpecPath, reportPath? })`.
-- The shared module is writer-first. It owns planning, canonicalization, structural validation, semantic review, one repair retry, canonical spec publish, and artifact-bundle writes.
+- The shared module is writer-first and stateless. It owns planning, canonicalization, structural validation, semantic review, one repair retry, canonical spec publish, and artifact-bundle writes.
+- The shared module does not discover the active project, infer runtime output locations, or depend on project-local mutable state.
+- The project wrapper owns deck-root / project-root discovery and default path selection for `canonicalSpecPath` and `artifactRootDir`.
+- The shared module and CLI do not infer runtime output locations anymore. If the caller does not pass explicit output paths, the CLI fails fast.
+- The shared module rejects runtime output paths that point back into its own package directory.
 - Every prompt-driven run writes the same fixed bundle under the caller-provided artifact root:
   - `result.json`
   - `diagnostics.json`
@@ -140,12 +147,14 @@ The current workflow hard-cuts planning and contract validation into the shared 
   - `candidate.fallback.json`
   - `review.final.json`
   - `report.md`
+- On success, the module publishes the canonical spec plus artifacts. On failure, the canonical target stays untouched and the failure is reported through typed error codes plus artifact diagnostics.
 - The project scaffold keeps only thin wrappers plus project-specific content:
   - `src/spec/*`
   - `src/deck-spec-module/media/*`
   - `src/asset-pipeline/*`
 - There is no supported `--debug` mode and no supported value-only planner API.
-- `pnpm spec:live -- <project-dir> --prompt "<prompt>" [--label "<name>"]` is the opt-in provider-backed acceptance command from the deck root. It writes only to temp output and does not mutate the project canonical spec.
+- `pnpm spec:validate` remains structural validation only. It validates the canonical `spec/deck-spec.json` and does not generate media or revise project content.
+- `pnpm spec:live -- <project-dir> --tmp-root-dir "<path>" --prompt "<prompt>" [--label "<name>"]` is the opt-in provider-backed acceptance command from the deck root. It writes only to the caller-selected temp root and does not mutate the project canonical spec.
 - Validation/eval, not exact byte-for-byte determinism, is the success bar for model-generated spec content.
 
 Human review is intentionally late in the loop: inspect the final `.pptx`, the source, the generated media, and the validation outputs after the skill finishes, then send revision feedback as a new `Revise project <slug>` prompt if another run is needed.
