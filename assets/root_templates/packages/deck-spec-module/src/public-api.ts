@@ -7,8 +7,8 @@ import {
 	type PlanningAttemptStrategy,
 } from "./deck-spec-module/errors.js";
 import {
-	type PlanDeckSpecFromPromptOptions,
 	planDeckSpecRun,
+	type PlanDeckSpecRunOptions,
 	type PlanningAttemptArtifact,
 } from "./deck-spec-module/canonicalization/finalizeDeckSpec.js";
 import { renderModuleRunReport } from "./report/renderModuleRunReport.js";
@@ -46,10 +46,7 @@ export type DeckSpecModulePaths = {
 	artifactRootDir: string;
 };
 
-export type RunDeckSpecModuleInput = Omit<
-	PlanDeckSpecFromPromptOptions,
-	"onDebugResult"
-> & {
+export type RunDeckSpecModuleInput = PlanDeckSpecRunOptions & {
 	prompt: string;
 	paths: DeckSpecModulePaths;
 };

@@ -20,23 +20,13 @@ import {
 } from "../planning/plannerPrompt.js";
 import { createDeterministicSemanticReview } from "../review-bridge/createSemanticReview.js";
 
-export type PlanDeckSpecFromPromptOptions = {
+export type PlanDeckSpecRunOptions = {
 	projectSlug: string;
 	generatedAt?: string;
 	specVersion?: string;
 	apiKey: string;
 	model?: string;
 	seed?: number;
-	onDebugResult?: (
-		result: PlanDeckSpecFromPromptDebugResult,
-	) => void | Promise<void>;
-};
-
-export type PlanDeckSpecFromPromptDebugResult = {
-	candidateDeckSpec: DeckSpec;
-	deckSpec: DeckSpec;
-	review: SpecReviewResult;
-	diagnostics: DeckSpecPlanningDiagnostics;
 };
 
 export type PlanningAttemptArtifact = {
@@ -157,7 +147,7 @@ function createSemanticReviewError(
 	});
 }
 
-function resolvePlannerApiKey(options: PlanDeckSpecFromPromptOptions): string {
+function resolvePlannerApiKey(options: PlanDeckSpecRunOptions): string {
 	if (options.apiKey.trim().length > 0) {
 		return options.apiKey.trim();
 	}
@@ -168,7 +158,7 @@ function resolvePlannerApiKey(options: PlanDeckSpecFromPromptOptions): string {
 	);
 }
 
-function resolveProjectSlug(options: PlanDeckSpecFromPromptOptions): string {
+function resolveProjectSlug(options: PlanDeckSpecRunOptions): string {
 	if (options.projectSlug.trim().length > 0) {
 		return options.projectSlug.trim();
 	}
@@ -181,7 +171,7 @@ function resolveProjectSlug(options: PlanDeckSpecFromPromptOptions): string {
 
 function normalizeCandidateDeckSpec(
 	candidateDocument: unknown,
-	options: PlanDeckSpecFromPromptOptions,
+	options: PlanDeckSpecRunOptions,
 	sourcePrompt: string,
 ): DeckSpec {
 	return normalizeSystemManagedFields(candidateDocument as DeckSpecCandidate, {
@@ -222,7 +212,7 @@ function validateSemanticReview(
 async function runPlanningAttempt(
 	strategy: PlanningAttemptStrategy,
 	sourcePrompt: string,
-	options: PlanDeckSpecFromPromptOptions,
+	options: PlanDeckSpecRunOptions,
 	apiKey: string,
 	repairInput?: {
 		previousCandidate: DeckSpecCandidate;
@@ -305,7 +295,7 @@ function createAttemptArtifact(
 
 export async function planDeckSpecRun(
 	prompt: string,
-	options: PlanDeckSpecFromPromptOptions,
+	options: PlanDeckSpecRunOptions,
 ): Promise<PlanDeckSpecRunResult> {
 	const trimmedPrompt = prompt.trim();
 	if (trimmedPrompt.length < 16) {
@@ -424,25 +414,4 @@ export async function planDeckSpecRun(
 			attempts,
 		};
 	}
-}
-
-export async function planDeckSpecFromPrompt(
-	prompt: string,
-	options: PlanDeckSpecFromPromptOptions,
-): Promise<DeckSpec> {
-	const result = await planDeckSpecRun(prompt, options);
-	if (result.ok === false) {
-		throw result.error;
-	}
-
-	const finalAttempt =
-		result.attempts[result.attempts.length - 1]?.candidateDeckSpec;
-	await options.onDebugResult?.({
-		candidateDeckSpec: finalAttempt ?? result.deckSpec,
-		deckSpec: result.deckSpec,
-		review: result.review,
-		diagnostics: result.diagnostics,
-	});
-
-	return result.deckSpec;
 }
