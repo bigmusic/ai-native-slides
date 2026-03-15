@@ -53,32 +53,31 @@ Routing rules:
 - `assets/pptxgenjs_helpers/`: shared helper code copied into the deck root.
 - `assets/templates/`: project-scaffold templates and wrappers copied into each project.
 - `assets/content_starters/`: optional reference starters for prompt-generated deck content.
-- `pnpm spec:generate`: writes `tmp/planner-context.json` and `tmp/planner-brief.md` from `--prompt "<prompt>"` without mutating `spec/deck-spec.json`; in Codex this starts the skill-native planner phase.
-- `pnpm spec`: promotes `tmp/spec-candidate.json` into canonical `spec/deck-spec.json` after local normalization and validation, writes `tmp/review-context.json` plus `tmp/review-brief.md` on success, and prints stable `Failure kind:` / `Retryable by skill:` lines on failure.
-- `pnpm spec:review`: promotes `tmp/spec-review-candidate.json` into `tmp/spec-review.json` and `output/spec-review.md`, while enforcing local `pass` / `warn` / `fail` coherence rules plus canonical deck-material/image-prompt scorecard validation for the semantic-review artifact.
+- `pnpm spec -- --prompt "<prompt>"`: main happy-path entrypoint. It calls the stateless deck-spec module, lets the module invoke the external planner model, and writes canonical `spec/deck-spec.json` only after module-internal validation/eval succeeds.
+- `pnpm spec -- --prompt "<prompt>" --debug`: optional debug mode. It additionally writes `tmp/spec-candidate.json`, `tmp/spec-review.json`, `tmp/spec-diagnostics.json`, and `output/spec-review.md`.
+- `pnpm spec:generate` and `pnpm spec:review`: deprecated compatibility/debug surfaces. Keep them out of the main workflow, and expect explicit deprecation warnings when they are used.
 - `pnpm spec:validate`: validates the canonical `spec/deck-spec.json` against the scaffold-managed contract without mutating project files.
 - `pnpm media`: reads required image assets from canonical `spec/deck-spec.json`, uses Gemini image generation, and writes deck-ready outputs into `media/generated-images/`.
 
 ## Responsibility Boundaries
 
 - Skill agent owns:
-  - prompt interpretation
-  - planner/reviewer candidate authoring
-  - the single candidate retry after retryable `pnpm spec` failures
   - TypeScript deck authoring and edits
   - command orchestration and validation interpretation
   - the end-to-end session from prompt intake through deliverable generation
 - Local workflow owns:
-  - planner context and brief generation
-  - canonical spec normalization and promotion
+  - canonical spec file writes
   - structural validation
   - deterministic build output
   - canonical artifact paths and file writes
+- Stateless deck-spec module owns:
+  - external-model prompt-to-canonical-spec planning
+  - internal asset planning and filename derivation
+  - module-internal validation/eval and one repair retry prior to publish
 - Gemini owns:
-  - image synthesis only during `pnpm media`
+  - spec generation inside the stateless deck-spec module
+  - image synthesis during `pnpm media`
 - Gemini does not own:
-  - prompt-to-spec candidate generation
-  - semantic review
   - deck composition
   - validation logic
 - Human responsibilities begin after deliverables exist:
@@ -87,7 +86,7 @@ Routing rules:
   - provide revision feedback for a later skill rerun
 - Humans do not own:
   - planner or review candidate authoring
-  - candidate retry
+  - module-internal repair retry
   - mid-session approval checkpoints
 
 ## Workflow
@@ -101,16 +100,14 @@ Routing rules:
 7. Let `scripts/init_deck_root.sh` restore the deck-root `.npmrc` and run `pnpm install` in Codex so the shared store stays inside `<deck-root>/.pnpm-store`. LibreOffice-backed validation is still human-in-the-loop in Codex and requires a local-terminal rerun.
 8. Set the slide size up front. Default to 16:9 (`LAYOUT_WIDE`) unless the source material clearly uses another aspect ratio.
 9. Generate or revise project content only after both root and project scaffolds are ready. Write `src/buildDeck.ts`, `src/presentationModel.ts`, and project tests from the routed prompt and the target project's current state.
-10. Treat `spec/deck-spec.schema.json`, `src/planner-agent/*`, and `src/spec/*` as template-managed contract files. Treat `spec/deck-spec.json` as canonical project input when it exists.
-11. In the current planner-to-spec slice, run `pnpm spec:generate -- --prompt "<prompt>"` first. It writes `tmp/planner-context.json` and `tmp/planner-brief.md`, captures workflow-managed `source_prompt`, and defines the internal skill-phase contract for writing `tmp/spec-candidate.json`.
-12. After `pnpm spec:generate`, the same skill-owned session must read `tmp/planner-context.json` and `tmp/planner-brief.md`, then write `tmp/spec-candidate.json`. Write JSON only, keep workflow-managed fields out of the candidate source of truth, and do not mutate `spec/deck-spec.json`, `output/`, or `media/` while authoring the candidate.
-13. Run `pnpm spec` after writing the candidate. `pnpm spec` prefers `tmp/planner-context.json` as the canonical source for `source_prompt`. If the context file is missing, v1 still accepts `candidate.source_prompt`, but that path is legacy fallback only. On success it also writes `tmp/review-context.json` and `tmp/review-brief.md` for the semantic-review phase.
-14. If `pnpm spec` fails with `Failure kind: candidate_invalid_json` or `Failure kind: candidate_validation_failed`, copy the current candidate to `tmp/spec-candidate.last-invalid.json`, write the stderr failure summary to `tmp/spec-candidate.last-errors.txt`, fix the candidate using only those reported errors, and retry `pnpm spec` once. On any other failure kind, or if the second promotion fails, stop instead of continuing to `spec:review` or `media`.
-15. Before writing `tmp/spec-review-candidate.json`, the same skill-owned session must read `tmp/review-context.json` and `tmp/review-brief.md`. Review prompt alignment only; score both deck materials and compiled image prompts; do not rerun structural validation, and do not mutate `spec/deck-spec.json`, `output/`, or `media/` while authoring the review candidate.
-16. The local workflow promotes those fixed-path candidate artifacts through `pnpm spec` and `pnpm spec:review`; these commands do not call a model by themselves. These artifacts are internal phase boundaries inside one skill-run, not human checkpoints.
+10. Treat `spec/deck-spec.schema.json`, `src/deck-spec-module/*`, and `src/spec/*` as template-managed contract files. Treat `spec/deck-spec.json` as canonical project input when it exists. Compatibility-only internals may still exist under `src/spec/compat/*` and `src/planner-agent/*`, but they are not part of the primary skill contract.
+11. Use `pnpm spec -- --prompt "<prompt>"` as the main happy-path command. It invokes the stateless deck-spec module, which calls the external planner model, validates/evaluates internally, retries once internally when needed, and writes canonical `spec/deck-spec.json` only on success.
+12. Use `pnpm spec -- --prompt "<prompt>" --debug` only when you need debug artifacts. Default runs should not write candidate or review scratch files.
+13. If `pnpm spec` exits with failure, inspect `tmp/spec-diagnostics.json` only when you explicitly used `--debug`, then revise the prompt or rerun the command. Do not manually patch canonical `spec/deck-spec.json` as a substitute for rerunning the prompt-driven flow.
+14. `pnpm spec:generate` and `pnpm spec:review` are transition-only compatibility / diagnostics surfaces. They are no longer part of the primary prompt-to-publish path and should not be extended as the main workflow contract.
 17. Put `GEMINI_API_KEY` in the current shell or in `<deck-root>/.env`. `pnpm media` is the only Gemini-dependent command in v1, and it does not read project-level `.env` files.
 18. When maintaining this skill, develop and validate the behavior in the demo project first, then sync reusable template, script, and doc changes back into the skill repo before considering the work complete.
-19. Use `pnpm spec:generate`, `pnpm spec`, `pnpm spec:validate`, `pnpm spec:review`, `pnpm media`, `pnpm lint`, `pnpm typecheck`, `pnpm test`, and `pnpm build` as the fast local loop. The intended operator path is prompt in -> route to a project -> one skill-owned session runs these phases -> deliverables out. `pnpm spec:generate` is the deterministic CLI half of the skill-native planner phase; `pnpm spec` stays fail-fast and emits the review phase artifacts; `pnpm spec:validate` is structural validation only; `pnpm spec:review` promotes a skill-authored semantic review artifact and enforces local status-coherence rules; `pnpm media` is the only Gemini step and requires `spec/deck-spec.json.status` to be `reviewed` or `media_ready`; `pnpm build` remains deterministic and offline. Prefer `pnpm validate` only when you need full render, font, and overflow checks; inside Codex, a blocked validation run should print the local rerun command plus the raw `soffice` command blocks in terminal output, not only in the markdown report.
+19. Use `pnpm spec -- --prompt "<prompt>"`, `pnpm spec:validate`, `pnpm media`, `pnpm lint`, `pnpm typecheck`, `pnpm test`, and `pnpm build` as the fast local loop. The intended operator path is prompt in -> route to a project -> one skill-owned session runs `pnpm spec -- --prompt "<prompt>"` -> canonical publish -> `pnpm media` -> deliverables out. `pnpm spec --debug` is optional diagnostics mode, `pnpm spec:generate` and `pnpm spec:review` are compatibility/debug only, `pnpm spec:validate` remains structural validation, `pnpm media` is the only post-spec Gemini step and requires `spec/deck-spec.json.status` to be `reviewed` or `media_ready`, and `pnpm build` remains deterministic and offline. Prefer `pnpm validate` only when you need full render, font, and overflow checks; inside Codex, a blocked validation run should print the local rerun command plus the raw `soffice` command blocks in terminal output, not only in the markdown report.
 20. Build the deck in TypeScript with explicit fonts, stable spacing, and editable PowerPoint-native elements when practical. `build` remains deterministic and does not call Gemini.
 21. Deliver the `.pptx`, the authoring `.ts`, and any generated media required to rebuild the deck.
 22. Post-deliverable review feedback is handled as a new prompt. Resolve the target project again and rerun the end-to-end workflow there instead of manually editing intermediate candidate files.

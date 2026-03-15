@@ -44,11 +44,7 @@ Within that same session, the skill agent is expected to:
 - classify the prompt as `new_project` or `revise_existing_project`
 - resolve the target project before changing files
 - converge the root and project scaffold
-- run `pnpm spec:generate`
-- author `tmp/spec-candidate.json`
-- run `pnpm spec` and, when allowed, retry once
-- author `tmp/spec-review-candidate.json`
-- run `pnpm spec:review`
+- run `pnpm spec -- --prompt "<prompt>"`
 - generate media
 - author or revise `src/buildDeck.ts`, `src/presentationModel.ts`, and project tests
 - run `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, and when needed `pnpm validate`
@@ -56,7 +52,7 @@ Within that same session, the skill agent is expected to:
 
 Deterministic CLI steps are guardrails inside that same skill session. They are not human approval checkpoints and not external-agent boundaries.
 
-The JSON field name `skill_handoff` remains for backward compatibility, but it describes an internal skill-phase contract rather than a human handoff.
+Legacy compatibility artifacts may still contain a `skill_handoff` field, but it is transition-only debug metadata rather than part of the current operator contract.
 
 ## Shared-Root Model
 
@@ -117,6 +113,20 @@ Template-managed files are copied from `assets/templates/` and can be refreshed 
 - `src/asset-pipeline/generateMedia.ts`
 - `src/asset-pipeline/imagePolicy.ts`
 - `src/asset-pipeline/paths.ts`
+- `src/deck-spec-module/public-api.ts`
+- `src/deck-spec-module/prompt-interpreter/promptModel.ts`
+- `src/deck-spec-module/asset-planning/assetBlueprints.ts`
+- `src/deck-spec-module/canonicalization/finalizeDeckSpec.ts`
+- `src/deck-spec-module/review-bridge/createSemanticReview.ts`
+- `src/deck-spec-module/reviewing/materialQuality.ts`
+- `src/deck-spec-module/reviewing/promptQuality.ts`
+- `src/deck-spec-module/reviewing/scorecard.ts`
+- `src/deck-spec-module/planning/geminiPlannerModel.ts`
+- `src/deck-spec-module/planning/plannerPrompt.ts`
+- `src/deck-spec-module/media/providerEnv.ts`
+- `src/deck-spec-module/media/providerPrompt.ts`
+- `src/deck-spec-module/media/geminiImageProvider.ts`
+- `src/spec/compat/legacyPromoteDeckSpecCandidate.ts`
 - `src/planner-agent/image-generation/env.ts`
 - `src/planner-agent/image-generation/geminiAdapter.ts`
 - `src/planner-agent/material-quality.ts`
@@ -186,10 +196,8 @@ pnpm install
 ```bash
 # Fast TypeScript loop
 cd /Volumes/BiGROG/skills-test/ai-education-deck/projects/ai-native-product-deck
-pnpm spec:generate -- --prompt "Summarize the requested deck"
-pnpm spec
+pnpm spec -- --prompt "Summarize the requested deck"
 pnpm spec:validate
-pnpm spec:review
 pnpm media
 pnpm lint
 pnpm typecheck
@@ -199,23 +207,19 @@ pnpm build
 
 Before running that loop, resolve whether the prompt is creating a new project or revising an existing one. For operator-facing prompt wording, prefer explicit phrasing such as `Create project <slug>` or `Revise project <slug>`.
 
-`pnpm spec:generate` writes `tmp/planner-context.json` and `tmp/planner-brief.md` from the provided prompt. It does not mutate `spec/deck-spec.json`; inside Codex it starts the next internal skill phase, and the same skill session must read those artifacts before writing `tmp/spec-candidate.json`.
-
-`pnpm spec` promotes `tmp/spec-candidate.json` into canonical `spec/deck-spec.json`. It prefers `tmp/planner-context.json` as the source of workflow-managed `source_prompt`, normalizes the remaining system-managed fields, validates the result, and avoids leaving behind an invalid canonical spec. On success it also writes `tmp/review-context.json` and `tmp/review-brief.md` for the semantic-review phase. If those review artifacts cannot be written, `pnpm spec` rolls the canonical spec back instead of leaving a partially updated workflow state. On failure it prints stable `Failure kind:` and `Retryable by skill:` lines so the same skill session can decide whether one candidate-only retry is allowed.
-
-If the first `pnpm spec` attempt fails with `Failure kind: candidate_invalid_json` or `candidate_validation_failed`, the skill should snapshot the current candidate to `tmp/spec-candidate.last-invalid.json`, write the stderr failure summary to `tmp/spec-candidate.last-errors.txt`, fix the candidate using only the reported errors, and retry `pnpm spec` once. Any other failure kind, or a second failed promotion, stops the planner phase.
+`pnpm spec -- --prompt "<prompt>"` is now the single happy-path planning command. The CLI calls the stateless deck-spec module, the module calls the external planner model, and the module itself owns normalization, structural validation, semantic review, and one internal repair retry. On success the CLI writes canonical `spec/deck-spec.json`. On failure it leaves the canonical target untouched and reports a stable failure kind.
 
 `pnpm spec:validate` performs structural validation only. It checks the canonical `spec/deck-spec.json` against `spec/deck-spec.schema.json` plus local rule validation, and it does not mutate project files.
 
-Before writing `tmp/spec-review-candidate.json`, the same skill session should read `tmp/review-context.json` and `tmp/review-brief.md`. Those artifacts define the semantic-review contract, including prompt-alignment rubric, status policy, and the `pnpm spec:review` promotion path.
+`pnpm spec -- --prompt "<prompt>" --debug` is the only recommended diagnostics mode for the happy path. It writes `tmp/spec-candidate.json`, `tmp/spec-review.json`, `tmp/spec-diagnostics.json`, and `output/spec-review.md` after a prompt-driven run. Default runs should not emit those files.
 
-`pnpm spec:review` promotes `tmp/spec-review-candidate.json` into `tmp/spec-review.json` and `output/spec-review.md`. `pass` and `warn` mark `spec/deck-spec.json.status` as `reviewed`; `fail` still writes the review artifacts but returns a non-zero exit code for downstream gating. The command also enforces local status-coherence rules plus deck-material/image-prompt scorecard validation so `pass`, `warn`, and `fail` cannot be used inconsistently with the review evidence.
+`pnpm spec:generate` and `pnpm spec:review` remain transition-only compatibility/debug commands. They are no longer part of the main operator path or primary skill contract, and their CLIs should emit explicit deprecation warnings when used.
 
 `pnpm media` is the only Gemini-dependent command in v1. It reads `GEMINI_API_KEY` from the current shell or from `<deck-root>/.env`, requires `spec/deck-spec.json.status` to be `reviewed` or `media_ready`, and writes canonical deck-ready files into `media/generated-images/`.
 
-Everything before `pnpm media` should be treated as skill work rather than Gemini work. The skill agent owns planning, review, candidate repair, deck authoring, and command orchestration; Gemini is reserved for image synthesis only.
+`pnpm media` is still the only image-generation step. Spec generation now also uses Gemini, but only inside the stateless deck-spec module behind `pnpm spec -- --prompt "<prompt>"`.
 
-The expected fast loop from `pnpm spec:generate` through `pnpm build` runs without human intervention. Human review starts after those artifacts exist.
+The expected fast loop from `pnpm spec` through `pnpm build` runs without human intervention. Human review starts after those artifacts exist.
 
 ```bash
 # Full validation wrapper

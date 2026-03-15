@@ -29,7 +29,7 @@ The current workspace is split into two roles:
 - Demo deck root: `/Volumes/BiGROG/skills-test/ai-education-deck`
 - Demo project: `/Volumes/BiGROG/skills-test/ai-education-deck/projects/ai-native-product-deck`
 
-Use the demo project as the implementation and validation workspace. That is where commands such as `pnpm spec:generate`, `pnpm spec`, `pnpm test`, `pnpm build`, and `pnpm validate` are exercised.
+Use the demo project as the implementation and validation workspace. That is where commands such as `pnpm spec`, `pnpm test`, `pnpm build`, and `pnpm validate` are exercised.
 For the current development loop, keep the concrete project name fixed at `ai-native-product-deck`.
 
 After a reusable workflow or scaffold change is proven in the demo project, sync the reusable parts back into the skill repo:
@@ -96,26 +96,23 @@ Avoid prompts like `make another version` unless the target project is already e
 
 ## Responsibility Boundaries
 
-The skill exists to let Codex do most of the workflow work directly instead of delegating everything to external APIs.
+The skill exists to keep orchestration and deck authoring outside the planning module.
 
 - Skill agent responsibilities:
-  - interpret the user request
-  - run the prompt-to-spec planner phase
-  - write `tmp/spec-candidate.json` and `tmp/spec-review-candidate.json`
-  - handle the single candidate retry when `pnpm spec` reports a retryable failure kind
+  - interpret the user request and route the target project
+  - call the stateless `deck-spec module` entrypoint
   - author and edit TypeScript deck code
   - run validation commands and interpret the results
   - own the end-to-end session until deliverables exist
 - Local CLI/workflow responsibilities:
-  - write deterministic planner phase artifacts
-  - normalize workflow-managed fields
-  - validate and promote canonical spec files
+  - call the module entrypoint
+  - write canonical `spec/deck-spec.json`
+  - optionally write debug artifacts only when `--debug` is requested
   - build the PPT deterministically from local inputs
-  - write generated media and review artifacts to their canonical paths
+  - write generated media to canonical paths
 - Gemini responsibilities:
-  - image generation only during `pnpm media`
-  - no spec candidate generation
-  - no semantic review
+  - spec candidate generation inside the stateless deck-spec module
+  - image generation during `pnpm media`
   - no deck composition
 - Human responsibilities:
   - review the final deliverables after the skill-owned session finishes
@@ -124,15 +121,14 @@ The skill exists to let Codex do most of the workflow work directly instead of d
 
 ## Current Skill-Phase Contract
 
-The current workflow keeps planning and semantic review inside one Codex skill session while leaving canonical writes to the local CLI:
+The current workflow keeps prompt-to-spec generation, semantic review, and one internal repair retry inside one stateless deck-spec module while leaving filesystem writes to the local CLI:
 
-- `pnpm spec:generate` writes `tmp/planner-context.json` and `tmp/planner-brief.md`, then that same skill session writes `tmp/spec-candidate.json`.
-- `pnpm spec` promotes that candidate into canonical `spec/deck-spec.json` and, on success, also writes `tmp/review-context.json` plus `tmp/review-brief.md`.
-- The same skill session then reads those review artifacts, writes `tmp/spec-review-candidate.json`, and `pnpm spec:review` promotes it into the formal review outputs.
-- The stateless planner/reviewer core now lives under `src/planner-agent/`, including the Gemini image-generation provider helpers under `src/planner-agent/image-generation/`, while `src/spec/*` and `src/asset-pipeline/generateMedia.ts` act as filesystem and CLI adapters around that core.
-- Semantic review artifacts now include dimension scorecards for deck materials and image prompts, but `pass` / `warn` / `fail` remains the only workflow gate.
-- Deterministic regression now covers fixture-backed prompt/material drift scenarios plus one full `spec:generate -> spec -> spec:review` integration path, so planner-agent closure is exercised without adding a new runtime workflow surface.
-- The JSON key name `skill_handoff` remains for backward compatibility, but it describes an internal skill-phase contract rather than a human or external-service handoff.
+- `pnpm spec -- --prompt "<prompt>"` is the main path. It calls `src/deck-spec-module/public-api.ts`, lets the module call the external planner model, validates and semantically reviews the result inside the module, then writes canonical `spec/deck-spec.json`.
+- `pnpm spec -- --prompt "<prompt>" --debug` additionally writes debug artifacts such as `tmp/spec-candidate.json`, `tmp/spec-review.json`, `tmp/spec-diagnostics.json`, and `output/spec-review.md`.
+- `pnpm spec:generate` and `pnpm spec:review` remain transition-only compatibility/debug surfaces. They are not part of the main operator workflow or skill contract and should emit explicit deprecation warnings when used.
+- The stateless core now lives under `src/deck-spec-module/`, with `src/spec/*` and `src/asset-pipeline/generateMedia.ts` acting as filesystem and CLI adapters around that core.
+- Semantic review artifacts still include dimension scorecards for deck materials and image prompts, but the publish gate now stays entirely inside the module rather than in a workflow-owned promotion phase.
+- Validation/eval, not exact byte-for-byte determinism, is the success bar for planner output because spec content is model-generated.
 
 Human review is intentionally late in the loop: inspect the final `.pptx`, the source, the generated media, and the validation outputs after the skill finishes, then send revision feedback as a new `Revise project <slug>` prompt if another run is needed.
 

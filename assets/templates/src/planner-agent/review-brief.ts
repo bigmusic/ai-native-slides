@@ -282,10 +282,12 @@ function renderScorecardInstructions(
 
 export function renderReviewBriefMarkdown(context: ReviewBriefInput): string {
 	return [
-		"# Review Brief",
+		"# Legacy Review Brief",
 		"",
 		"## Task",
 		"",
+		"- This brief exists only for the deprecated compatibility/debug review workflow.",
+		'- The main prompt-driven contract runs semantic review inside `pnpm spec -- --prompt "<prompt>"` and does not require manual review-candidate authoring.',
 		`- Read the source prompt and the current canonical deck spec at \`${context.paths.canonical_spec_path}\`.`,
 		`- Write a single JSON document to \`${context.paths.review_candidate_path}\`.`,
 		"- Return JSON only. Do not wrap the response in markdown code fences.",
@@ -345,9 +347,10 @@ export function renderReviewBriefMarkdown(context: ReviewBriefInput): string {
 		"",
 		"## Agent Execution Contract",
 		"",
+		"- This execution contract is legacy-only and should not be treated as the primary operator path.",
 		`- Actor: \`${context.skill_handoff.actor}\``,
 		`- Write JSON only to \`${context.skill_handoff.required_output_path}\`.`,
-		`- After writing the review candidate, run \`${context.skill_handoff.promotion_command}\` from the project directory.`,
+		`- After writing the review candidate, run legacy publish command \`${context.skill_handoff.promotion_command}\` from the project directory.`,
 		`- Forbidden mutations while authoring the review candidate: ${context.skill_handoff.forbidden_mutations.map((value) => `\`${value}\``).join(", ")}.`,
 		"- `pass` should mean the spec is ready to move forward semantically.",
 		"- `warn` should mean the spec is usable but still needs alignment fixes before you fully trust it.",

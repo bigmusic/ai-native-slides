@@ -1,10 +1,5 @@
-import type {
-	AspectRatio,
-	ImageIntendedUsage,
-	ImagePromptSpec,
-	LayoutIntent,
-	SizeTier,
-} from "../spec/contract.js";
+import type { ReviewVisualPromptSummary } from "../deck-spec-module/reviewing/promptQuality.js";
+import type { LayoutIntent } from "../spec/contract.js";
 import type { RendererContractByLayoutIntent } from "../spec/rendererContract.js";
 import type {
 	DeckMaterialScoreDimensionId,
@@ -104,23 +99,6 @@ export type ReviewSlideSummary = {
 	text_asset_ids: string[];
 	image_asset_ids: string[];
 	shared_asset_ids: string[];
-};
-
-export type ReviewVisualPromptSummary = {
-	asset_id: string;
-	asset_label: string;
-	asset_kind: "image" | "shared";
-	intended_usage: ImageIntendedUsage;
-	size_tier: SizeTier;
-	required: boolean;
-	slide_id?: string;
-	referenced_layout_slots: string[];
-	slide_objectives: string[];
-	style: string;
-	subject: string;
-	aspect_ratio: AspectRatio;
-	image_prompt_spec: ImagePromptSpec;
-	compiled_provider_prompt: string;
 };
 
 export type CanonicalSpecReviewSummary = {

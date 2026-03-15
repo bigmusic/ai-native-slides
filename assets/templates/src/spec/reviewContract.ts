@@ -13,4 +13,4 @@ export {
 	type SpecReviewStatus,
 	specReviewFindingSeverityValues,
 	specReviewStatusValues,
-} from "../planner-agent/planner-output.js";
+} from "../deck-spec-module/reviewing/reviewTypes.js";

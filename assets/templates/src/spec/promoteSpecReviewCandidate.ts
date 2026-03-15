@@ -41,6 +41,8 @@ const defaultCliIo: CliIo = {
 	stdout: (message) => console.log(message),
 	stderr: (message) => console.error(message),
 };
+const specReviewDeprecationMessage =
+	'Deprecated: `pnpm spec:review` is a transition-only compatibility/debug command. Semantic review for the main prompt-driven workflow now runs inside `pnpm spec -- --prompt "<prompt>"`.';
 
 function getCliErrorMessage(error: unknown): string {
 	return error instanceof Error
@@ -128,6 +130,7 @@ export async function runSpecReviewCli(
 	args: string[],
 	io: CliIo = defaultCliIo,
 ): Promise<number> {
+	io.stderr(specReviewDeprecationMessage);
 	const projectDir = resolveProjectDir(args[0]);
 	const result = await promoteSpecReviewCandidate(projectDir);
 

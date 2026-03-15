@@ -14,6 +14,7 @@ export const SPEC_CANDIDATE_LAST_ERRORS_FILE_NAME =
 	"spec-candidate.last-errors.txt";
 export const PLANNER_CONTEXT_FILE_NAME = "planner-context.json";
 export const PLANNER_BRIEF_FILE_NAME = "planner-brief.md";
+export const SPEC_DIAGNOSTICS_FILE_NAME = "spec-diagnostics.json";
 export const DECK_SPEC_BACKUP_FILE_NAME = "deck-spec.backup.json";
 export const REVIEW_CONTEXT_FILE_NAME = "review-context.json";
 export const REVIEW_CONTEXT_BACKUP_FILE_NAME = "review-context.backup.json";
@@ -85,6 +86,10 @@ export function resolvePlannerBriefPath(projectDir: string): string {
 
 export function resolveDeckSpecBackupPath(projectDir: string): string {
 	return path.join(resolveTmpDir(projectDir), DECK_SPEC_BACKUP_FILE_NAME);
+}
+
+export function resolveSpecDiagnosticsPath(projectDir: string): string {
+	return path.join(resolveTmpDir(projectDir), SPEC_DIAGNOSTICS_FILE_NAME);
 }
 
 export function resolveReviewContextPath(projectDir: string): string {

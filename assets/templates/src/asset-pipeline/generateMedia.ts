@@ -1,16 +1,16 @@
 import { existsSync } from "node:fs";
 import { mkdir } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
-import { resolveGeminiApiKey } from "../planner-agent/image-generation/env.js";
 import {
 	type GeneratedImage,
 	type GenerateGeminiImageRequest,
 	generateImageWithGemini,
-} from "../planner-agent/image-generation/geminiAdapter.js";
+} from "../deck-spec-module/media/geminiImageProvider.js";
+import { resolveGeminiApiKey } from "../deck-spec-module/media/providerEnv.js";
 import {
 	compileProviderImagePrompt,
 	type PlannedImageAsset,
-} from "../planner-agent/prompt-quality.js";
+} from "../deck-spec-module/media/providerPrompt.js";
 import type {
 	DeckImageAsset,
 	DeckSpec,

@@ -20,15 +20,12 @@
 - Within that same session, the skill agent is expected to:
   - resolve the target project before changing files
   - converge the deck root and project scaffold
-  - run `pnpm spec:generate`
-  - author `tmp/spec-candidate.json`
-  - run `pnpm spec` and, when allowed, repair and retry the candidate once
-  - author `tmp/spec-review-candidate.json`
-  - run `pnpm spec:review`
+  - run `pnpm spec -- --prompt "<prompt>"`
+  - inspect the emitted debug and review artifacts when needed
   - generate media, author or revise deck source, and run validation-oriented commands
   - produce deliverables
 - Deterministic CLI commands are guardrails inside that same skill session. They are not human approval checkpoints and not external-agent boundaries.
-- The JSON key name `skill_handoff` remains as a backward-compatible label for this internal skill-phase contract.
+- Legacy compatibility artifacts may still contain a `skill_handoff` field. Treat it as transition-only debug metadata, not as part of the current workflow contract.
 - Deliverables may be reviewed by humans only after they exist. Humans may inspect final artifacts, rerun local-terminal LibreOffice-backed validation when needed, and then send revision feedback as another prompt.
 
 ## 1. Deck Root Converge
@@ -50,64 +47,24 @@
 
 ## 3. Spec And Semantic Review
 
-- Start the planning phase with `pnpm spec:generate -- --prompt "<prompt>"`.
-- In Codex with the `ai-native-slides` skill, this command is the deterministic CLI half of the skill-owned planner phase.
-- It writes only:
-  - `tmp/planner-context.json`
-  - `tmp/planner-brief.md`
-- The CLI itself does not call a model and does not create or mutate:
-  - `tmp/spec-candidate.json`
-  - `spec/deck-spec.json`
-  - `output/`
-  - `media/`
-- `source_prompt` is workflow-managed in v1. This step captures the canonical prompt text for downstream promotion.
-- The same skill session must then read `tmp/planner-context.json` and `tmp/planner-brief.md`, and author `tmp/spec-candidate.json`.
-- If the current `spec/deck-spec.json` is structurally valid, the brief includes a short existing-spec summary.
-- If the current canonical spec exists but is invalid, `pnpm spec:generate` still succeeds but emits warnings in the brief and stderr.
+- Use `pnpm spec -- --prompt "<prompt>"` as the main prompt-driven entrypoint.
+- The CLI invokes the stateless deck-spec module, which calls the external planner model, normalizes the candidate, validates it, runs semantic review, and performs one internal repair retry before any canonical publish.
+- On success, the command writes canonical `spec/deck-spec.json` with `status = reviewed`.
+- On failure, the canonical target stays untouched and the CLI reports a stable failure kind derived from the module error.
+- By default the command does not write candidate or review debug artifacts.
 
-### 3.1 Promote The Skill Spec Candidate
+### 3.1 Optional Debug Surfaces
 
-- The skill agent authors `tmp/spec-candidate.json`.
-- `pnpm spec` reads that fixed candidate path plus `tmp/planner-context.json`, fills workflow-managed fields, performs structural validation, and overwrites canonical `spec/deck-spec.json` only on success.
-- `pnpm spec` prefers `tmp/planner-context.json` for `source_prompt`.
-- On success, `pnpm spec` also writes:
-  - `tmp/review-context.json`
-  - `tmp/review-brief.md`
-- If `tmp/planner-context.json` is missing, v1 still accepts `candidate.source_prompt`, but that path is deprecated.
-- `pnpm spec` stays fail-fast and prints stable stderr lines:
-  - `Failure kind: ...`
-  - `Retryable by skill: yes|no`
-- If the first failure is `candidate_invalid_json` or `candidate_validation_failed`, the same skill session may retry once:
-  - copy the invalid candidate to `tmp/spec-candidate.last-invalid.json`
-  - copy the stderr failure summary to `tmp/spec-candidate.last-errors.txt`
-  - fix only the reported candidate errors
-  - rerun `pnpm spec`
-- If the second attempt fails, or the failure kind is not retryable, stop the planner phase. Do not continue to `spec:review` or `media`.
-- If promotion fails, the prior valid `spec/deck-spec.json` must remain usable.
+- `pnpm spec -- --prompt "<prompt>" --debug` writes `tmp/spec-candidate.json`, `tmp/spec-review.json`, `tmp/spec-diagnostics.json`, and `output/spec-review.md`.
+- `pnpm spec:generate` and `pnpm spec:review` remain transition-only compatibility/debug surfaces. They are not part of the main workflow contract, and their CLIs should emit explicit deprecation warnings when used.
 
 ### 3.2 Validate The Deck Spec Contract
 
-- `spec/deck-spec.schema.json`, `src/planner-agent/*`, and `src/spec/*` are scaffold-managed files.
+- `spec/deck-spec.schema.json`, `src/deck-spec-module/*`, and `src/spec/*` are scaffold-managed files for the primary workflow.
+- Compatibility-only internals may still ship under `src/spec/compat/*` and `src/planner-agent/*`, but they are not part of the prompt-driven happy path.
 - `spec/deck-spec.json` is canonical project input.
 - Run `pnpm spec:validate` for structural validation.
 - This step validates the contract only. It does not do semantic review and does not generate media.
-
-### 3.3 Promote The Skill Semantic Review Artifact
-
-- The same skill session must read `tmp/review-context.json` and `tmp/review-brief.md`, then author `tmp/spec-review-candidate.json`.
-- `pnpm spec:review` validates that review candidate and promotes:
-  - `tmp/spec-review.json`
-  - `output/spec-review.md`
-- `pnpm spec:review` does not rerun the planner phase and does not call a model.
-- The review artifact must include deck-material and image-prompt scorecards, but those scorecards are reviewer evidence rather than workflow gates.
-- Downstream gating still depends only on `pass` / `warn` / `fail`.
-- It also enforces local coherence rules:
-  - `pass` must not include `missing_requirements` or `drift_notes`, and findings may only use `info`
-  - `warn` must not include `missing_requirements`, and must include a `warning` finding or a `drift_note`
-  - `fail` must include a `missing_requirement` or an `error` finding
-- `pass` and `warn` promote `spec/deck-spec.json.status` to `reviewed`.
-- `fail` still writes review artifacts but must not mutate the canonical spec status.
-- Human review does not occur in this phase. This semantic review remains part of the same skill-owned session.
 
 ## 4. Media Generation
 
@@ -132,7 +89,7 @@
 ## 6. Validate
 
 - Fast loop:
-  `pnpm spec:generate`, `pnpm spec`, `pnpm spec:validate`, `pnpm spec:review`, `pnpm media`, `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`
+  `pnpm spec`, `pnpm spec:validate`, `pnpm media`, `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`
 - Full validation:
   `pnpm validate`
 - In Codex, LibreOffice-backed validation remains human-in-the-loop and may require a local-terminal rerun.
@@ -141,7 +98,7 @@
 ## 7. Post-Deliverable Feedback
 
 - Once the session has produced final artifacts such as the built `.pptx`, source files, generated media, review markdown, and validation outputs, humans may review them outside this tracked workflow.
-- Humans should not manually author or patch `tmp/spec-candidate.json` or `tmp/spec-review-candidate.json`.
+- Humans should not manually author or patch canonical or debug spec artifacts.
 - Revision feedback should be phrased as a new prompt that says either `Revise project <slug>` for the existing deck or `Create project <slug>` for a fresh deck, then starts a new skill-agent-owned session from the latest artifacts and comments.
 
 ## Scope

@@ -35,6 +35,8 @@ const defaultCliIo: CliIo = {
 	stdout: (message) => console.log(message),
 	stderr: (message) => console.error(message),
 };
+const specGenerateDeprecationMessage =
+	'Deprecated: `pnpm spec:generate` is a transition-only compatibility/debug command. Use `pnpm spec -- --prompt "<prompt>"` for the main workflow.';
 
 type ParsedCliArgs = {
 	projectDir: string;
@@ -146,6 +148,7 @@ export async function runSpecGenerateCli(
 	args: string[],
 	io: CliIo = defaultCliIo,
 ): Promise<number> {
+	io.stderr(specGenerateDeprecationMessage);
 	const parsedArgs = parseCliArgs(args);
 	if ("error" in parsedArgs) {
 		io.stderr(parsedArgs.error);

@@ -26,21 +26,22 @@ slide-deck workflow with a shared-runtime model:
   - demo project: `/Volumes/BiGROG/skills-test/ai-education-deck/projects/ai-native-product-deck`
 - Reusable workflow and scaffold changes should be developed and validated in the demo project first, then synced back into the skill repo templates, scripts, and docs.
 - Project-local wrappers remain the current stable interface.
-  - Users run `pnpm spec:generate`, `pnpm spec`, `pnpm spec:validate`, `pnpm spec:review`, `pnpm media`, `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, and `pnpm validate` from the project directory
+  - Users run `pnpm spec -- --prompt "<prompt>"`, `pnpm spec:validate`, `pnpm media`, `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, and `pnpm validate` from the project directory
   - The project still uses the shared root `node_modules/` and root `.venv/`
-- `pnpm media` is the only Gemini-dependent command in v1.
+- `pnpm spec` and `pnpm media` are the Gemini-dependent commands in v1.
+  - `pnpm spec` uses Gemini text generation inside the stateless deck-spec module
   - It reads `GEMINI_API_KEY` from the current shell or from `<deck-root>/.env`
-  - It writes canonical generated files to `media/generated-images/`
+  - `pnpm media` writes canonical generated files to `media/generated-images/`
   - It updates required image/shared asset status in `spec/deck-spec.json`
-- Skill-agent responsibilities in v1 include spec-candidate authoring, semantic-review candidate authoring, candidate-only retry after retryable `pnpm spec` failures, deck authoring, and command orchestration.
+- Skill-agent responsibilities in the current slice include prompt routing, deck authoring, command orchestration, and interpreting validation/debug artifacts. Prompt-to-spec generation, semantic review, and one repair retry now live inside the stateless deck-spec module.
 - The intended operator experience is one skill-agent-owned end-to-end session per user prompt.
-  - That same session starts by routing the prompt to either `new_project` or `revise_existing_project`, then owns planning, semantic review, candidate retry, deck authoring, media generation orchestration, and deliverable production for that target project.
+  - That same session starts by routing the prompt to either `new_project` or `revise_existing_project`, then owns prompt intake, module invocation, deck authoring, media generation orchestration, and deliverable production for that target project.
   - If the prompt is revision feedback for an existing deck, the skill reruns that project's end-to-end workflow instead of manually patching intermediate candidate files.
   - If the prompt clearly asks for a new deck, the skill initializes or refreshes the requested `projects/<slug>/` scaffold first, then runs the same end-to-end workflow there.
   - Active project identity comes from explicit prompt wording first and current project metadata second, including `.ai-native-slides/project.json` and `.ai-native-slides/state.json` when the session is already scoped to one project.
 - Post-deliverable review feedback is outside the tracked workflow phases.
   - When revision feedback arrives, it should be expressed as a new prompt that names the target project or clearly asks for a new one.
-- Gemini responsibilities in v1 are limited to image generation during `pnpm media`; Gemini does not own planning, review, deck composition, or validation.
+- Gemini responsibilities in v1 cover spec generation inside `pnpm spec` plus image generation during `pnpm media`; Gemini still does not own deck composition or validation policy.
 - User-facing entrypoints are limited to:
   - `scripts/init_deck_root.sh`
   - `scripts/init_deck_project.sh`
@@ -70,16 +71,16 @@ Template-managed files:
 - `src/asset-pipeline/generateMedia.ts`
 - `src/asset-pipeline/imagePolicy.ts`
 - `src/asset-pipeline/paths.ts`
-- `src/planner-agent/image-generation/env.ts`
-- `src/planner-agent/image-generation/geminiAdapter.ts`
-- `src/planner-agent/material-quality.ts`
-- `src/planner-agent/planner-brief.ts`
-- `src/planner-agent/planner-input.ts`
-- `src/planner-agent/planner-output.ts`
-- `src/planner-agent/prompt-quality.ts`
-- `src/planner-agent/review-brief.ts`
-- `src/planner-agent/scorecard.ts`
+- `src/deck-spec-module/public-api.ts`
+- `src/deck-spec-module/prompt-interpreter/promptModel.ts`
+- `src/deck-spec-module/asset-planning/assetBlueprints.ts`
+- `src/deck-spec-module/canonicalization/finalizeDeckSpec.ts`
+- `src/deck-spec-module/review-bridge/createSemanticReview.ts`
+- `src/deck-spec-module/media/geminiImageProvider.ts`
+- `src/deck-spec-module/media/providerEnv.ts`
+- `src/deck-spec-module/media/providerPrompt.ts`
 - `src/spec/contract.ts`
+- `src/spec/compat/legacyPromoteDeckSpecCandidate.ts`
 - `src/spec/deriveOutputFileName.ts`
 - `src/spec/generatePlannerBrief.ts`
 - `src/spec/normalizeSystemManagedFields.ts`
@@ -94,6 +95,18 @@ Template-managed files:
 - `src/spec/validateDeckSpec.ts`
 - `src/spec/validateSpecReview.ts`
 - `src/spec/writeFileAtomic.ts`
+
+Compatibility-only internals that may still ship during transition:
+
+- `src/planner-agent/image-generation/env.ts`
+- `src/planner-agent/image-generation/geminiAdapter.ts`
+- `src/planner-agent/material-quality.ts`
+- `src/planner-agent/planner-brief.ts`
+- `src/planner-agent/planner-input.ts`
+- `src/planner-agent/planner-output.ts`
+- `src/planner-agent/prompt-quality.ts`
+- `src/planner-agent/review-brief.ts`
+- `src/planner-agent/scorecard.ts`
 
 Prompt-generated project content:
 
@@ -120,24 +133,23 @@ Project-owned content dirs:
 ## Verified Behavior
 
 - `pnpm spec:validate`
-- `pnpm spec:generate`
 - `pnpm media`
 - `pnpm lint`
 - `pnpm typecheck`
 - `pnpm test`
 - `pnpm build`
-- Deterministic planner-agent regression now covers fixture-backed prompt/material drift scenarios plus one full `spec:generate -> spec -> spec:review` integration path.
+- Deterministic deck-spec-module regression now covers prompt-to-canonical-spec planning plus review-gated publish behavior, while legacy candidate/review flows remain available for compatibility.
 - `vitest` cache is redirected to project-local `tmp/.vite`
 - Re-running `init_deck_project.sh` preserves existing prompt-generated content instead of overwriting it
-- `scripts/bootstrap_deck_project.sh` and `scripts/ensure_deck_project.sh --json` recognize the scaffold-managed `spec` / `spec:review` / `media` modules and scripts in the example project
+- `scripts/bootstrap_deck_project.sh` and `scripts/ensure_deck_project.sh --json` recognize the scaffold-managed `spec` / `media` modules and scripts in the example project
 - `pnpm media` reads `GEMINI_API_KEY` from the current shell or `<deck-root>/.env`, writes deck-ready files into `media/generated-images/`, and updates canonical image asset status to `generated`
 
 Expected in Codex:
 
 - The same skill-owned session begins by classifying the prompt as `new_project` or `revise_existing_project` and resolving the target project from explicit prompt wording plus local project metadata when available
-- `pnpm spec:generate -- --prompt "<prompt>"` writes `tmp/planner-context.json` and `tmp/planner-brief.md`, defining the deterministic skill-phase contract for same-session authoring of `tmp/spec-candidate.json` without mutating `spec/deck-spec.json`
-- `pnpm spec` promotes `tmp/spec-candidate.json` into canonical `spec/deck-spec.json` after normalization and structural validation, writes `tmp/review-context.json` plus `tmp/review-brief.md` on success, and reports stable failure kinds so the same skill session can retry one candidate-only fixup pass
-- `pnpm spec:review` promotes the same-session skill-authored `tmp/spec-review-candidate.json` into `tmp/spec-review.json` and `output/spec-review.md`, while enforcing local `pass` / `warn` / `fail` coherence rules plus canonical deck-material/image-prompt scorecard validation for the semantic review artifact
+- `pnpm spec -- --prompt "<prompt>"` invokes the stateless deck-spec module, lets the module call the external planner model, and publishes canonical `spec/deck-spec.json` only after module-internal canonicalization, structural validation, semantic review, and one repair retry succeed
+- `pnpm spec -- --prompt "<prompt>" --debug` is the only happy-path diagnostics mode; it writes `tmp/spec-candidate.json`, `tmp/spec-review.json`, `tmp/spec-diagnostics.json`, and `output/spec-review.md`
+- `pnpm spec:generate` and `pnpm spec:review` remain available only as deprecated transition/debug commands; they are not part of the main operator path
 - `pnpm media` requires `spec/deck-spec.json.status` to be `reviewed` or `media_ready`, generates required image/shared assets, and updates canonical spec status to `media_ready` when all required outputs exist
 - `pnpm lint`, `pnpm typecheck`, `pnpm test`, and `pnpm build` are expected to run inside that same skill-owned session before the workflow is considered complete for that prompt
 - `pnpm validate` prints `INCOMPLETE (human-in-the-loop required)`
@@ -151,11 +163,11 @@ Expected in a local terminal:
 ## Completed Scope Snapshot
 
 1. Spec workflow
-   - `pnpm spec:generate -- --prompt "<prompt>"` now writes `tmp/planner-context.json` and `tmp/planner-brief.md`.
-   - The same skill-owned session writes `tmp/spec-candidate.json`, and `pnpm spec` promotes it into canonical `spec/deck-spec.json`.
-   - `pnpm spec` remains deterministic: it normalizes workflow-managed fields, validates structure, and refuses to leave an invalid canonical spec behind.
+   - `pnpm spec -- --prompt "<prompt>"` now routes prompt interpretation, canonical spec planning, and deterministic semantic review through the stateless deck-spec module.
+   - `pnpm spec` publishes canonical `spec/deck-spec.json` on success and writes scratch review/candidate artifacts only when `--debug` is explicitly requested.
+   - `pnpm spec` remains deterministic: it validates canonical structure before publish and refuses to overwrite a trusted canonical spec when module-internal review fails.
    - Canonical spec artifacts now use stable `spec/` vocabulary, including `asset_manifest`, `slide_mapping`, and the project-local `spec/deck-spec.schema.json`.
-   - Semantic review is a separate same-session phase: `pnpm spec` writes `tmp/review-context.json` and `tmp/review-brief.md`, the skill writes `tmp/spec-review-candidate.json`, and `pnpm spec:review` promotes the formal review artifacts.
+   - `pnpm spec:generate` and `pnpm spec:review` remain available only as deprecated debug/compatibility commands, not as the primary prompt-to-publish path.
 
 2. Media workflow
    - `pnpm media` is implemented as the only Gemini-dependent command in v1.
