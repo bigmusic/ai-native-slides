@@ -138,7 +138,7 @@ Project-owned content dirs:
 - `pnpm typecheck`
 - `pnpm test`
 - `pnpm build`
-- Deterministic deck-spec-module regression now covers prompt-to-canonical-spec planning plus review-gated publish behavior, while legacy candidate/review flows remain available for compatibility.
+- Deterministic deck-spec-module regression covers prompt-to-canonical-spec planning plus review-gated publish behavior.
 - `vitest` cache is redirected to project-local `tmp/.vite`
 - Re-running `init_deck_project.sh` preserves existing prompt-generated content instead of overwriting it
 - `scripts/bootstrap_deck_project.sh` and `scripts/ensure_deck_project.sh --json` recognize the scaffold-managed `spec` / `media` modules and scripts in the example project
@@ -149,7 +149,6 @@ Expected in Codex:
 - The same skill-owned session begins by classifying the prompt as `new_project` or `revise_existing_project` and resolving the target project from explicit prompt wording plus local project metadata when available
 - `pnpm spec -- --prompt "<prompt>"` invokes the stateless deck-spec module, lets the module call the external planner model, and publishes canonical `spec/deck-spec.json` only after module-internal canonicalization, structural validation, semantic review, and one repair retry succeed
 - `pnpm spec -- --prompt "<prompt>" --debug` is the only happy-path diagnostics mode; it writes `tmp/spec-candidate.json`, `tmp/spec-review.json`, `tmp/spec-diagnostics.json`, and `output/spec-review.md`
-- `pnpm spec:generate` and `pnpm spec:review` remain available only as deprecated transition/debug commands; they are not part of the main operator path
 - `pnpm media` requires `spec/deck-spec.json.status` to be `reviewed` or `media_ready`, generates required image/shared assets, and updates canonical spec status to `media_ready` when all required outputs exist
 - `pnpm lint`, `pnpm typecheck`, `pnpm test`, and `pnpm build` are expected to run inside that same skill-owned session before the workflow is considered complete for that prompt
 - `pnpm validate` prints `INCOMPLETE (human-in-the-loop required)`
@@ -167,7 +166,7 @@ Expected in a local terminal:
    - `pnpm spec` publishes canonical `spec/deck-spec.json` on success and writes scratch review/candidate artifacts only when `--debug` is explicitly requested.
    - `pnpm spec` remains deterministic: it validates canonical structure before publish and refuses to overwrite a trusted canonical spec when module-internal review fails.
    - Canonical spec artifacts now use stable `spec/` vocabulary, including `asset_manifest`, `slide_mapping`, and the project-local `spec/deck-spec.schema.json`.
-   - `pnpm spec:generate` and `pnpm spec:review` remain available only as deprecated debug/compatibility commands, not as the primary prompt-to-publish path.
+   - The target end state for the current cleanup pass is one planning entrypoint only: `pnpm spec -- --prompt "<prompt>"`.
 
 2. Media workflow
    - `pnpm media` is implemented as the only Gemini-dependent command in v1.

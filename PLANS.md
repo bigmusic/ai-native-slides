@@ -149,6 +149,7 @@ These non-verifiable semantic qualities require either:
 
 ## Progress
 
+- [x] 2026-03-15 11:18 PDT: reopened the planner-core purification slice after a fresh completion audit confirmed that the old compatibility surfaces were still live, not merely documented. The next cleanup pass is now explicit: remove `spec:generate`, remove `spec:review`, remove legacy candidate-promotion entrypoints and planner handoff artifacts, and make module-level input/output testing the only planning test surface.
 - [x] 2026-03-15 10:47 PDT: clarified workspace directory roles at the top of this plan after confirming that `ai-native-slides/` is the only git-backed directory under `/Volumes/BiGROG/skills-test`; the plan now states explicitly that this git-backed skill repo directory is also the active skill development directory and that reusable changes must be synced back there before work is complete.
 - [x] 2026-03-13 23:09 PDT: completed Milestone 1 and Milestone 2 foundations: shared-root runtime dependencies and scaffold convergence landed, `spec/deck-spec.schema.json` became the canonical contract, and the demo project passed `pnpm spec:validate`, `pnpm lint`, `pnpm typecheck`, `pnpm test`, and `pnpm build`.
 - [x] 2026-03-14 00:11 PDT: completed the first Milestone 3 slice: `pnpm spec` and `pnpm spec:review` promote fixed-path skill-authored candidates with deterministic validation, rollback, and scaffold/template synchronization, and the demo project plus bootstrap/ensure checks revalidated green.
@@ -181,9 +182,13 @@ These non-verifiable semantic qualities require either:
 - Milestone 4: Completed. Planner handoff artifacts and Gemini-backed media generation are implemented behind deterministic local commands.
 - Milestone 5: Completed. The example project builds from canonical `spec/deck-spec.json` plus `media/generated-images/` and fails fast on missing required inputs.
 - Milestone 6: Completed. User-facing and skill-facing docs match the implemented command flow and runtime boundaries.
-- Milestone 7: Completed for the primary contract. The stateless deck-spec module boundary is implemented, the prompt-driven CLI is thin on the happy path, module planning no longer performs deck-root filesystem lookup, and compatibility surfaces are now explicitly legacy-only.
-- Current phase: Post-cleanup validation and optional legacy-field simplification only.
-- Remaining work in this plan: optional debt cleanup only, such as renaming residual legacy field names like `promotion_command` inside deprecated compatibility contracts if we decide that extra churn is worth it.
+- Milestone 7: In final cleanup. The stateless deck-spec module boundary is implemented, but the repository still ships live legacy publish/review surfaces that must be removed before this slice can be considered fully complete.
+- Current phase: legacy-surface removal, planner-artifact deletion, and module-first regression hardening.
+- Remaining work in this plan:
+  - remove `spec:generate`, `spec:review`, and no-`--prompt` legacy behavior from the project CLI
+  - delete planner handoff artifacts and retired `planner-agent` runtime code from the demo project and reusable templates
+  - replace compatibility tests with module-first input/output tests plus thin CLI wrapper tests
+  - resync docs and templates, then rerun the full validation matrix
 
 ### Milestone 1: Shared runtime and workflow foundations
 
