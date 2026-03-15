@@ -77,13 +77,13 @@ case "$ACTION" in
   spec:validate)
     (
       cd "$PROJECT_DIR"
-      node --import tsx src/spec/validateDeckSpec.ts "$@"
+      DECK_ROOT="$DECK_ROOT" node --import tsx "$DECK_ROOT/packages/deck-spec-module/src/cli/runValidateCli.ts" "$PROJECT_DIR" "$@"
     )
     ;;
   spec)
     (
       cd "$PROJECT_DIR"
-      node --import tsx src/spec/promoteDeckSpecCandidate.ts "$@"
+      DECK_ROOT="$DECK_ROOT" node --import tsx "$DECK_ROOT/packages/deck-spec-module/src/cli/runSpecCli.ts" "$PROJECT_DIR" "$@"
     )
     ;;
   lint)
@@ -103,7 +103,7 @@ case "$ACTION" in
     fi
     (
       cd "$PROJECT_DIR"
-      "$BIN_DIR/vitest" run
+      "$BIN_DIR/vitest" run "$@"
     )
     ;;
   test:watch)
@@ -114,7 +114,7 @@ case "$ACTION" in
     fi
     (
       cd "$PROJECT_DIR"
-      "$BIN_DIR/vitest"
+      "$BIN_DIR/vitest" "$@"
     )
     ;;
   *)

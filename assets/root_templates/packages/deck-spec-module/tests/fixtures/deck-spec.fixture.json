@@ -1,0 +1,757 @@
+{
+  "spec_version": "1.0.0",
+  "generated_at": "2026-03-14T01:34:00-07:00",
+  "project_slug": "ai-native-product-deck",
+  "source_prompt": "Create a contract-first product deck that explains canonical spec promotion, semantic review, media generation, and deterministic build-time rendering.",
+  "target_slide_count": 6,
+  "slides": [
+    {
+      "slide_id": "overview_hero",
+      "title": "Contract-First Planning",
+      "objectives": [
+        "Show that planning becomes a canonical project input.",
+        "Anchor visual generation and PPT composition to deterministic asset identities."
+      ],
+      "layout_intent": "hero",
+      "content_blocks": [
+        {
+          "block_id": "hero_badge_block",
+          "block_type": "badge",
+          "layout_slot": "eyebrow_badge",
+          "text_asset_id": "hero_badge"
+        },
+        {
+          "block_id": "hero_message_block",
+          "block_type": "text",
+          "layout_slot": "hero_message",
+          "text_asset_id": "hero_message"
+        },
+        {
+          "block_id": "hero_visual_block",
+          "block_type": "image",
+          "layout_slot": "hero_visual",
+          "image_asset_id": "hero_visual_asset"
+        }
+      ],
+      "status": "validated"
+    },
+    {
+      "slide_id": "semantic_review",
+      "title": "Review Before Generation",
+      "objectives": [
+        "Keep semantic review separate from structural validation.",
+        "Block media generation when the spec drifts from the source prompt."
+      ],
+      "layout_intent": "split_visual",
+      "content_blocks": [
+        {
+          "block_id": "review_badge_block",
+          "block_type": "badge",
+          "layout_slot": "eyebrow_badge",
+          "text_asset_id": "review_badge"
+        },
+        {
+          "block_id": "review_message_block",
+          "block_type": "bullet_list",
+          "layout_slot": "split_message",
+          "text_asset_id": "review_message_bullets"
+        },
+        {
+          "block_id": "review_visual_block",
+          "block_type": "image",
+          "layout_slot": "split_visual",
+          "image_asset_id": "review_visual_asset"
+        },
+        {
+          "block_id": "review_callout_block",
+          "block_type": "callout",
+          "layout_slot": "split_callout",
+          "text_asset_id": "review_callout"
+        }
+      ],
+      "status": "validated"
+    },
+    {
+      "slide_id": "canonical_inputs",
+      "title": "Canonical Inputs",
+      "objectives": [
+        "Keep text and visual assets in one manifest.",
+        "Make naming, mapping, and validation explicit before generation continues."
+      ],
+      "layout_intent": "cards",
+      "content_blocks": [
+        {
+          "block_id": "adoption_bullets_block",
+          "block_type": "bullet_list",
+          "layout_slot": "supporting_bullets",
+          "text_asset_id": "adoption_bullets"
+        },
+        {
+          "block_id": "contract_card_block",
+          "block_type": "card",
+          "layout_slot": "primary_card",
+          "title_asset_id": "card_title_contract",
+          "body_asset_id": "card_body_contract",
+          "accent_token": "teal_accent"
+        },
+        {
+          "block_id": "mapping_card_block",
+          "block_type": "card",
+          "layout_slot": "secondary_card",
+          "title_asset_id": "card_title_mapping",
+          "body_asset_id": "card_body_mapping",
+          "accent_token": "deck_navy"
+        },
+        {
+          "block_id": "filename_card_block",
+          "block_type": "card",
+          "layout_slot": "tertiary_card",
+          "title_asset_id": "card_title_filename",
+          "body_asset_id": "card_body_filename",
+          "accent_token": "deck_amber"
+        },
+        {
+          "block_id": "cards_review_callout_block",
+          "block_type": "callout",
+          "layout_slot": "review_callout",
+          "text_asset_id": "cards_review_callout"
+        },
+        {
+          "block_id": "background_grid_block",
+          "block_type": "image",
+          "layout_slot": "background_texture",
+          "shared_asset_id": "shared_background_grid"
+        }
+      ],
+      "status": "validated"
+    },
+    {
+      "slide_id": "delivery_metrics",
+      "title": "Validation Signals",
+      "objectives": [
+        "Show that the contract produces measurable workflow checkpoints.",
+        "Keep required images and shared visuals indexable by slide."
+      ],
+      "layout_intent": "metrics",
+      "content_blocks": [
+        {
+          "block_id": "metric_slides_block",
+          "block_type": "metric",
+          "layout_slot": "left_metric",
+          "value_asset_id": "metric_value_slides",
+          "label_asset_id": "metric_label_slides",
+          "accent_token": "deck_teal"
+        },
+        {
+          "block_id": "metric_assets_block",
+          "block_type": "metric",
+          "layout_slot": "center_metric",
+          "value_asset_id": "metric_value_assets",
+          "label_asset_id": "metric_label_assets",
+          "accent_token": "deck_navy"
+        },
+        {
+          "block_id": "metric_status_block",
+          "block_type": "metric",
+          "layout_slot": "right_metric",
+          "value_asset_id": "metric_value_status",
+          "label_asset_id": "metric_label_status",
+          "accent_token": "deck_amber"
+        },
+        {
+          "block_id": "audience_callout_block",
+          "block_type": "text",
+          "layout_slot": "supporting_text",
+          "text_asset_id": "audience_callout"
+        },
+        {
+          "block_id": "metrics_visual_block",
+          "block_type": "image",
+          "layout_slot": "supporting_visual",
+          "image_asset_id": "metrics_support_visual"
+        }
+      ],
+      "status": "validated"
+    },
+    {
+      "slide_id": "operator_timeline",
+      "title": "Operator Flow",
+      "objectives": [
+        "Make the operator path explicit from prompt interpretation to deck build.",
+        "Show which stages mutate canonical artifacts and which only validate."
+      ],
+      "layout_intent": "timeline",
+      "content_blocks": [
+        {
+          "block_id": "timeline_step_one_block",
+          "block_type": "card",
+          "layout_slot": "timeline_step_1",
+          "title_asset_id": "timeline_step_1_title",
+          "body_asset_id": "timeline_step_1_body",
+          "accent_token": "deck_teal"
+        },
+        {
+          "block_id": "timeline_step_two_block",
+          "block_type": "card",
+          "layout_slot": "timeline_step_2",
+          "title_asset_id": "timeline_step_2_title",
+          "body_asset_id": "timeline_step_2_body",
+          "accent_token": "deck_navy"
+        },
+        {
+          "block_id": "timeline_step_three_block",
+          "block_type": "card",
+          "layout_slot": "timeline_step_3",
+          "title_asset_id": "timeline_step_3_title",
+          "body_asset_id": "timeline_step_3_body",
+          "accent_token": "deck_amber"
+        },
+        {
+          "block_id": "timeline_step_four_block",
+          "block_type": "card",
+          "layout_slot": "timeline_step_4",
+          "title_asset_id": "timeline_step_4_title",
+          "body_asset_id": "timeline_step_4_body",
+          "accent_token": "deck_coral"
+        },
+        {
+          "block_id": "timeline_summary_block",
+          "block_type": "callout",
+          "layout_slot": "timeline_summary",
+          "text_asset_id": "timeline_summary"
+        }
+      ],
+      "status": "validated"
+    },
+    {
+      "slide_id": "stable_build",
+      "title": "Build From Stable Inputs",
+      "objectives": [
+        "Keep build deterministic and offline once canonical inputs exist.",
+        "Make missing assets or invalid status transitions fail fast."
+      ],
+      "layout_intent": "closing",
+      "content_blocks": [
+        {
+          "block_id": "closing_badge_block",
+          "block_type": "badge",
+          "layout_slot": "closing_badge",
+          "text_asset_id": "closing_badge"
+        },
+        {
+          "block_id": "closing_message_block",
+          "block_type": "text",
+          "layout_slot": "closing_message",
+          "text_asset_id": "closing_message"
+        },
+        {
+          "block_id": "closing_visual_block",
+          "block_type": "image",
+          "layout_slot": "closing_visual",
+          "image_asset_id": "closing_visual_asset"
+        },
+        {
+          "block_id": "closing_callout_block",
+          "block_type": "callout",
+          "layout_slot": "closing_callout",
+          "text_asset_id": "closing_callout"
+        }
+      ],
+      "status": "validated"
+    }
+  ],
+  "asset_manifest": {
+    "text_assets": [
+      {
+        "asset_id": "hero_badge",
+        "asset_label": "Hero badge",
+        "text_kind": "plain_text",
+        "content": "CANONICAL INPUT",
+        "required": true,
+        "status": "validated"
+      },
+      {
+        "asset_id": "hero_message",
+        "asset_label": "Hero message",
+        "text_kind": "plain_text",
+        "content": "A buildable deck should start from one validated spec, one semantic review decision, and one stable asset manifest before any composition code runs.",
+        "required": true,
+        "status": "validated"
+      },
+      {
+        "asset_id": "review_badge",
+        "asset_label": "Review badge",
+        "text_kind": "plain_text",
+        "content": "SEMANTIC REVIEW",
+        "required": true,
+        "status": "validated"
+      },
+      {
+        "asset_id": "review_message_bullets",
+        "asset_label": "Review bullets",
+        "text_kind": "bullet_list",
+        "content": [
+          "Keep prompt alignment checks separate from structural schema validation.",
+          "Write the review result as an explicit artifact before any image step runs.",
+          "Treat fail outcomes as a hard gate for downstream generation."
+        ],
+        "required": true,
+        "status": "validated"
+      },
+      {
+        "asset_id": "review_callout",
+        "asset_label": "Review callout",
+        "text_kind": "plain_text",
+        "content": "Semantic review catches prompt drift that a schema validator cannot prove or reject.",
+        "required": true,
+        "status": "validated"
+      },
+      {
+        "asset_id": "adoption_bullets",
+        "asset_label": "Planning bullets",
+        "text_kind": "bullet_list",
+        "content": [
+          "Keep planner output in one canonical JSON file.",
+          "Validate structure locally before downstream work continues.",
+          "Reference text and visuals from slots instead of duplicating content."
+        ],
+        "required": true,
+        "status": "validated"
+      },
+      {
+        "asset_id": "card_title_contract",
+        "asset_label": "Contract card title",
+        "text_kind": "plain_text",
+        "content": "Contract before composition",
+        "required": true,
+        "status": "validated"
+      },
+      {
+        "asset_id": "card_body_contract",
+        "asset_label": "Contract card body",
+        "text_kind": "plain_text",
+        "content": "The build layer should consume stable slide slots and asset ids, not re-infer structure from a free-form prompt.",
+        "required": true,
+        "status": "validated"
+      },
+      {
+        "asset_id": "card_title_mapping",
+        "asset_label": "Mapping card title",
+        "text_kind": "plain_text",
+        "content": "Stable slide mapping",
+        "required": true,
+        "status": "validated"
+      },
+      {
+        "asset_id": "card_body_mapping",
+        "asset_label": "Mapping card body",
+        "text_kind": "plain_text",
+        "content": "Every slide declares which text, image, and shared assets it requires, so the renderer can stay deterministic.",
+        "required": true,
+        "status": "validated"
+      },
+      {
+        "asset_id": "card_title_filename",
+        "asset_label": "Filename card title",
+        "text_kind": "plain_text",
+        "content": "System-owned filenames",
+        "required": true,
+        "status": "validated"
+      },
+      {
+        "asset_id": "card_body_filename",
+        "asset_label": "Filename card body",
+        "text_kind": "plain_text",
+        "content": "Canonical output names come from stable identities and usage tiers, not from whatever wording the model happened to produce.",
+        "required": true,
+        "status": "validated"
+      },
+      {
+        "asset_id": "cards_review_callout",
+        "asset_label": "Cards review callout",
+        "text_kind": "plain_text",
+        "content": "Renderer contracts should be strict enough that unsupported slots fail in validation, not only during deck assembly.",
+        "required": true,
+        "status": "validated"
+      },
+      {
+        "asset_id": "metric_value_slides",
+        "asset_label": "Metric slide count value",
+        "text_kind": "plain_text",
+        "content": "6",
+        "required": true,
+        "status": "validated"
+      },
+      {
+        "asset_id": "metric_label_slides",
+        "asset_label": "Metric slide count label",
+        "text_kind": "plain_text",
+        "content": "core layouts exercised in the example deck",
+        "required": true,
+        "status": "validated"
+      },
+      {
+        "asset_id": "metric_value_assets",
+        "asset_label": "Metric asset count value",
+        "text_kind": "plain_text",
+        "content": "5",
+        "required": true,
+        "status": "validated"
+      },
+      {
+        "asset_id": "metric_label_assets",
+        "asset_label": "Metric asset count label",
+        "text_kind": "plain_text",
+        "content": "build-ready visual assets resolved by manifest id",
+        "required": true,
+        "status": "validated"
+      },
+      {
+        "asset_id": "metric_value_status",
+        "asset_label": "Metric status value",
+        "text_kind": "plain_text",
+        "content": "STRICT",
+        "required": true,
+        "status": "validated"
+      },
+      {
+        "asset_id": "metric_label_status",
+        "asset_label": "Metric status label",
+        "text_kind": "plain_text",
+        "content": "renderer contract enforced before build",
+        "required": true,
+        "status": "validated"
+      },
+      {
+        "asset_id": "audience_callout",
+        "asset_label": "Audience callout",
+        "text_kind": "plain_text",
+        "content": "Contract validation gives the future build path a deterministic source of truth and a small surface area for regression tests.",
+        "required": true,
+        "status": "validated"
+      },
+      {
+        "asset_id": "timeline_step_1_title",
+        "asset_label": "Timeline step 1 title",
+        "text_kind": "plain_text",
+        "content": "Prompt to candidate",
+        "required": true,
+        "status": "validated"
+      },
+      {
+        "asset_id": "timeline_step_1_body",
+        "asset_label": "Timeline step 1 body",
+        "text_kind": "plain_text",
+        "content": "The agent writes a spec candidate into `tmp/` without mutating the canonical spec yet.",
+        "required": true,
+        "status": "validated"
+      },
+      {
+        "asset_id": "timeline_step_2_title",
+        "asset_label": "Timeline step 2 title",
+        "text_kind": "plain_text",
+        "content": "Promote and validate",
+        "required": true,
+        "status": "validated"
+      },
+      {
+        "asset_id": "timeline_step_2_body",
+        "asset_label": "Timeline step 2 body",
+        "text_kind": "plain_text",
+        "content": "Local promotion normalizes system-managed fields and rejects invalid structure before writeback.",
+        "required": true,
+        "status": "validated"
+      },
+      {
+        "asset_id": "timeline_step_3_title",
+        "asset_label": "Timeline step 3 title",
+        "text_kind": "plain_text",
+        "content": "Review and generate",
+        "required": true,
+        "status": "validated"
+      },
+      {
+        "asset_id": "timeline_step_3_body",
+        "asset_label": "Timeline step 3 body",
+        "text_kind": "plain_text",
+        "content": "Semantic review gates `pnpm media`, and image generation writes canonical files into the project workspace.",
+        "required": true,
+        "status": "validated"
+      },
+      {
+        "asset_id": "timeline_step_4_title",
+        "asset_label": "Timeline step 4 title",
+        "text_kind": "plain_text",
+        "content": "Build offline",
+        "required": true,
+        "status": "validated"
+      },
+      {
+        "asset_id": "timeline_step_4_body",
+        "asset_label": "Timeline step 4 body",
+        "text_kind": "plain_text",
+        "content": "Once the spec and required media are valid, deck composition stays deterministic and network-free.",
+        "required": true,
+        "status": "validated"
+      },
+      {
+        "asset_id": "timeline_summary",
+        "asset_label": "Timeline summary",
+        "text_kind": "plain_text",
+        "content": "Every phase either promotes a canonical artifact or validates one. The build step should never guess what upstream meant.",
+        "required": true,
+        "status": "validated"
+      },
+      {
+        "asset_id": "closing_badge",
+        "asset_label": "Closing badge",
+        "text_kind": "plain_text",
+        "content": "OFFLINE BUILD",
+        "required": true,
+        "status": "validated"
+      },
+      {
+        "asset_id": "closing_message",
+        "asset_label": "Closing message",
+        "text_kind": "plain_text",
+        "content": "When the renderer consumes one validated spec and one resolved media set, missing files or bad status transitions become explicit failures instead of hidden drift.",
+        "required": true,
+        "status": "validated"
+      },
+      {
+        "asset_id": "closing_callout",
+        "asset_label": "Closing callout",
+        "text_kind": "plain_text",
+        "content": "`pnpm build` should read stable inputs, produce a deck, and stop immediately when the manifest and filesystem disagree.",
+        "required": true,
+        "status": "validated"
+      }
+    ],
+    "image_assets": [
+      {
+        "asset_id": "hero_visual_asset",
+        "asset_label": "Hero planning visual",
+        "slide_id": "overview_hero",
+        "intended_usage": "hero_visual",
+        "size_tier": "large",
+        "style": "editorial illustration",
+        "subject": "planner turning a prompt into indexed slide artifacts",
+        "aspect_ratio": "16:9",
+        "image_prompt_spec": {
+          "composition": "wide hero composition with a central planning canvas and supporting artifact tiles",
+          "color_direction": "cool teal and navy with light neutral background",
+          "detail_cues": [
+            "clear artifact grouping",
+            "presentation planning metaphor",
+            "clean whitespace"
+          ],
+          "avoid_elements": [
+            "photorealistic humans",
+            "tiny unreadable UI text"
+          ]
+        },
+        "output_format": "jpg",
+        "required": true,
+        "output_file_name": "overview_hero__hero_visual__large.jpg",
+        "status": "generated"
+      },
+      {
+        "asset_id": "review_visual_asset",
+        "asset_label": "Semantic review visual",
+        "slide_id": "semantic_review",
+        "intended_usage": "supporting_visual",
+        "size_tier": "large",
+        "style": "editorial systems diagram",
+        "subject": "agent comparing a prompt to a structured deck spec with clear review annotations",
+        "aspect_ratio": "16:9",
+        "image_prompt_spec": {
+          "composition": "wide split-layout composition with a prompt artifact on one side and reviewed spec tiles on the other",
+          "color_direction": "teal, navy, and neutral cream with high clarity",
+          "detail_cues": [
+            "highlighted review markers",
+            "clean work surface",
+            "presentation-safe contrast"
+          ],
+          "avoid_elements": [
+            "dense UI chrome",
+            "busy textures"
+          ]
+        },
+        "output_format": "jpg",
+        "required": true,
+        "output_file_name": "semantic_review__supporting_visual__large.jpg",
+        "status": "generated"
+      },
+      {
+        "asset_id": "metrics_support_visual",
+        "asset_label": "Metrics support visual",
+        "slide_id": "delivery_metrics",
+        "intended_usage": "supporting_visual",
+        "size_tier": "medium",
+        "style": "diagrammatic collage",
+        "subject": "validation checklist and asset references",
+        "aspect_ratio": "16:9",
+        "image_prompt_spec": {
+          "composition": "medium-width composition with checklist blocks beside labeled asset tiles",
+          "color_direction": "navy, teal, and warm neutral accents",
+          "detail_cues": [
+            "clean iconography",
+            "structured layout",
+            "presentation-ready contrast"
+          ],
+          "avoid_elements": [
+            "busy texture",
+            "crowded labels"
+          ]
+        },
+        "output_format": "png",
+        "required": true,
+        "output_file_name": "delivery_metrics__supporting_visual__medium.png",
+        "status": "generated"
+      },
+      {
+        "asset_id": "closing_visual_asset",
+        "asset_label": "Stable build visual",
+        "slide_id": "stable_build",
+        "intended_usage": "supporting_visual",
+        "size_tier": "large",
+        "style": "editorial systems board",
+        "subject": "validated spec, generated media, and final deck connected in one deterministic pipeline",
+        "aspect_ratio": "16:9",
+        "image_prompt_spec": {
+          "composition": "wide closing composition with canonical files feeding into a single presentation output",
+          "color_direction": "warm neutrals, teal, and navy with soft contrast",
+          "detail_cues": [
+            "asset-to-output flow",
+            "clean board layout",
+            "minimal labels"
+          ],
+          "avoid_elements": [
+            "photorealism",
+            "messy desk clutter"
+          ]
+        },
+        "output_format": "jpg",
+        "required": true,
+        "output_file_name": "stable_build__supporting_visual__large.jpg",
+        "status": "generated"
+      }
+    ],
+    "shared_assets": [
+      {
+        "asset_id": "shared_background_grid",
+        "asset_label": "Background grid",
+        "shared_scope": "deck",
+        "intended_usage": "background",
+        "size_tier": "large",
+        "style": "soft grid texture",
+        "subject": "subtle planning grid and paper texture",
+        "aspect_ratio": "16:9",
+        "image_prompt_spec": {
+          "composition": "low-contrast wide texture with faint grid rhythm",
+          "color_direction": "light warm neutral with cool teal hints",
+          "detail_cues": [
+            "subtle texture",
+            "low noise",
+            "presentation-safe brightness"
+          ],
+          "avoid_elements": [
+            "heavy shadows",
+            "high-frequency patterns"
+          ]
+        },
+        "output_format": "jpg",
+        "required": true,
+        "output_file_name": "shared__background__large.jpg",
+        "status": "generated"
+      }
+    ]
+  },
+  "slide_mapping": [
+    {
+      "slide_id": "overview_hero",
+      "text_asset_ids": [
+        "hero_badge",
+        "hero_message"
+      ],
+      "image_asset_ids": [
+        "hero_visual_asset"
+      ],
+      "shared_asset_ids": []
+    },
+    {
+      "slide_id": "semantic_review",
+      "text_asset_ids": [
+        "review_badge",
+        "review_message_bullets",
+        "review_callout"
+      ],
+      "image_asset_ids": [
+        "review_visual_asset"
+      ],
+      "shared_asset_ids": []
+    },
+    {
+      "slide_id": "canonical_inputs",
+      "text_asset_ids": [
+        "adoption_bullets",
+        "card_title_contract",
+        "card_body_contract",
+        "card_title_mapping",
+        "card_body_mapping",
+        "card_title_filename",
+        "card_body_filename",
+        "cards_review_callout"
+      ],
+      "image_asset_ids": [],
+      "shared_asset_ids": [
+        "shared_background_grid"
+      ]
+    },
+    {
+      "slide_id": "delivery_metrics",
+      "text_asset_ids": [
+        "metric_value_slides",
+        "metric_label_slides",
+        "metric_value_assets",
+        "metric_label_assets",
+        "metric_value_status",
+        "metric_label_status",
+        "audience_callout"
+      ],
+      "image_asset_ids": [
+        "metrics_support_visual"
+      ],
+      "shared_asset_ids": []
+    },
+    {
+      "slide_id": "operator_timeline",
+      "text_asset_ids": [
+        "timeline_step_1_title",
+        "timeline_step_1_body",
+        "timeline_step_2_title",
+        "timeline_step_2_body",
+        "timeline_step_3_title",
+        "timeline_step_3_body",
+        "timeline_step_4_title",
+        "timeline_step_4_body",
+        "timeline_summary"
+      ],
+      "image_asset_ids": [],
+      "shared_asset_ids": []
+    },
+    {
+      "slide_id": "stable_build",
+      "text_asset_ids": [
+        "closing_badge",
+        "closing_message",
+        "closing_callout"
+      ],
+      "image_asset_ids": [
+        "closing_visual_asset"
+      ],
+      "shared_asset_ids": []
+    }
+  ],
+  "status": "media_ready"
+}

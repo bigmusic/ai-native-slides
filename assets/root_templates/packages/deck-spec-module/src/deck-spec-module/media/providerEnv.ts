@@ -1,10 +1,10 @@
 import { readFile } from "node:fs/promises";
+import path from "node:path";
 
 import {
 	findDeckRootForProject,
-	resolveDeckRootEnvPath,
-} from "../../asset-pipeline/paths.js";
-import { resolveProjectDir } from "../../spec/readDeckSpec.js";
+	resolveProjectDir,
+} from "../../spec/readDeckSpec.js";
 
 type NodeStyleError = Error & {
 	code?: string;
@@ -79,6 +79,11 @@ export async function resolveGeminiApiKey(
 	}
 
 	const deckRoot = findDeckRootForProject(resolveProjectDir(projectDir));
+	if (typeof deckRoot !== "string") {
+		throw new Error(
+			`Could not find the shared deck root above project: ${resolveProjectDir(projectDir)}.`,
+		);
+	}
 	const envPath = resolveDeckRootEnvPath(deckRoot);
 	const readTextFile = options.readTextFile ?? readFile;
 
@@ -107,4 +112,8 @@ export async function resolveGeminiApiKey(
 	throw new Error(
 		`Missing ${GEMINI_API_KEY_ENV_NAME}. Set it in the current shell or add it to ${envPath}.`,
 	);
+}
+
+function resolveDeckRootEnvPath(deckRoot: string): string {
+	return path.join(deckRoot, ".env");
 }

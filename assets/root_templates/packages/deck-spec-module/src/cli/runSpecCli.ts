@@ -3,27 +3,26 @@ import process from "node:process";
 import { pathToFileURL } from "node:url";
 
 import { resolveGeminiApiKey } from "../deck-spec-module/media/providerEnv.js";
-import type { PlanDeckSpecFromPromptDebugResult } from "../deck-spec-module/public-api.js";
 import {
+	type DeckSpecPlanningErrorCode,
 	DeckSpecPlanningError,
-	planDeckSpecFromPrompt,
-} from "../deck-spec-module/public-api.js";
+	isDeckSpecPlanningError,
+	runDeckSpecModule,
+} from "../public-api.js";
 import {
+	resolveDeckSpecModuleArtifactRootDir,
 	resolveDeckSpecPath,
 	resolveProjectDir,
-	resolveSpecCandidatePath,
-	resolveSpecDiagnosticsPath,
-	resolveSpecReviewMarkdownPath,
-	resolveSpecReviewPath,
-} from "./readDeckSpec.js";
-import { renderSpecReviewMarkdown } from "./renderSpecReview.js";
-import type { CliIo } from "./validateDeckSpec.js";
-import { writeJsonFileAtomic, writeTextFileAtomic } from "./writeFileAtomic.js";
+} from "../spec/readDeckSpec.js";
+
+type CliIo = {
+	stdout: (message: string) => void;
+	stderr: (message: string) => void;
+};
 
 type ParsedSpecCliArgs = {
 	projectDir: string;
 	prompt?: string;
-	debug: boolean;
 };
 
 const defaultCliIo: CliIo = {
@@ -36,7 +35,6 @@ function parseSpecCliArgs(
 ): ParsedSpecCliArgs | { error: string } {
 	let projectDir: string | undefined;
 	let prompt: string | undefined;
-	let debug = false;
 
 	for (let index = 0; index < args.length; index += 1) {
 		const arg = args[index];
@@ -47,10 +45,6 @@ function parseSpecCliArgs(
 		}
 		if (arg.startsWith("--prompt=")) {
 			prompt = arg.slice("--prompt=".length);
-			continue;
-		}
-		if (arg === "--debug") {
-			debug = true;
 			continue;
 		}
 		if (arg.startsWith("-")) {
@@ -69,7 +63,6 @@ function parseSpecCliArgs(
 	return {
 		projectDir: resolveProjectDir(projectDir),
 		prompt,
-		debug,
 	};
 }
 
@@ -77,6 +70,10 @@ function getCliErrorMessage(error: unknown): string {
 	return error instanceof Error
 		? error.message
 		: `Unknown error: ${String(error)}`;
+}
+
+function getFailureKind(error: unknown): DeckSpecPlanningErrorCode | "unexpected_error" {
+	return isDeckSpecPlanningError(error) ? error.code : "unexpected_error";
 }
 
 async function resolvePromptPlanningApiKey(
@@ -110,56 +107,29 @@ export async function runSpecCli(
 		return 1;
 	}
 
-	const candidatePath = resolveSpecCandidatePath(projectDir);
 	const specPath = resolveDeckSpecPath(projectDir);
-	const diagnosticsPath = resolveSpecDiagnosticsPath(projectDir);
-	const reviewPath = resolveSpecReviewPath(projectDir);
-	const reviewMarkdownPath = resolveSpecReviewMarkdownPath(projectDir);
-	let debugResult: PlanDeckSpecFromPromptDebugResult | undefined;
+	const artifactRootDir = resolveDeckSpecModuleArtifactRootDir(projectDir);
 
 	try {
 		const apiKey = await resolvePromptPlanningApiKey(projectDir);
-		const deckSpec = await planDeckSpecFromPrompt(parsedArgs.prompt, {
+		const result = await runDeckSpecModule({
+			prompt: parsedArgs.prompt,
 			apiKey,
 			projectSlug: path.basename(projectDir),
-			onDebugResult: parsedArgs.debug
-				? async (result) => {
-						debugResult = result;
-					}
-				: undefined,
+			paths: {
+				canonicalSpecPath: specPath,
+				artifactRootDir,
+			},
 		});
 
-		await writeJsonFileAtomic(specPath, deckSpec);
-
-		if (parsedArgs.debug && typeof debugResult !== "undefined") {
-			await writeJsonFileAtomic(candidatePath, debugResult.candidateDeckSpec);
-			await writeJsonFileAtomic(reviewPath, debugResult.review);
-			await writeTextFileAtomic(
-				reviewMarkdownPath,
-				`${renderSpecReviewMarkdown(debugResult.review)}\n`,
-			);
-			await writeJsonFileAtomic(diagnosticsPath, debugResult.diagnostics);
-		}
-
-		io.stdout(`Canonical deck spec written: ${specPath}`);
-		if (parsedArgs.debug) {
-			io.stdout(`Planning candidate snapshot: ${candidatePath}`);
-			io.stdout(`Review report: ${reviewMarkdownPath}`);
-			io.stdout(`Planning diagnostics: ${diagnosticsPath}`);
-		}
+		io.stdout(`Canonical deck spec written: ${result.canonicalSpecPath}`);
+		io.stdout(`Artifact bundle written: ${result.artifactRootDir}`);
 		return 0;
 	} catch (error) {
-		if (parsedArgs.debug && error instanceof DeckSpecPlanningError) {
-			await writeJsonFileAtomic(diagnosticsPath, error.diagnostics);
-			io.stderr(`Planning diagnostics: ${diagnosticsPath}`);
-		}
-
 		io.stderr("Prompt-driven deck-spec planning failed.");
 		io.stderr(`Canonical target unchanged: ${specPath}`);
-		io.stderr(
-			`Failure kind: ${error instanceof DeckSpecPlanningError ? error.code : "unexpected_error"}`,
-		);
-		io.stderr(`Retryable by skill: no`);
+		io.stderr(`Failure kind: ${getFailureKind(error)}`);
+		io.stderr(`Artifact bundle: ${artifactRootDir}`);
 		io.stderr(getCliErrorMessage(error));
 		return 1;
 	}

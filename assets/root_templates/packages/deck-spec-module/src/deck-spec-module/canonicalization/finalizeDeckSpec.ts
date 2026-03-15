@@ -39,7 +39,30 @@ export type PlanDeckSpecFromPromptDebugResult = {
 	diagnostics: DeckSpecPlanningDiagnostics;
 };
 
+export type PlanningAttemptArtifact = {
+	strategy: PlanningAttemptStrategy;
+	candidateDeckSpec?: DeckSpec;
+	review?: SpecReviewResult;
+	diagnostics: PlanningAttemptDiagnostics;
+};
+
+export type PlanDeckSpecRunResult =
+	| {
+			ok: true;
+			deckSpec: DeckSpec;
+			review: SpecReviewResult;
+			diagnostics: DeckSpecPlanningDiagnostics;
+			attempts: PlanningAttemptArtifact[];
+	  }
+	| {
+			ok: false;
+			error: DeckSpecPlanningError;
+			diagnostics: DeckSpecPlanningDiagnostics;
+			attempts: PlanningAttemptArtifact[];
+	  };
+
 const virtualProjectPrefix = "/virtual";
+const geminiApiKeyEnvName = "GEMINI_API_KEY";
 
 function createPlanningAttemptDiagnostics(
 	input:
@@ -133,8 +156,6 @@ function createSemanticReviewError(
 		diagnostics,
 	});
 }
-
-const geminiApiKeyEnvName = "GEMINI_API_KEY";
 
 function resolvePlannerApiKey(options: PlanDeckSpecFromPromptOptions): string {
 	if (options.apiKey.trim().length > 0) {
@@ -270,19 +291,53 @@ async function runPlanningAttempt(
 	};
 }
 
-async function planDeckSpecFromPromptDetailed(
+function createAttemptArtifact(
+	strategy: PlanningAttemptStrategy,
+	input: Awaited<ReturnType<typeof runPlanningAttempt>>,
+): PlanningAttemptArtifact {
+	return {
+		strategy,
+		candidateDeckSpec: input.candidateDeckSpec,
+		review: input.review,
+		diagnostics: input.attemptDiagnostics,
+	};
+}
+
+export async function planDeckSpecRun(
 	prompt: string,
 	options: PlanDeckSpecFromPromptOptions,
-): Promise<PlanDeckSpecFromPromptDebugResult> {
+): Promise<PlanDeckSpecRunResult> {
 	const trimmedPrompt = prompt.trim();
 	if (trimmedPrompt.length < 16) {
-		throw createPromptInvalidError(
+		const error = createPromptInvalidError(
 			"Prompt is too short to derive a canonical deck spec. Provide a fuller user prompt.",
 		);
+		return {
+			ok: false,
+			error,
+			diagnostics: error.diagnostics,
+			attempts: [],
+		};
 	}
 
-	const apiKey = resolvePlannerApiKey(options);
-	const attempts: PlanningAttemptDiagnostics[] = [];
+	let apiKey: string;
+	try {
+		apiKey = resolvePlannerApiKey(options);
+		resolveProjectSlug(options);
+	} catch (error) {
+		if (error instanceof DeckSpecPlanningError) {
+			return {
+				ok: false,
+				error,
+				diagnostics: error.diagnostics,
+				attempts: [],
+			};
+		}
+		throw error;
+	}
+
+	const attemptDiagnostics: PlanningAttemptDiagnostics[] = [];
+	const attempts: PlanningAttemptArtifact[] = [];
 
 	try {
 		const primary = await runPlanningAttempt(
@@ -291,16 +346,18 @@ async function planDeckSpecFromPromptDetailed(
 			options,
 			apiKey,
 		);
-		attempts.push(primary.attemptDiagnostics);
+		attemptDiagnostics.push(primary.attemptDiagnostics);
+		attempts.push(createAttemptArtifact("primary", primary));
 
 		if (primary.attemptDiagnostics.status === "passed") {
 			return {
-				candidateDeckSpec: primary.candidateDeckSpec,
+				ok: true,
 				deckSpec: createReviewedDeckSpec(primary.candidateDeckSpec),
 				review:
 					primary.review ??
 					createDeterministicSemanticReview(primary.candidateDeckSpec),
-				diagnostics: createPlanningDiagnostics(attempts),
+				diagnostics: createPlanningDiagnostics(attemptDiagnostics),
+				attempts,
 			};
 		}
 
@@ -311,45 +368,61 @@ async function planDeckSpecFromPromptDetailed(
 			apiKey,
 			{
 				previousCandidate: primary.candidateDocument,
-				diagnostics: createPlanningDiagnostics(attempts),
+				diagnostics: createPlanningDiagnostics(attemptDiagnostics),
 			},
 		);
-		attempts.push(fallback.attemptDiagnostics);
+		attemptDiagnostics.push(fallback.attemptDiagnostics);
+		attempts.push(createAttemptArtifact("fallback", fallback));
 
 		if (fallback.attemptDiagnostics.status === "passed") {
 			return {
-				candidateDeckSpec: fallback.candidateDeckSpec,
+				ok: true,
 				deckSpec: createReviewedDeckSpec(fallback.candidateDeckSpec),
 				review:
 					fallback.review ??
 					createDeterministicSemanticReview(fallback.candidateDeckSpec),
-				diagnostics: createPlanningDiagnostics(attempts),
+				diagnostics: createPlanningDiagnostics(attemptDiagnostics),
+				attempts,
 			};
 		}
 
-		const diagnostics = createPlanningDiagnostics(attempts);
-		if (attempts.some((attempt) => attempt.stage === "validation")) {
-			throw createContractValidationError(
-				"Planner model returned candidates that failed canonical validation after the internal repair attempt.",
-				diagnostics,
-			);
-		}
-
-		throw createSemanticReviewError(
-			"Planner model returned candidates that failed semantic review after the internal repair attempt.",
+		const diagnostics = createPlanningDiagnostics(attemptDiagnostics);
+		return {
+			ok: false,
+			error: attemptDiagnostics.some((attempt) => attempt.stage === "validation")
+				? createContractValidationError(
+						"Planner model returned candidates that failed canonical validation after the internal repair attempt.",
+						diagnostics,
+					)
+				: createSemanticReviewError(
+						"Planner model returned candidates that failed semantic review after the internal repair attempt.",
+						diagnostics,
+					),
 			diagnostics,
-		);
+			attempts,
+		};
 	} catch (error) {
 		if (error instanceof DeckSpecPlanningError) {
-			throw error;
+			return {
+				ok: false,
+				error,
+				diagnostics: error.diagnostics,
+				attempts,
+			};
 		}
 
-		throw createPlanningFailureError(
-			error instanceof Error
-				? error.message
-				: `Unknown planner failure: ${String(error)}`,
-			createPlanningDiagnostics(attempts),
-		);
+		const diagnostics = createPlanningDiagnostics(attemptDiagnostics);
+		return {
+			ok: false,
+			error: createPlanningFailureError(
+				error instanceof Error
+					? error.message
+					: `Unknown planner failure: ${String(error)}`,
+				diagnostics,
+			),
+			diagnostics,
+			attempts,
+		};
 	}
 }
 
@@ -357,7 +430,19 @@ export async function planDeckSpecFromPrompt(
 	prompt: string,
 	options: PlanDeckSpecFromPromptOptions,
 ): Promise<DeckSpec> {
-	const result = await planDeckSpecFromPromptDetailed(prompt, options);
-	await options.onDebugResult?.(result);
+	const result = await planDeckSpecRun(prompt, options);
+	if (result.ok === false) {
+		throw result.error;
+	}
+
+	const finalAttempt =
+		result.attempts[result.attempts.length - 1]?.candidateDeckSpec;
+	await options.onDebugResult?.({
+		candidateDeckSpec: finalAttempt ?? result.deckSpec,
+		deckSpec: result.deckSpec,
+		review: result.review,
+		diagnostics: result.diagnostics,
+	});
+
 	return result.deckSpec;
 }

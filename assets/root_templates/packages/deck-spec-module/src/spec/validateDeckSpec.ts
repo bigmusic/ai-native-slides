@@ -647,6 +647,13 @@ export async function validateDeckSpecFile(
 	return validateDeckSpecDocument(deckSpec, schema as object, { projectDir });
 }
 
+export async function validateDeckSpecFileFromPath(
+	canonicalSpecPath: string,
+): Promise<DeckSpecValidationResult> {
+	const projectDir = path.resolve(path.dirname(canonicalSpecPath), "..");
+	return validateDeckSpecFile(projectDir);
+}
+
 export async function runSpecValidateCli(
 	args: string[],
 	io: CliIo = defaultCliIo,
