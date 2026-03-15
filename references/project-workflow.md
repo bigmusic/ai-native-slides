@@ -4,6 +4,60 @@
 
 Read this file when you need root/project layout details, script boundaries, template-managed file rules, or concrete commands for initializing, checking, building, and validating a deck project.
 
+## Current Workspace Development Roles
+
+In this workspace:
+
+- skill repo: `/Volumes/BiGROG/skills-test/ai-native-slides`
+- demo deck root: `/Volumes/BiGROG/skills-test/ai-education-deck`
+- demo project: `/Volumes/BiGROG/skills-test/ai-education-deck/projects/ai-native-product-deck`
+
+Use the demo project for implementation, smoke tests, and validation. After a reusable change is confirmed there, sync the reusable parts back into the skill repo:
+
+- `ai-native-slides/assets/templates/` for scaffold-managed project files
+- `ai-native-slides/scripts/` for reusable shell helpers
+- `ai-native-slides/` and `ai-native-slides/references/` for user-facing docs
+
+For the current development loop, keep the concrete project name fixed at `ai-native-product-deck`.
+
+## Intent Routing At Session Start
+
+Every end-to-end session begins by routing the user's prompt to one of two intents:
+
+- `new_project`
+- `revise_existing_project`
+
+Routing rules:
+
+- Prefer explicit prompt wording first. `Create project <slug>` is `new_project`. `Revise project <slug>` or `Update project <slug>` is `revise_existing_project`.
+- If the session is already scoped to one project, confirm the active project with `.ai-native-slides/project.json` and `.ai-native-slides/state.json` before editing.
+- In this workspace's maintenance loop, the default revision target is `ai-native-product-deck` unless the user explicitly asks for a different project or a fresh one.
+- If the prompt is ambiguous and project selection is risky, stop and ask whether the user wants a new project or a revision run.
+- Post-deliverable feedback is not a separate workflow phase. It becomes a new prompt that re-enters this routing step.
+
+## Session Ownership
+
+One user prompt should map to one skill-agent-owned end-to-end session.
+
+Within that same session, the skill agent is expected to:
+
+- classify the prompt as `new_project` or `revise_existing_project`
+- resolve the target project before changing files
+- converge the root and project scaffold
+- run `pnpm spec:generate`
+- author `tmp/spec-candidate.json`
+- run `pnpm spec` and, when allowed, retry once
+- author `tmp/spec-review-candidate.json`
+- run `pnpm spec:review`
+- generate media
+- author or revise `src/buildDeck.ts`, `src/presentationModel.ts`, and project tests
+- run `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, and when needed `pnpm validate`
+- produce deliverables
+
+Deterministic CLI steps are guardrails inside that same skill session. They are not human approval checkpoints and not external-agent boundaries.
+
+The JSON field name `skill_handoff` remains for backward compatibility, but it describes an internal skill-phase contract rather than a human handoff.
+
 ## Shared-Root Model
 
 Use one shared deck root and one project directory per deck:
@@ -23,11 +77,12 @@ Use one shared deck root and one project directory per deck:
   .ai-native-slides/
   projects/
     <slug>/
+      spec/
+      media/
       src/
       tests/
       output/
       tmp/
-      assets/
       .ai-native-slides/project.json
       package.json
       tsconfig.json
@@ -52,15 +107,44 @@ The deck root `.npmrc` pins `store-dir=.pnpm-store`, so shared `pnpm install` tr
 Template-managed files are copied from `assets/templates/` and can be refreshed safely:
 
 - `.gitignore`
+- `spec/deck-spec.schema.json`
 - `package.json`
 - `tsconfig.json`
 - `vitest.config.ts`
 - `run-project.sh`
 - `validate-local.sh`
 - `src/main.ts`
+- `src/asset-pipeline/generateMedia.ts`
+- `src/asset-pipeline/imagePolicy.ts`
+- `src/asset-pipeline/paths.ts`
+- `src/planner-agent/image-generation/env.ts`
+- `src/planner-agent/image-generation/geminiAdapter.ts`
+- `src/planner-agent/material-quality.ts`
+- `src/planner-agent/planner-brief.ts`
+- `src/planner-agent/planner-input.ts`
+- `src/planner-agent/planner-output.ts`
+- `src/planner-agent/prompt-quality.ts`
+- `src/planner-agent/review-brief.ts`
+- `src/planner-agent/scorecard.ts`
+- `src/spec/contract.ts`
+- `src/spec/deriveOutputFileName.ts`
+- `src/spec/generatePlannerBrief.ts`
+- `src/spec/normalizeSystemManagedFields.ts`
+- `src/spec/plannerContext.ts`
+- `src/spec/promoteDeckSpecCandidate.ts`
+- `src/spec/promoteSpecReviewCandidate.ts`
+- `src/spec/readDeckSpec.ts`
+- `src/spec/reviewContext.ts`
+- `src/spec/rendererContract.ts`
+- `src/spec/renderSpecReview.ts`
+- `src/spec/reviewContract.ts`
+- `src/spec/validateDeckSpec.ts`
+- `src/spec/validateSpecReview.ts`
+- `src/spec/writeFileAtomic.ts`
 
 Prompt-generated project content is created after scaffold initialization, based on the user's deck request:
 
+- `spec/deck-spec.json`
 - `src/buildDeck.ts`
 - `src/presentationModel.ts`
 - `tests/buildDeck.test.ts`
@@ -73,13 +157,13 @@ Project metadata records these boundaries in `.ai-native-slides/project.json`.
 
 ```bash
 # Initialize or refresh one project
-bash ~/.codex/skills/ai-native-slides/scripts/init_deck_project.sh /path/to/deck-root my-new-deck
+bash ~/.codex/skills/ai-native-slides/scripts/init_deck_project.sh /Volumes/BiGROG/skills-test/ai-education-deck ai-native-product-deck
 ```
 
 ```bash
 # Refresh root or project preflight state
-bash ~/.codex/skills/ai-native-slides/scripts/ensure_deck_root.sh /path/to/deck-root
-bash ~/.codex/skills/ai-native-slides/scripts/ensure_deck_project.sh /path/to/deck-root/projects/my-new-deck
+bash ~/.codex/skills/ai-native-slides/scripts/ensure_deck_root.sh /Volumes/BiGROG/skills-test/ai-education-deck
+bash ~/.codex/skills/ai-native-slides/scripts/ensure_deck_project.sh /Volumes/BiGROG/skills-test/ai-education-deck/projects/ai-native-product-deck
 ```
 
 If project preflight reports missing scaffold files or template drift, stay on the normal operator path and rerun `init_deck_project.sh` for that project name.
@@ -89,28 +173,53 @@ Legacy single-workspace migration is also documented in `scripts/maintenance/mai
 
 ```bash
 # Initialize or refresh the shared deck root
-bash ~/.codex/skills/ai-native-slides/scripts/init_deck_root.sh /path/to/deck-root
+bash ~/.codex/skills/ai-native-slides/scripts/init_deck_root.sh /Volumes/BiGROG/skills-test/ai-education-deck
 ```
 
 ```bash
 # Install shared Node dependencies at the deck root
 # Make sure .npmrc is present so pnpm stays inside <deck-root>/.pnpm-store.
-cd /path/to/deck-root
+cd /Volumes/BiGROG/skills-test/ai-education-deck
 pnpm install
 ```
 
 ```bash
 # Fast TypeScript loop
-cd /path/to/deck-root/projects/my-new-deck
+cd /Volumes/BiGROG/skills-test/ai-education-deck/projects/ai-native-product-deck
+pnpm spec:generate -- --prompt "Summarize the requested deck"
+pnpm spec
+pnpm spec:validate
+pnpm spec:review
+pnpm media
 pnpm lint
 pnpm typecheck
 pnpm test
 pnpm build
 ```
 
+Before running that loop, resolve whether the prompt is creating a new project or revising an existing one. For operator-facing prompt wording, prefer explicit phrasing such as `Create project <slug>` or `Revise project <slug>`.
+
+`pnpm spec:generate` writes `tmp/planner-context.json` and `tmp/planner-brief.md` from the provided prompt. It does not mutate `spec/deck-spec.json`; inside Codex it starts the next internal skill phase, and the same skill session must read those artifacts before writing `tmp/spec-candidate.json`.
+
+`pnpm spec` promotes `tmp/spec-candidate.json` into canonical `spec/deck-spec.json`. It prefers `tmp/planner-context.json` as the source of workflow-managed `source_prompt`, normalizes the remaining system-managed fields, validates the result, and avoids leaving behind an invalid canonical spec. On success it also writes `tmp/review-context.json` and `tmp/review-brief.md` for the semantic-review phase. If those review artifacts cannot be written, `pnpm spec` rolls the canonical spec back instead of leaving a partially updated workflow state. On failure it prints stable `Failure kind:` and `Retryable by skill:` lines so the same skill session can decide whether one candidate-only retry is allowed.
+
+If the first `pnpm spec` attempt fails with `Failure kind: candidate_invalid_json` or `candidate_validation_failed`, the skill should snapshot the current candidate to `tmp/spec-candidate.last-invalid.json`, write the stderr failure summary to `tmp/spec-candidate.last-errors.txt`, fix the candidate using only the reported errors, and retry `pnpm spec` once. Any other failure kind, or a second failed promotion, stops the planner phase.
+
+`pnpm spec:validate` performs structural validation only. It checks the canonical `spec/deck-spec.json` against `spec/deck-spec.schema.json` plus local rule validation, and it does not mutate project files.
+
+Before writing `tmp/spec-review-candidate.json`, the same skill session should read `tmp/review-context.json` and `tmp/review-brief.md`. Those artifacts define the semantic-review contract, including prompt-alignment rubric, status policy, and the `pnpm spec:review` promotion path.
+
+`pnpm spec:review` promotes `tmp/spec-review-candidate.json` into `tmp/spec-review.json` and `output/spec-review.md`. `pass` and `warn` mark `spec/deck-spec.json.status` as `reviewed`; `fail` still writes the review artifacts but returns a non-zero exit code for downstream gating. The command also enforces local status-coherence rules plus deck-material/image-prompt scorecard validation so `pass`, `warn`, and `fail` cannot be used inconsistently with the review evidence.
+
+`pnpm media` is the only Gemini-dependent command in v1. It reads `GEMINI_API_KEY` from the current shell or from `<deck-root>/.env`, requires `spec/deck-spec.json.status` to be `reviewed` or `media_ready`, and writes canonical deck-ready files into `media/generated-images/`.
+
+Everything before `pnpm media` should be treated as skill work rather than Gemini work. The skill agent owns planning, review, candidate repair, deck authoring, and command orchestration; Gemini is reserved for image synthesis only.
+
+The expected fast loop from `pnpm spec:generate` through `pnpm build` runs without human intervention. Human review starts after those artifacts exist.
+
 ```bash
 # Full validation wrapper
-cd /path/to/deck-root/projects/my-new-deck
+cd /Volumes/BiGROG/skills-test/ai-education-deck/projects/ai-native-product-deck
 pnpm validate
 ```
 
@@ -125,6 +234,8 @@ Shared Python environment setup uses `uv`, with cache pinned to `.uv-cache/` und
 
 Render-dependent validation uses LibreOffice. In Codex sessions, the validation scripts intentionally block LibreOffice-backed steps before launching `soffice` and report them as human-in-the-loop instead of trying to run them inside Codex.
 
+This human-in-the-loop validation happens after deliverables exist. It is a post-deliverable review aid, not a mid-session planning checkpoint.
+
 Expected behavior in sandbox:
 
 - when root preflight reports missing shared Node dependencies, the next action is to rerun `scripts/init_deck_root.sh <deck-root>` or run `pnpm install` in the deck root
@@ -134,3 +245,5 @@ Expected behavior in sandbox:
 - the validation summary says `INCOMPLETE (human-in-the-loop required)`
 - render-dependent downstream steps are marked `SKIPPED`
 - the next action is to rerun `pnpm validate` from a local terminal
+
+After that review, revision feedback should be phrased as a new prompt that names the target project and starts a new skill-owned session instead of manually patching intermediate planner or review candidate files.

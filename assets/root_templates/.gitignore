@@ -2,5 +2,6 @@ node_modules/
 .pnpm-store/
 .uv-cache/
 .venv/
+.env
 .ai-native-slides/
 assets/pptxgenjs_helpers/

@@ -6,15 +6,19 @@
 	"pnpm": {
 		"onlyBuiltDependencies": [
 			"esbuild",
+			"sharp",
 			"skia-canvas"
 		]
 	},
 	"dependencies": {
+		"@google/genai": "^1.13.0",
+		"ajv": "^8.17.1",
 		"fontkit": "^2.0.4",
 		"linebreak": "^1.1.0",
 		"mathjax-full": "^3.2.2",
 		"pptxgenjs": "^3.12.0",
 		"prismjs": "^1.30.0",
+		"sharp": "^0.34.4",
 		"skia-canvas": "^2.0.2"
 	},
 	"devDependencies": {

@@ -41,13 +41,13 @@ fi
 mkdir -p "$PROJECT_DIR"
 
 if [[ -d "${DECK_ROOT}/assets" ]]; then
-  mkdir -p "${PROJECT_DIR}/assets"
+  mkdir -p "${PROJECT_DIR}/media"
   while IFS= read -r asset_path; do
     asset_name="$(basename "$asset_path")"
     if [[ "$asset_name" == "pptxgenjs_helpers" ]]; then
       continue
     fi
-    mv "$asset_path" "${PROJECT_DIR}/assets/${asset_name}"
+    mv "$asset_path" "${PROJECT_DIR}/media/${asset_name}"
   done < <(find "${DECK_ROOT}/assets" -mindepth 1 -maxdepth 1 | sort)
   rmdir "${DECK_ROOT}/assets" 2>/dev/null || true
 fi
@@ -81,7 +81,7 @@ set -e
 write_project_metadata "$DECK_ROOT" "$PROJECT_DIR" "$PROJECT_NAME" "$PROJECT_SLUG"
 
 find "${PROJECT_DIR}/src" -type f -name '*.ts' -print0 2>/dev/null | while IFS= read -r -d '' file; do
-  perl -0pi -e 's#\.\./assets/pptxgenjs_helpers/#../../../assets/pptxgenjs_helpers/#g' "$file"
+  perl -0pi -e 's#\.\./asset-pipeline/pptxgenjs_helpers/#../../../asset-pipeline/pptxgenjs_helpers/#g' "$file"
 done
 
 if [[ "$root_bootstrap_exit" -ne 0 ]]; then

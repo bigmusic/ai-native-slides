@@ -123,6 +123,109 @@ infer_deck_root_from_project_dir() {
   return 1
 }
 
+skill_worktree_dirty() {
+  local skill_root="$1"
+
+  if ! git -C "$skill_root" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    return 1
+  fi
+
+  [[ -n "$(git -C "$skill_root" status --short --untracked-files=normal 2>/dev/null)" ]]
+}
+
+resolve_skill_revision() {
+  local skill_root="$1"
+
+  if git -C "$skill_root" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    local revision
+    revision="$(git -C "$skill_root" rev-parse --short HEAD)"
+    if skill_worktree_dirty "$skill_root"; then
+      printf '%s-dirty' "$revision"
+    else
+      printf '%s' "$revision"
+    fi
+    return 0
+  fi
+
+  shasum -a 256 "$skill_root/SKILL.md" | awk '{print $1}'
+}
+
+project_template_managed_files() {
+  cat <<'EOF'
+.gitignore
+spec/deck-spec.schema.json
+package.json
+tsconfig.json
+vitest.config.ts
+run-project.sh
+validate-local.sh
+src/main.ts
+src/asset-pipeline/generateMedia.ts
+src/asset-pipeline/imagePolicy.ts
+src/asset-pipeline/paths.ts
+src/planner-agent/image-generation/env.ts
+src/planner-agent/image-generation/geminiAdapter.ts
+src/planner-agent/material-quality.ts
+src/planner-agent/planner-brief.ts
+src/planner-agent/planner-input.ts
+src/planner-agent/planner-output.ts
+src/planner-agent/prompt-quality.ts
+src/planner-agent/review-brief.ts
+src/planner-agent/scorecard.ts
+src/spec/contract.ts
+src/spec/deriveOutputFileName.ts
+src/spec/generatePlannerBrief.ts
+src/spec/normalizeSystemManagedFields.ts
+src/spec/plannerContext.ts
+src/spec/promoteDeckSpecCandidate.ts
+src/spec/promoteSpecReviewCandidate.ts
+src/spec/readDeckSpec.ts
+src/spec/rendererContract.ts
+src/spec/reviewContext.ts
+src/spec/renderSpecReview.ts
+src/spec/reviewContract.ts
+src/spec/validateDeckSpec.ts
+src/spec/validateSpecReview.ts
+src/spec/writeFileAtomic.ts
+EOF
+}
+
+project_prompt_generated_files() {
+  cat <<'EOF'
+spec/deck-spec.json
+src/buildDeck.ts
+src/presentationModel.ts
+tests/buildDeck.test.ts
+EOF
+}
+
+project_content_dirs() {
+  cat <<'EOF'
+media
+spec
+src
+tests
+output
+tmp
+EOF
+}
+
+project_ignored_generated_dirs() {
+  cat <<'EOF'
+node_modules
+rendered
+EOF
+}
+
+project_legacy_cleanup_targets() {
+  cat <<'EOF'
+rendered
+output/rendered
+node_modules/.vite
+node_modules/.vite-temp
+EOF
+}
+
 write_root_metadata() {
   local deck_root="$1"
   local metadata_path
@@ -151,53 +254,42 @@ EOF
   write_file_if_changed "$metadata_path" "$tmp_file"
 }
 
-write_project_metadata() {
+render_project_metadata_file() {
   local deck_root="$1"
   local project_dir="$2"
   local project_name="$3"
   local project_slug="$4"
-  local metadata_path
-  metadata_path="$(project_metadata_path "$project_dir")"
-  local created_at
-  created_at="$(existing_json_string_field "$metadata_path" "created_at" || true)"
-  local template_managed_files=(
-    ".gitignore"
-    "package.json"
-    "tsconfig.json"
-    "vitest.config.ts"
-    "run-project.sh"
-    "validate-local.sh"
-    "src/main.ts"
-  )
-  local prompt_generated_files=(
-    "src/buildDeck.ts"
-    "src/presentationModel.ts"
-    "tests/buildDeck.test.ts"
-  )
-  local project_content_dirs=(
-    "assets"
-    "src"
-    "tests"
-    "output"
-    "tmp"
-  )
-  local ignored_generated_dirs=(
-    "node_modules"
-    "rendered"
-  )
-  local legacy_cleanup_targets=(
-    "rendered"
-    "output/rendered"
-    "node_modules/.vite"
-    "node_modules/.vite-temp"
-  )
+  local metadata_path="$5"
+  local created_at="$6"
+  local -a template_managed_files=()
+  local -a prompt_generated_files=()
+  local -a content_dirs=()
+  local -a ignored_generated_dirs=()
+  local -a legacy_cleanup_targets=()
 
   if [[ -z "$created_at" ]]; then
     created_at="$(date '+%Y-%m-%dT%H:%M:%S%z')"
   fi
 
-  local tmp_file
-  tmp_file="$(mktemp)"
+  while IFS= read -r item; do
+    template_managed_files+=("$item")
+  done < <(project_template_managed_files)
+
+  while IFS= read -r item; do
+    prompt_generated_files+=("$item")
+  done < <(project_prompt_generated_files)
+
+  while IFS= read -r item; do
+    content_dirs+=("$item")
+  done < <(project_content_dirs)
+
+  while IFS= read -r item; do
+    ignored_generated_dirs+=("$item")
+  done < <(project_ignored_generated_dirs)
+
+  while IFS= read -r item; do
+    legacy_cleanup_targets+=("$item")
+  done < <(project_legacy_cleanup_targets)
 
   mkdir -p "$(dirname "$metadata_path")"
 
@@ -216,7 +308,7 @@ write_project_metadata() {
     json_write_string_array_items "    " "${prompt_generated_files[@]}"
     echo "  ],"
     echo "  \"project_content_dirs\": ["
-    json_write_string_array_items "    " "${project_content_dirs[@]}"
+    json_write_string_array_items "    " "${content_dirs[@]}"
     echo "  ],"
     echo "  \"ignored_generated_dirs\": ["
     json_write_string_array_items "    " "${ignored_generated_dirs[@]}"
@@ -226,7 +318,33 @@ write_project_metadata() {
     echo "  ],"
     echo "  \"created_at\": \"$(json_escape "$created_at")\""
     echo "}"
-  } > "$tmp_file"
+  } > "$metadata_path"
+}
+
+write_project_metadata() {
+  local deck_root="$1"
+  local project_dir="$2"
+  local project_name="$3"
+  local project_slug="$4"
+  local metadata_path
+  metadata_path="$(project_metadata_path "$project_dir")"
+  local created_at
+  created_at="$(existing_json_string_field "$metadata_path" "created_at" || true)"
+
+  if [[ -z "$created_at" ]]; then
+    created_at="$(date '+%Y-%m-%dT%H:%M:%S%z')"
+  fi
+
+  local tmp_file
+  tmp_file="$(mktemp)"
+
+  render_project_metadata_file \
+    "$deck_root" \
+    "$project_dir" \
+    "$project_name" \
+    "$project_slug" \
+    "$tmp_file" \
+    "$created_at"
 
   write_file_if_changed "$metadata_path" "$tmp_file"
 }

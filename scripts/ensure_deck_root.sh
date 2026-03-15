@@ -112,10 +112,11 @@ declare -a MISSING_ITEMS=()
 declare -a WARNINGS=()
 declare -a SUGGESTIONS=()
 
-SKILL_REVISION="$(
-  git -C "$SKILL_ROOT" rev-parse --short HEAD 2>/dev/null || \
-  shasum -a 256 "$SKILL_ROOT/SKILL.md" | awk '{print $1}'
-)"
+SKILL_REVISION="$(resolve_skill_revision "$SKILL_ROOT")"
+SKILL_WORKTREE_DIRTY=false
+if skill_worktree_dirty "$SKILL_ROOT"; then
+  SKILL_WORKTREE_DIRTY=true
+fi
 
 ROOT_METADATA_PRESENT=false
 if [[ -f "$ROOT_METADATA_FILE" ]]; then ROOT_METADATA_PRESENT=true; else
@@ -257,8 +258,12 @@ else
 fi
 
 NODE_DEPS_PRESENT=false
-if [[ -d "$NODE_MODULES_DIR/pptxgenjs" ]] && \
+if [[ -d "$NODE_MODULES_DIR/@google" ]] && \
+   [[ -d "$NODE_MODULES_DIR/@google/genai" ]] && \
+   [[ -d "$NODE_MODULES_DIR/ajv" ]] && \
+   [[ -d "$NODE_MODULES_DIR/pptxgenjs" ]] && \
    [[ -d "$NODE_MODULES_DIR/skia-canvas" ]] && \
+   [[ -d "$NODE_MODULES_DIR/sharp" ]] && \
    [[ -d "$NODE_MODULES_DIR/fontkit" ]] && \
    [[ -d "$NODE_MODULES_DIR/linebreak" ]] && \
    [[ -d "$NODE_MODULES_DIR/prismjs" ]] && \
@@ -344,6 +349,7 @@ fi
   echo "  \"skill_name\": \"ai-native-slides\","
   echo "  \"skill_dir\": \"$(json_escape "$SKILL_ROOT")\","
   echo "  \"skill_revision\": \"$(json_escape "$SKILL_REVISION")\","
+  echo "  \"skill_worktree_dirty\": ${SKILL_WORKTREE_DIRTY},"
   echo "  \"checked_at\": \"$(json_escape "$CHECKED_AT")\","
   echo "  \"deck_root\": \"$(json_escape "$DECK_ROOT")\","
   echo "  \"state_file\": \"$(json_escape "$STATE_FILE")\","

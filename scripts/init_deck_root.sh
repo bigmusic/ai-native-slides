@@ -52,8 +52,12 @@ require_command() {
 }
 
 node_dependencies_installed() {
+  [[ -d "$NODE_MODULES_DIR/@google" ]] && \
+  [[ -d "$NODE_MODULES_DIR/@google/genai" ]] && \
+  [[ -d "$NODE_MODULES_DIR/ajv" ]] && \
   [[ -d "$NODE_MODULES_DIR/pptxgenjs" ]] && \
   [[ -d "$NODE_MODULES_DIR/skia-canvas" ]] && \
+  [[ -d "$NODE_MODULES_DIR/sharp" ]] && \
   [[ -d "$NODE_MODULES_DIR/fontkit" ]] && \
   [[ -d "$NODE_MODULES_DIR/linebreak" ]] && \
   [[ -d "$NODE_MODULES_DIR/prismjs" ]] && \

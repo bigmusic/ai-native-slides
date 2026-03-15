@@ -2,16 +2,20 @@
 set -euo pipefail
 
 usage() {
-  echo "Usage: $0 <build|lint|format|typecheck|test|test:watch>" >&2
+  echo "Usage: $0 <media|build|lint|format|spec:generate|spec|spec:review|spec:validate|typecheck|test|test:watch> [args...]" >&2
 }
 
-if [[ "$#" -ne 1 ]]; then
+if [[ "$#" -lt 1 ]]; then
   usage
   exit 1
 fi
 
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ACTION="$1"
+shift
+if [[ "${1:-}" == "--" ]]; then
+  shift
+fi
 BUILD_DECK_TS="$PROJECT_DIR/src/buildDeck.ts"
 PRESENTATION_MODEL_TS="$PROJECT_DIR/src/presentationModel.ts"
 
@@ -53,6 +57,12 @@ project_tests_present() {
 }
 
 case "$ACTION" in
+  media)
+    (
+      cd "$PROJECT_DIR"
+      DECK_ROOT="$DECK_ROOT" node --import tsx src/asset-pipeline/generateMedia.ts "$@"
+    )
+    ;;
   build)
     if ! project_content_present; then
       echo "Project scaffold is ready, but deck content has not been generated yet." >&2
@@ -62,6 +72,30 @@ case "$ACTION" in
     (
       cd "$PROJECT_DIR"
       node --import tsx src/main.ts
+    )
+    ;;
+  spec:validate)
+    (
+      cd "$PROJECT_DIR"
+      node --import tsx src/spec/validateDeckSpec.ts "$@"
+    )
+    ;;
+  spec:generate)
+    (
+      cd "$PROJECT_DIR"
+      node --import tsx src/spec/generatePlannerBrief.ts "$@"
+    )
+    ;;
+  spec)
+    (
+      cd "$PROJECT_DIR"
+      node --import tsx src/spec/promoteDeckSpecCandidate.ts "$@"
+    )
+    ;;
+  spec:review)
+    (
+      cd "$PROJECT_DIR"
+      node --import tsx src/spec/promoteSpecReviewCandidate.ts "$@"
     )
     ;;
   lint)

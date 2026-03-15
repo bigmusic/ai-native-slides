@@ -52,10 +52,38 @@ STATE_DIR="${PROJECT_DIR}/.ai-native-slides"
 STATE_FILE="${STATE_DIR}/state.json"
 PROJECT_METADATA_FILE="$(project_metadata_path "$PROJECT_DIR")"
 PROJECT_GITIGNORE="${PROJECT_DIR}/.gitignore"
+DECK_SPEC_SCHEMA="${PROJECT_DIR}/spec/deck-spec.schema.json"
 PACKAGE_JSON="${PROJECT_DIR}/package.json"
 TSCONFIG_JSON="${PROJECT_DIR}/tsconfig.json"
 VITEST_CONFIG="${PROJECT_DIR}/vitest.config.ts"
 SRC_MAIN_TS="${PROJECT_DIR}/src/main.ts"
+SPEC_CONTRACT_TS="${PROJECT_DIR}/src/spec/contract.ts"
+SPEC_DERIVE_TS="${PROJECT_DIR}/src/spec/deriveOutputFileName.ts"
+SPEC_GENERATE_TS="${PROJECT_DIR}/src/spec/generatePlannerBrief.ts"
+SPEC_NORMALIZE_TS="${PROJECT_DIR}/src/spec/normalizeSystemManagedFields.ts"
+SPEC_PLANNER_CONTEXT_TS="${PROJECT_DIR}/src/spec/plannerContext.ts"
+SPEC_PROMOTE_TS="${PROJECT_DIR}/src/spec/promoteDeckSpecCandidate.ts"
+SPEC_REVIEW_PROMOTE_TS="${PROJECT_DIR}/src/spec/promoteSpecReviewCandidate.ts"
+SPEC_READ_TS="${PROJECT_DIR}/src/spec/readDeckSpec.ts"
+SPEC_RENDERER_CONTRACT_TS="${PROJECT_DIR}/src/spec/rendererContract.ts"
+SPEC_REVIEW_CONTEXT_TS="${PROJECT_DIR}/src/spec/reviewContext.ts"
+MEDIA_GENERATE_TS="${PROJECT_DIR}/src/asset-pipeline/generateMedia.ts"
+MEDIA_POLICY_TS="${PROJECT_DIR}/src/asset-pipeline/imagePolicy.ts"
+MEDIA_PATHS_TS="${PROJECT_DIR}/src/asset-pipeline/paths.ts"
+PLANNER_AGENT_IMAGE_ENV_TS="${PROJECT_DIR}/src/planner-agent/image-generation/env.ts"
+PLANNER_AGENT_GEMINI_TS="${PROJECT_DIR}/src/planner-agent/image-generation/geminiAdapter.ts"
+PLANNER_AGENT_MATERIAL_TS="${PROJECT_DIR}/src/planner-agent/material-quality.ts"
+PLANNER_AGENT_BRIEF_TS="${PROJECT_DIR}/src/planner-agent/planner-brief.ts"
+PLANNER_AGENT_INPUT_TS="${PROJECT_DIR}/src/planner-agent/planner-input.ts"
+PLANNER_AGENT_OUTPUT_TS="${PROJECT_DIR}/src/planner-agent/planner-output.ts"
+PLANNER_AGENT_PROMPT_TS="${PROJECT_DIR}/src/planner-agent/prompt-quality.ts"
+PLANNER_AGENT_REVIEW_BRIEF_TS="${PROJECT_DIR}/src/planner-agent/review-brief.ts"
+PLANNER_AGENT_SCORECARD_TS="${PROJECT_DIR}/src/planner-agent/scorecard.ts"
+SPEC_REVIEW_RENDER_TS="${PROJECT_DIR}/src/spec/renderSpecReview.ts"
+SPEC_REVIEW_CONTRACT_TS="${PROJECT_DIR}/src/spec/reviewContract.ts"
+SPEC_VALIDATE_TS="${PROJECT_DIR}/src/spec/validateDeckSpec.ts"
+SPEC_REVIEW_VALIDATE_TS="${PROJECT_DIR}/src/spec/validateSpecReview.ts"
+SPEC_WRITE_TS="${PROJECT_DIR}/src/spec/writeFileAtomic.ts"
 BUILD_DECK_TS="${PROJECT_DIR}/src/buildDeck.ts"
 PRESENTATION_MODEL_TS="${PROJECT_DIR}/src/presentationModel.ts"
 TESTS_DIR="${PROJECT_DIR}/tests"
@@ -76,12 +104,40 @@ ROOT_VENV_PYTHON="${DECK_ROOT}/.venv/bin/python"
 CHECKED_AT="$(date '+%Y-%m-%dT%H:%M:%S%z')"
 TEMPLATE_ROOT="${SKILL_ROOT}/assets/templates"
 PROJECT_GITIGNORE_TEMPLATE="${TEMPLATE_ROOT}/.gitignore"
+DECK_SPEC_SCHEMA_TEMPLATE="${TEMPLATE_ROOT}/spec/deck-spec.schema.json"
 PACKAGE_TEMPLATE="${TEMPLATE_ROOT}/package.json"
 PROJECT_TSCONFIG_TEMPLATE="${TEMPLATE_ROOT}/tsconfig.json"
 PROJECT_VITEST_CONFIG_TEMPLATE="${TEMPLATE_ROOT}/vitest.config.ts"
 RUN_PROJECT_TEMPLATE="${TEMPLATE_ROOT}/run-project.sh"
 VALIDATE_TEMPLATE="${TEMPLATE_ROOT}/validate-local.sh"
 MAIN_TEMPLATE="${TEMPLATE_ROOT}/src/main.ts"
+MEDIA_GENERATE_TEMPLATE="${TEMPLATE_ROOT}/src/asset-pipeline/generateMedia.ts"
+MEDIA_POLICY_TEMPLATE="${TEMPLATE_ROOT}/src/asset-pipeline/imagePolicy.ts"
+MEDIA_PATHS_TEMPLATE="${TEMPLATE_ROOT}/src/asset-pipeline/paths.ts"
+PLANNER_AGENT_IMAGE_ENV_TEMPLATE="${TEMPLATE_ROOT}/src/planner-agent/image-generation/env.ts"
+PLANNER_AGENT_GEMINI_TEMPLATE="${TEMPLATE_ROOT}/src/planner-agent/image-generation/geminiAdapter.ts"
+PLANNER_AGENT_MATERIAL_TEMPLATE="${TEMPLATE_ROOT}/src/planner-agent/material-quality.ts"
+PLANNER_AGENT_BRIEF_TEMPLATE="${TEMPLATE_ROOT}/src/planner-agent/planner-brief.ts"
+PLANNER_AGENT_INPUT_TEMPLATE="${TEMPLATE_ROOT}/src/planner-agent/planner-input.ts"
+PLANNER_AGENT_OUTPUT_TEMPLATE="${TEMPLATE_ROOT}/src/planner-agent/planner-output.ts"
+PLANNER_AGENT_PROMPT_TEMPLATE="${TEMPLATE_ROOT}/src/planner-agent/prompt-quality.ts"
+PLANNER_AGENT_REVIEW_BRIEF_TEMPLATE="${TEMPLATE_ROOT}/src/planner-agent/review-brief.ts"
+PLANNER_AGENT_SCORECARD_TEMPLATE="${TEMPLATE_ROOT}/src/planner-agent/scorecard.ts"
+SPEC_CONTRACT_TEMPLATE="${TEMPLATE_ROOT}/src/spec/contract.ts"
+SPEC_DERIVE_TEMPLATE="${TEMPLATE_ROOT}/src/spec/deriveOutputFileName.ts"
+SPEC_GENERATE_TEMPLATE="${TEMPLATE_ROOT}/src/spec/generatePlannerBrief.ts"
+SPEC_NORMALIZE_TEMPLATE="${TEMPLATE_ROOT}/src/spec/normalizeSystemManagedFields.ts"
+SPEC_PLANNER_CONTEXT_TEMPLATE="${TEMPLATE_ROOT}/src/spec/plannerContext.ts"
+SPEC_PROMOTE_TEMPLATE="${TEMPLATE_ROOT}/src/spec/promoteDeckSpecCandidate.ts"
+SPEC_REVIEW_PROMOTE_TEMPLATE="${TEMPLATE_ROOT}/src/spec/promoteSpecReviewCandidate.ts"
+SPEC_READ_TEMPLATE="${TEMPLATE_ROOT}/src/spec/readDeckSpec.ts"
+SPEC_RENDERER_CONTRACT_TEMPLATE="${TEMPLATE_ROOT}/src/spec/rendererContract.ts"
+SPEC_REVIEW_CONTEXT_TEMPLATE="${TEMPLATE_ROOT}/src/spec/reviewContext.ts"
+SPEC_REVIEW_RENDER_TEMPLATE="${TEMPLATE_ROOT}/src/spec/renderSpecReview.ts"
+SPEC_REVIEW_CONTRACT_TEMPLATE="${TEMPLATE_ROOT}/src/spec/reviewContract.ts"
+SPEC_VALIDATE_TEMPLATE="${TEMPLATE_ROOT}/src/spec/validateDeckSpec.ts"
+SPEC_REVIEW_VALIDATE_TEMPLATE="${TEMPLATE_ROOT}/src/spec/validateSpecReview.ts"
+SPEC_WRITE_TEMPLATE="${TEMPLATE_ROOT}/src/spec/writeFileAtomic.ts"
 
 mkdir -p "$STATE_DIR"
 
@@ -127,10 +183,11 @@ declare -a MISSING_ITEMS=()
 declare -a WARNINGS=()
 declare -a SUGGESTIONS=()
 
-SKILL_REVISION="$(
-  git -C "$SKILL_ROOT" rev-parse --short HEAD 2>/dev/null || \
-  shasum -a 256 "$SKILL_ROOT/SKILL.md" | awk '{print $1}'
-)"
+SKILL_REVISION="$(resolve_skill_revision "$SKILL_ROOT")"
+SKILL_WORKTREE_DIRTY=false
+if skill_worktree_dirty "$SKILL_ROOT"; then
+  SKILL_WORKTREE_DIRTY=true
+fi
 
 ROOT_DETECTED=false
 if [[ -n "$DECK_ROOT" ]]; then
@@ -164,6 +221,37 @@ if [[ -f "$PROJECT_METADATA_FILE" ]]; then PROJECT_METADATA_PRESENT=true; else
   add_missing "project metadata is missing"
 fi
 
+PROJECT_METADATA_SYNCED=false
+if [[ "$PROJECT_METADATA_PRESENT" == true ]]; then
+  PROJECT_METADATA_CREATED_AT="$(existing_json_string_field "$PROJECT_METADATA_FILE" "created_at" || true)"
+  PROJECT_METADATA_NAME="$(existing_json_string_field "$PROJECT_METADATA_FILE" "project_name" || true)"
+  if [[ -z "$PROJECT_METADATA_NAME" ]]; then
+    PROJECT_METADATA_NAME="$PROJECT_NAME_HINT"
+  fi
+
+  EXPECTED_PROJECT_METADATA="$(mktemp)"
+  render_project_metadata_file \
+    "$DECK_ROOT" \
+    "$PROJECT_DIR" \
+    "$PROJECT_METADATA_NAME" \
+    "$(basename "$PROJECT_DIR")" \
+    "$EXPECTED_PROJECT_METADATA" \
+    "$PROJECT_METADATA_CREATED_AT"
+
+  if cmp -s "$EXPECTED_PROJECT_METADATA" "$PROJECT_METADATA_FILE"; then
+    PROJECT_METADATA_SYNCED=true
+  else
+    add_warning "project metadata differs from the canonical machine-readable boundary definition"
+  fi
+
+  rm -f "$EXPECTED_PROJECT_METADATA"
+fi
+
+DECK_SPEC_SCHEMA_PRESENT=false
+if [[ -f "$DECK_SPEC_SCHEMA" ]]; then DECK_SPEC_SCHEMA_PRESENT=true; else
+  add_missing "spec/deck-spec.schema.json is missing"
+fi
+
 PACKAGE_JSON_PRESENT=false
 if [[ -f "$PACKAGE_JSON" ]]; then PACKAGE_JSON_PRESENT=true; else
   add_missing "project package.json is missing"
@@ -194,6 +282,31 @@ if package_script_present "validate"; then VALIDATE_SCRIPT_PRESENT=true; else
   add_missing "project package.json does not define a validate script"
 fi
 
+MEDIA_SCRIPT_PRESENT=false
+if package_script_present "media"; then MEDIA_SCRIPT_PRESENT=true; else
+  add_missing "project package.json does not define a media script"
+fi
+
+SPEC_GENERATE_SCRIPT_PRESENT=false
+if package_script_present "spec:generate"; then SPEC_GENERATE_SCRIPT_PRESENT=true; else
+  add_missing "project package.json does not define a spec:generate script"
+fi
+
+SPEC_VALIDATE_SCRIPT_PRESENT=false
+if package_script_present "spec:validate"; then SPEC_VALIDATE_SCRIPT_PRESENT=true; else
+  add_missing "project package.json does not define a spec:validate script"
+fi
+
+SPEC_SCRIPT_PRESENT=false
+if package_script_present "spec"; then SPEC_SCRIPT_PRESENT=true; else
+  add_missing "project package.json does not define a spec script"
+fi
+
+SPEC_REVIEW_SCRIPT_PRESENT=false
+if package_script_present "spec:review"; then SPEC_REVIEW_SCRIPT_PRESENT=true; else
+  add_missing "project package.json does not define a spec:review script"
+fi
+
 VITEST_CONFIG_PRESENT=false
 if [[ -f "$VITEST_CONFIG" ]]; then VITEST_CONFIG_PRESENT=true; else
   add_missing "project vitest.config.ts is missing"
@@ -214,6 +327,141 @@ if [[ -f "$SRC_MAIN_TS" ]]; then DECK_ENTRY_PRESENT=true; else
   add_missing "src/main.ts is missing"
 fi
 
+MEDIA_GENERATE_PRESENT=false
+if [[ -f "$MEDIA_GENERATE_TS" ]]; then MEDIA_GENERATE_PRESENT=true; else
+  add_missing "src/asset-pipeline/generateMedia.ts is missing"
+fi
+
+MEDIA_POLICY_PRESENT=false
+if [[ -f "$MEDIA_POLICY_TS" ]]; then MEDIA_POLICY_PRESENT=true; else
+  add_missing "src/asset-pipeline/imagePolicy.ts is missing"
+fi
+
+MEDIA_PATHS_PRESENT=false
+if [[ -f "$MEDIA_PATHS_TS" ]]; then MEDIA_PATHS_PRESENT=true; else
+  add_missing "src/asset-pipeline/paths.ts is missing"
+fi
+
+PLANNER_AGENT_IMAGE_ENV_PRESENT=false
+if [[ -f "$PLANNER_AGENT_IMAGE_ENV_TS" ]]; then PLANNER_AGENT_IMAGE_ENV_PRESENT=true; else
+  add_missing "src/planner-agent/image-generation/env.ts is missing"
+fi
+
+PLANNER_AGENT_GEMINI_PRESENT=false
+if [[ -f "$PLANNER_AGENT_GEMINI_TS" ]]; then PLANNER_AGENT_GEMINI_PRESENT=true; else
+  add_missing "src/planner-agent/image-generation/geminiAdapter.ts is missing"
+fi
+
+PLANNER_AGENT_MATERIAL_PRESENT=false
+if [[ -f "$PLANNER_AGENT_MATERIAL_TS" ]]; then PLANNER_AGENT_MATERIAL_PRESENT=true; else
+  add_missing "src/planner-agent/material-quality.ts is missing"
+fi
+
+PLANNER_AGENT_BRIEF_PRESENT=false
+if [[ -f "$PLANNER_AGENT_BRIEF_TS" ]]; then PLANNER_AGENT_BRIEF_PRESENT=true; else
+  add_missing "src/planner-agent/planner-brief.ts is missing"
+fi
+
+PLANNER_AGENT_INPUT_PRESENT=false
+if [[ -f "$PLANNER_AGENT_INPUT_TS" ]]; then PLANNER_AGENT_INPUT_PRESENT=true; else
+  add_missing "src/planner-agent/planner-input.ts is missing"
+fi
+
+PLANNER_AGENT_OUTPUT_PRESENT=false
+if [[ -f "$PLANNER_AGENT_OUTPUT_TS" ]]; then PLANNER_AGENT_OUTPUT_PRESENT=true; else
+  add_missing "src/planner-agent/planner-output.ts is missing"
+fi
+
+PLANNER_AGENT_PROMPT_PRESENT=false
+if [[ -f "$PLANNER_AGENT_PROMPT_TS" ]]; then PLANNER_AGENT_PROMPT_PRESENT=true; else
+  add_missing "src/planner-agent/prompt-quality.ts is missing"
+fi
+
+PLANNER_AGENT_REVIEW_BRIEF_PRESENT=false
+if [[ -f "$PLANNER_AGENT_REVIEW_BRIEF_TS" ]]; then PLANNER_AGENT_REVIEW_BRIEF_PRESENT=true; else
+  add_missing "src/planner-agent/review-brief.ts is missing"
+fi
+
+PLANNER_AGENT_SCORECARD_PRESENT=false
+if [[ -f "$PLANNER_AGENT_SCORECARD_TS" ]]; then PLANNER_AGENT_SCORECARD_PRESENT=true; else
+  add_missing "src/planner-agent/scorecard.ts is missing"
+fi
+
+SPEC_CONTRACT_PRESENT=false
+if [[ -f "$SPEC_CONTRACT_TS" ]]; then SPEC_CONTRACT_PRESENT=true; else
+  add_missing "src/spec/contract.ts is missing"
+fi
+
+SPEC_DERIVE_PRESENT=false
+if [[ -f "$SPEC_DERIVE_TS" ]]; then SPEC_DERIVE_PRESENT=true; else
+  add_missing "src/spec/deriveOutputFileName.ts is missing"
+fi
+
+SPEC_GENERATE_PRESENT=false
+if [[ -f "$SPEC_GENERATE_TS" ]]; then SPEC_GENERATE_PRESENT=true; else
+  add_missing "src/spec/generatePlannerBrief.ts is missing"
+fi
+
+SPEC_NORMALIZE_PRESENT=false
+if [[ -f "$SPEC_NORMALIZE_TS" ]]; then SPEC_NORMALIZE_PRESENT=true; else
+  add_missing "src/spec/normalizeSystemManagedFields.ts is missing"
+fi
+
+SPEC_PLANNER_CONTEXT_PRESENT=false
+if [[ -f "$SPEC_PLANNER_CONTEXT_TS" ]]; then SPEC_PLANNER_CONTEXT_PRESENT=true; else
+  add_missing "src/spec/plannerContext.ts is missing"
+fi
+
+SPEC_PROMOTE_PRESENT=false
+if [[ -f "$SPEC_PROMOTE_TS" ]]; then SPEC_PROMOTE_PRESENT=true; else
+  add_missing "src/spec/promoteDeckSpecCandidate.ts is missing"
+fi
+
+SPEC_REVIEW_PROMOTE_PRESENT=false
+if [[ -f "$SPEC_REVIEW_PROMOTE_TS" ]]; then SPEC_REVIEW_PROMOTE_PRESENT=true; else
+  add_missing "src/spec/promoteSpecReviewCandidate.ts is missing"
+fi
+
+SPEC_READ_PRESENT=false
+if [[ -f "$SPEC_READ_TS" ]]; then SPEC_READ_PRESENT=true; else
+  add_missing "src/spec/readDeckSpec.ts is missing"
+fi
+
+SPEC_RENDERER_CONTRACT_PRESENT=false
+if [[ -f "$SPEC_RENDERER_CONTRACT_TS" ]]; then SPEC_RENDERER_CONTRACT_PRESENT=true; else
+  add_missing "src/spec/rendererContract.ts is missing"
+fi
+
+SPEC_REVIEW_CONTEXT_PRESENT=false
+if [[ -f "$SPEC_REVIEW_CONTEXT_TS" ]]; then SPEC_REVIEW_CONTEXT_PRESENT=true; else
+  add_missing "src/spec/reviewContext.ts is missing"
+fi
+
+SPEC_REVIEW_RENDER_PRESENT=false
+if [[ -f "$SPEC_REVIEW_RENDER_TS" ]]; then SPEC_REVIEW_RENDER_PRESENT=true; else
+  add_missing "src/spec/renderSpecReview.ts is missing"
+fi
+
+SPEC_REVIEW_CONTRACT_PRESENT=false
+if [[ -f "$SPEC_REVIEW_CONTRACT_TS" ]]; then SPEC_REVIEW_CONTRACT_PRESENT=true; else
+  add_missing "src/spec/reviewContract.ts is missing"
+fi
+
+SPEC_VALIDATE_PRESENT=false
+if [[ -f "$SPEC_VALIDATE_TS" ]]; then SPEC_VALIDATE_PRESENT=true; else
+  add_missing "src/spec/validateDeckSpec.ts is missing"
+fi
+
+SPEC_REVIEW_VALIDATE_PRESENT=false
+if [[ -f "$SPEC_REVIEW_VALIDATE_TS" ]]; then SPEC_REVIEW_VALIDATE_PRESENT=true; else
+  add_missing "src/spec/validateSpecReview.ts is missing"
+fi
+
+SPEC_WRITE_PRESENT=false
+if [[ -f "$SPEC_WRITE_TS" ]]; then SPEC_WRITE_PRESENT=true; else
+  add_missing "src/spec/writeFileAtomic.ts is missing"
+fi
+
 TSCONFIG_PRESENT=false
 if [[ -f "$TSCONFIG_JSON" ]]; then TSCONFIG_PRESENT=true; else
   add_missing "project tsconfig.json is missing"
@@ -224,6 +472,13 @@ if template_file_matches "$PROJECT_GITIGNORE_TEMPLATE" "$PROJECT_GITIGNORE"; the
   PROJECT_GITIGNORE_SYNCED=true
 elif [[ "$PROJECT_GITIGNORE_PRESENT" == true ]]; then
   add_warning "project .gitignore differs from the template-managed version"
+fi
+
+DECK_SPEC_SCHEMA_SYNCED=false
+if template_file_matches "$DECK_SPEC_SCHEMA_TEMPLATE" "$DECK_SPEC_SCHEMA"; then
+  DECK_SPEC_SCHEMA_SYNCED=true
+elif [[ "$DECK_SPEC_SCHEMA_PRESENT" == true ]]; then
+  add_warning "spec/deck-spec.schema.json differs from the template-managed version"
 fi
 
 PACKAGE_JSON_SYNCED=false
@@ -266,6 +521,195 @@ if template_file_matches "$MAIN_TEMPLATE" "$SRC_MAIN_TS"; then
   DECK_ENTRY_SYNCED=true
 elif [[ "$DECK_ENTRY_PRESENT" == true ]]; then
   add_warning "src/main.ts differs from the template-managed version"
+fi
+
+MEDIA_GENERATE_SYNCED=false
+if template_file_matches "$MEDIA_GENERATE_TEMPLATE" "$MEDIA_GENERATE_TS"; then
+  MEDIA_GENERATE_SYNCED=true
+elif [[ "$MEDIA_GENERATE_PRESENT" == true ]]; then
+  add_warning "src/asset-pipeline/generateMedia.ts differs from the template-managed version"
+fi
+
+MEDIA_POLICY_SYNCED=false
+if template_file_matches "$MEDIA_POLICY_TEMPLATE" "$MEDIA_POLICY_TS"; then
+  MEDIA_POLICY_SYNCED=true
+elif [[ "$MEDIA_POLICY_PRESENT" == true ]]; then
+  add_warning "src/asset-pipeline/imagePolicy.ts differs from the template-managed version"
+fi
+
+MEDIA_PATHS_SYNCED=false
+if template_file_matches "$MEDIA_PATHS_TEMPLATE" "$MEDIA_PATHS_TS"; then
+  MEDIA_PATHS_SYNCED=true
+elif [[ "$MEDIA_PATHS_PRESENT" == true ]]; then
+  add_warning "src/asset-pipeline/paths.ts differs from the template-managed version"
+fi
+
+PLANNER_AGENT_IMAGE_ENV_SYNCED=false
+if template_file_matches "$PLANNER_AGENT_IMAGE_ENV_TEMPLATE" "$PLANNER_AGENT_IMAGE_ENV_TS"; then
+  PLANNER_AGENT_IMAGE_ENV_SYNCED=true
+elif [[ "$PLANNER_AGENT_IMAGE_ENV_PRESENT" == true ]]; then
+  add_warning "src/planner-agent/image-generation/env.ts differs from the template-managed version"
+fi
+
+PLANNER_AGENT_GEMINI_SYNCED=false
+if template_file_matches "$PLANNER_AGENT_GEMINI_TEMPLATE" "$PLANNER_AGENT_GEMINI_TS"; then
+  PLANNER_AGENT_GEMINI_SYNCED=true
+elif [[ "$PLANNER_AGENT_GEMINI_PRESENT" == true ]]; then
+  add_warning "src/planner-agent/image-generation/geminiAdapter.ts differs from the template-managed version"
+fi
+
+PLANNER_AGENT_MATERIAL_SYNCED=false
+if template_file_matches "$PLANNER_AGENT_MATERIAL_TEMPLATE" "$PLANNER_AGENT_MATERIAL_TS"; then
+  PLANNER_AGENT_MATERIAL_SYNCED=true
+elif [[ "$PLANNER_AGENT_MATERIAL_PRESENT" == true ]]; then
+  add_warning "src/planner-agent/material-quality.ts differs from the template-managed version"
+fi
+
+PLANNER_AGENT_BRIEF_SYNCED=false
+if template_file_matches "$PLANNER_AGENT_BRIEF_TEMPLATE" "$PLANNER_AGENT_BRIEF_TS"; then
+  PLANNER_AGENT_BRIEF_SYNCED=true
+elif [[ "$PLANNER_AGENT_BRIEF_PRESENT" == true ]]; then
+  add_warning "src/planner-agent/planner-brief.ts differs from the template-managed version"
+fi
+
+PLANNER_AGENT_INPUT_SYNCED=false
+if template_file_matches "$PLANNER_AGENT_INPUT_TEMPLATE" "$PLANNER_AGENT_INPUT_TS"; then
+  PLANNER_AGENT_INPUT_SYNCED=true
+elif [[ "$PLANNER_AGENT_INPUT_PRESENT" == true ]]; then
+  add_warning "src/planner-agent/planner-input.ts differs from the template-managed version"
+fi
+
+PLANNER_AGENT_OUTPUT_SYNCED=false
+if template_file_matches "$PLANNER_AGENT_OUTPUT_TEMPLATE" "$PLANNER_AGENT_OUTPUT_TS"; then
+  PLANNER_AGENT_OUTPUT_SYNCED=true
+elif [[ "$PLANNER_AGENT_OUTPUT_PRESENT" == true ]]; then
+  add_warning "src/planner-agent/planner-output.ts differs from the template-managed version"
+fi
+
+PLANNER_AGENT_PROMPT_SYNCED=false
+if template_file_matches "$PLANNER_AGENT_PROMPT_TEMPLATE" "$PLANNER_AGENT_PROMPT_TS"; then
+  PLANNER_AGENT_PROMPT_SYNCED=true
+elif [[ "$PLANNER_AGENT_PROMPT_PRESENT" == true ]]; then
+  add_warning "src/planner-agent/prompt-quality.ts differs from the template-managed version"
+fi
+
+PLANNER_AGENT_REVIEW_BRIEF_SYNCED=false
+if template_file_matches "$PLANNER_AGENT_REVIEW_BRIEF_TEMPLATE" "$PLANNER_AGENT_REVIEW_BRIEF_TS"; then
+  PLANNER_AGENT_REVIEW_BRIEF_SYNCED=true
+elif [[ "$PLANNER_AGENT_REVIEW_BRIEF_PRESENT" == true ]]; then
+  add_warning "src/planner-agent/review-brief.ts differs from the template-managed version"
+fi
+
+PLANNER_AGENT_SCORECARD_SYNCED=false
+if template_file_matches "$PLANNER_AGENT_SCORECARD_TEMPLATE" "$PLANNER_AGENT_SCORECARD_TS"; then
+  PLANNER_AGENT_SCORECARD_SYNCED=true
+elif [[ "$PLANNER_AGENT_SCORECARD_PRESENT" == true ]]; then
+  add_warning "src/planner-agent/scorecard.ts differs from the template-managed version"
+fi
+
+SPEC_CONTRACT_SYNCED=false
+if template_file_matches "$SPEC_CONTRACT_TEMPLATE" "$SPEC_CONTRACT_TS"; then
+  SPEC_CONTRACT_SYNCED=true
+elif [[ "$SPEC_CONTRACT_PRESENT" == true ]]; then
+  add_warning "src/spec/contract.ts differs from the template-managed version"
+fi
+
+SPEC_DERIVE_SYNCED=false
+if template_file_matches "$SPEC_DERIVE_TEMPLATE" "$SPEC_DERIVE_TS"; then
+  SPEC_DERIVE_SYNCED=true
+elif [[ "$SPEC_DERIVE_PRESENT" == true ]]; then
+  add_warning "src/spec/deriveOutputFileName.ts differs from the template-managed version"
+fi
+
+SPEC_GENERATE_SYNCED=false
+if template_file_matches "$SPEC_GENERATE_TEMPLATE" "$SPEC_GENERATE_TS"; then
+  SPEC_GENERATE_SYNCED=true
+elif [[ "$SPEC_GENERATE_PRESENT" == true ]]; then
+  add_warning "src/spec/generatePlannerBrief.ts differs from the template-managed version"
+fi
+
+SPEC_NORMALIZE_SYNCED=false
+if template_file_matches "$SPEC_NORMALIZE_TEMPLATE" "$SPEC_NORMALIZE_TS"; then
+  SPEC_NORMALIZE_SYNCED=true
+elif [[ "$SPEC_NORMALIZE_PRESENT" == true ]]; then
+  add_warning "src/spec/normalizeSystemManagedFields.ts differs from the template-managed version"
+fi
+
+SPEC_PLANNER_CONTEXT_SYNCED=false
+if template_file_matches "$SPEC_PLANNER_CONTEXT_TEMPLATE" "$SPEC_PLANNER_CONTEXT_TS"; then
+  SPEC_PLANNER_CONTEXT_SYNCED=true
+elif [[ "$SPEC_PLANNER_CONTEXT_PRESENT" == true ]]; then
+  add_warning "src/spec/plannerContext.ts differs from the template-managed version"
+fi
+
+SPEC_PROMOTE_SYNCED=false
+if template_file_matches "$SPEC_PROMOTE_TEMPLATE" "$SPEC_PROMOTE_TS"; then
+  SPEC_PROMOTE_SYNCED=true
+elif [[ "$SPEC_PROMOTE_PRESENT" == true ]]; then
+  add_warning "src/spec/promoteDeckSpecCandidate.ts differs from the template-managed version"
+fi
+
+SPEC_REVIEW_PROMOTE_SYNCED=false
+if template_file_matches "$SPEC_REVIEW_PROMOTE_TEMPLATE" "$SPEC_REVIEW_PROMOTE_TS"; then
+  SPEC_REVIEW_PROMOTE_SYNCED=true
+elif [[ "$SPEC_REVIEW_PROMOTE_PRESENT" == true ]]; then
+  add_warning "src/spec/promoteSpecReviewCandidate.ts differs from the template-managed version"
+fi
+
+SPEC_READ_SYNCED=false
+if template_file_matches "$SPEC_READ_TEMPLATE" "$SPEC_READ_TS"; then
+  SPEC_READ_SYNCED=true
+elif [[ "$SPEC_READ_PRESENT" == true ]]; then
+  add_warning "src/spec/readDeckSpec.ts differs from the template-managed version"
+fi
+
+SPEC_RENDERER_CONTRACT_SYNCED=false
+if template_file_matches "$SPEC_RENDERER_CONTRACT_TEMPLATE" "$SPEC_RENDERER_CONTRACT_TS"; then
+  SPEC_RENDERER_CONTRACT_SYNCED=true
+elif [[ "$SPEC_RENDERER_CONTRACT_PRESENT" == true ]]; then
+  add_warning "src/spec/rendererContract.ts differs from the template-managed version"
+fi
+
+SPEC_REVIEW_CONTEXT_SYNCED=false
+if template_file_matches "$SPEC_REVIEW_CONTEXT_TEMPLATE" "$SPEC_REVIEW_CONTEXT_TS"; then
+  SPEC_REVIEW_CONTEXT_SYNCED=true
+elif [[ "$SPEC_REVIEW_CONTEXT_PRESENT" == true ]]; then
+  add_warning "src/spec/reviewContext.ts differs from the template-managed version"
+fi
+
+SPEC_REVIEW_RENDER_SYNCED=false
+if template_file_matches "$SPEC_REVIEW_RENDER_TEMPLATE" "$SPEC_REVIEW_RENDER_TS"; then
+  SPEC_REVIEW_RENDER_SYNCED=true
+elif [[ "$SPEC_REVIEW_RENDER_PRESENT" == true ]]; then
+  add_warning "src/spec/renderSpecReview.ts differs from the template-managed version"
+fi
+
+SPEC_REVIEW_CONTRACT_SYNCED=false
+if template_file_matches "$SPEC_REVIEW_CONTRACT_TEMPLATE" "$SPEC_REVIEW_CONTRACT_TS"; then
+  SPEC_REVIEW_CONTRACT_SYNCED=true
+elif [[ "$SPEC_REVIEW_CONTRACT_PRESENT" == true ]]; then
+  add_warning "src/spec/reviewContract.ts differs from the template-managed version"
+fi
+
+SPEC_VALIDATE_SYNCED=false
+if template_file_matches "$SPEC_VALIDATE_TEMPLATE" "$SPEC_VALIDATE_TS"; then
+  SPEC_VALIDATE_SYNCED=true
+elif [[ "$SPEC_VALIDATE_PRESENT" == true ]]; then
+  add_warning "src/spec/validateDeckSpec.ts differs from the template-managed version"
+fi
+
+SPEC_REVIEW_VALIDATE_SYNCED=false
+if template_file_matches "$SPEC_REVIEW_VALIDATE_TEMPLATE" "$SPEC_REVIEW_VALIDATE_TS"; then
+  SPEC_REVIEW_VALIDATE_SYNCED=true
+elif [[ "$SPEC_REVIEW_VALIDATE_PRESENT" == true ]]; then
+  add_warning "src/spec/validateSpecReview.ts differs from the template-managed version"
+fi
+
+SPEC_WRITE_SYNCED=false
+if template_file_matches "$SPEC_WRITE_TEMPLATE" "$SPEC_WRITE_TS"; then
+  SPEC_WRITE_SYNCED=true
+elif [[ "$SPEC_WRITE_PRESENT" == true ]]; then
+  add_warning "src/spec/writeFileAtomic.ts differs from the template-managed version"
 fi
 
 BUILD_DECK_PRESENT=false
@@ -343,10 +787,18 @@ if [[ "$ROOT_DETECTED" == true ]] && \
    [[ "$PROJECT_GITIGNORE_PRESENT" == true ]] && \
    [[ "$PROJECT_GITIGNORE_SYNCED" == true ]] && \
    [[ "$PROJECT_METADATA_PRESENT" == true ]] && \
+   [[ "$PROJECT_METADATA_SYNCED" == true ]] && \
+   [[ "$DECK_SPEC_SCHEMA_PRESENT" == true ]] && \
+   [[ "$DECK_SPEC_SCHEMA_SYNCED" == true ]] && \
    [[ "$PACKAGE_JSON_PRESENT" == true ]] && \
    [[ "$PACKAGE_JSON_SYNCED" == true ]] && \
    [[ "$BUILD_SCRIPT_PRESENT" == true ]] && \
    [[ "$LINT_SCRIPT_PRESENT" == true ]] && \
+   [[ "$MEDIA_SCRIPT_PRESENT" == true ]] && \
+   [[ "$SPEC_GENERATE_SCRIPT_PRESENT" == true ]] && \
+   [[ "$SPEC_SCRIPT_PRESENT" == true ]] && \
+   [[ "$SPEC_REVIEW_SCRIPT_PRESENT" == true ]] && \
+   [[ "$SPEC_VALIDATE_SCRIPT_PRESENT" == true ]] && \
    [[ "$TYPECHECK_SCRIPT_PRESENT" == true ]] && \
    [[ "$TEST_SCRIPT_PRESENT" == true ]] && \
    [[ "$VALIDATE_SCRIPT_PRESENT" == true ]] && \
@@ -358,6 +810,44 @@ if [[ "$ROOT_DETECTED" == true ]] && \
    [[ "$VALIDATE_WRAPPER_SYNCED" == true ]] && \
    [[ "$DECK_ENTRY_PRESENT" == true ]] && \
    [[ "$DECK_ENTRY_SYNCED" == true ]] && \
+   [[ "$MEDIA_GENERATE_PRESENT" == true ]] && \
+   [[ "$MEDIA_GENERATE_SYNCED" == true ]] && \
+   [[ "$MEDIA_POLICY_PRESENT" == true ]] && \
+   [[ "$MEDIA_POLICY_SYNCED" == true ]] && \
+   [[ "$MEDIA_PATHS_PRESENT" == true ]] && \
+   [[ "$MEDIA_PATHS_SYNCED" == true ]] && \
+   [[ "$PLANNER_AGENT_IMAGE_ENV_PRESENT" == true ]] && \
+   [[ "$PLANNER_AGENT_IMAGE_ENV_SYNCED" == true ]] && \
+   [[ "$PLANNER_AGENT_GEMINI_PRESENT" == true ]] && \
+   [[ "$PLANNER_AGENT_GEMINI_SYNCED" == true ]] && \
+   [[ "$SPEC_CONTRACT_PRESENT" == true ]] && \
+   [[ "$SPEC_CONTRACT_SYNCED" == true ]] && \
+   [[ "$SPEC_DERIVE_PRESENT" == true ]] && \
+   [[ "$SPEC_DERIVE_SYNCED" == true ]] && \
+   [[ "$SPEC_GENERATE_PRESENT" == true ]] && \
+   [[ "$SPEC_GENERATE_SYNCED" == true ]] && \
+   [[ "$SPEC_NORMALIZE_PRESENT" == true ]] && \
+   [[ "$SPEC_NORMALIZE_SYNCED" == true ]] && \
+   [[ "$SPEC_PLANNER_CONTEXT_PRESENT" == true ]] && \
+   [[ "$SPEC_PLANNER_CONTEXT_SYNCED" == true ]] && \
+   [[ "$SPEC_PROMOTE_PRESENT" == true ]] && \
+   [[ "$SPEC_PROMOTE_SYNCED" == true ]] && \
+   [[ "$SPEC_REVIEW_PROMOTE_PRESENT" == true ]] && \
+   [[ "$SPEC_REVIEW_PROMOTE_SYNCED" == true ]] && \
+   [[ "$SPEC_READ_PRESENT" == true ]] && \
+   [[ "$SPEC_READ_SYNCED" == true ]] && \
+   [[ "$SPEC_RENDERER_CONTRACT_PRESENT" == true ]] && \
+   [[ "$SPEC_RENDERER_CONTRACT_SYNCED" == true ]] && \
+   [[ "$SPEC_REVIEW_RENDER_PRESENT" == true ]] && \
+   [[ "$SPEC_REVIEW_RENDER_SYNCED" == true ]] && \
+   [[ "$SPEC_REVIEW_CONTRACT_PRESENT" == true ]] && \
+   [[ "$SPEC_REVIEW_CONTRACT_SYNCED" == true ]] && \
+   [[ "$SPEC_VALIDATE_PRESENT" == true ]] && \
+   [[ "$SPEC_VALIDATE_SYNCED" == true ]] && \
+   [[ "$SPEC_REVIEW_VALIDATE_PRESENT" == true ]] && \
+   [[ "$SPEC_REVIEW_VALIDATE_SYNCED" == true ]] && \
+   [[ "$SPEC_WRITE_PRESENT" == true ]] && \
+   [[ "$SPEC_WRITE_SYNCED" == true ]] && \
    [[ "$TSCONFIG_PRESENT" == true ]] && \
    [[ "$TSCONFIG_SYNCED" == true ]]; then
   PROJECT_READY=true
@@ -367,6 +857,9 @@ BOOTSTRAP_COMPLETE=false
 if [[ "$PROJECT_GITIGNORE_PRESENT" == true ]] && \
    [[ "$PROJECT_GITIGNORE_SYNCED" == true ]] && \
    [[ "$PROJECT_METADATA_PRESENT" == true ]] && \
+   [[ "$PROJECT_METADATA_SYNCED" == true ]] && \
+   [[ "$DECK_SPEC_SCHEMA_PRESENT" == true ]] && \
+   [[ "$DECK_SPEC_SCHEMA_SYNCED" == true ]] && \
    [[ "$PACKAGE_JSON_PRESENT" == true ]] && \
    [[ "$PACKAGE_JSON_SYNCED" == true ]] && \
    [[ "$VITEST_CONFIG_PRESENT" == true ]] && \
@@ -377,6 +870,44 @@ if [[ "$PROJECT_GITIGNORE_PRESENT" == true ]] && \
    [[ "$VALIDATE_WRAPPER_SYNCED" == true ]] && \
    [[ "$DECK_ENTRY_PRESENT" == true ]] && \
    [[ "$DECK_ENTRY_SYNCED" == true ]] && \
+   [[ "$MEDIA_GENERATE_PRESENT" == true ]] && \
+   [[ "$MEDIA_GENERATE_SYNCED" == true ]] && \
+   [[ "$MEDIA_POLICY_PRESENT" == true ]] && \
+   [[ "$MEDIA_POLICY_SYNCED" == true ]] && \
+   [[ "$MEDIA_PATHS_PRESENT" == true ]] && \
+   [[ "$MEDIA_PATHS_SYNCED" == true ]] && \
+   [[ "$PLANNER_AGENT_IMAGE_ENV_PRESENT" == true ]] && \
+   [[ "$PLANNER_AGENT_IMAGE_ENV_SYNCED" == true ]] && \
+   [[ "$PLANNER_AGENT_GEMINI_PRESENT" == true ]] && \
+   [[ "$PLANNER_AGENT_GEMINI_SYNCED" == true ]] && \
+   [[ "$SPEC_CONTRACT_PRESENT" == true ]] && \
+   [[ "$SPEC_CONTRACT_SYNCED" == true ]] && \
+   [[ "$SPEC_DERIVE_PRESENT" == true ]] && \
+   [[ "$SPEC_DERIVE_SYNCED" == true ]] && \
+   [[ "$SPEC_GENERATE_PRESENT" == true ]] && \
+   [[ "$SPEC_GENERATE_SYNCED" == true ]] && \
+   [[ "$SPEC_NORMALIZE_PRESENT" == true ]] && \
+   [[ "$SPEC_NORMALIZE_SYNCED" == true ]] && \
+   [[ "$SPEC_PLANNER_CONTEXT_PRESENT" == true ]] && \
+   [[ "$SPEC_PLANNER_CONTEXT_SYNCED" == true ]] && \
+   [[ "$SPEC_PROMOTE_PRESENT" == true ]] && \
+   [[ "$SPEC_PROMOTE_SYNCED" == true ]] && \
+   [[ "$SPEC_REVIEW_PROMOTE_PRESENT" == true ]] && \
+   [[ "$SPEC_REVIEW_PROMOTE_SYNCED" == true ]] && \
+   [[ "$SPEC_READ_PRESENT" == true ]] && \
+   [[ "$SPEC_READ_SYNCED" == true ]] && \
+   [[ "$SPEC_RENDERER_CONTRACT_PRESENT" == true ]] && \
+   [[ "$SPEC_RENDERER_CONTRACT_SYNCED" == true ]] && \
+   [[ "$SPEC_REVIEW_RENDER_PRESENT" == true ]] && \
+   [[ "$SPEC_REVIEW_RENDER_SYNCED" == true ]] && \
+   [[ "$SPEC_REVIEW_CONTRACT_PRESENT" == true ]] && \
+   [[ "$SPEC_REVIEW_CONTRACT_SYNCED" == true ]] && \
+   [[ "$SPEC_VALIDATE_PRESENT" == true ]] && \
+   [[ "$SPEC_VALIDATE_SYNCED" == true ]] && \
+   [[ "$SPEC_REVIEW_VALIDATE_PRESENT" == true ]] && \
+   [[ "$SPEC_REVIEW_VALIDATE_SYNCED" == true ]] && \
+   [[ "$SPEC_WRITE_PRESENT" == true ]] && \
+   [[ "$SPEC_WRITE_SYNCED" == true ]] && \
    [[ "$TSCONFIG_PRESENT" == true ]] && \
    [[ "$TSCONFIG_SYNCED" == true ]]; then
   BOOTSTRAP_COMPLETE=true
@@ -401,6 +932,7 @@ fi
   echo "  \"skill_name\": \"ai-native-slides\","
   echo "  \"skill_dir\": \"$(json_escape "$SKILL_ROOT")\","
   echo "  \"skill_revision\": \"$(json_escape "$SKILL_REVISION")\","
+  echo "  \"skill_worktree_dirty\": ${SKILL_WORKTREE_DIRTY},"
   echo "  \"checked_at\": \"$(json_escape "$CHECKED_AT")\","
   echo "  \"deck_root\": \"$(json_escape "$DECK_ROOT")\","
   echo "  \"project_dir\": \"$(json_escape "$PROJECT_DIR")\","
@@ -415,10 +947,18 @@ fi
   echo "    \"project_gitignore_present\": ${PROJECT_GITIGNORE_PRESENT},"
   echo "    \"project_gitignore_synced\": ${PROJECT_GITIGNORE_SYNCED},"
   echo "    \"project_metadata_present\": ${PROJECT_METADATA_PRESENT},"
+  echo "    \"project_metadata_synced\": ${PROJECT_METADATA_SYNCED},"
+  echo "    \"deck_spec_schema_present\": ${DECK_SPEC_SCHEMA_PRESENT},"
+  echo "    \"deck_spec_schema_synced\": ${DECK_SPEC_SCHEMA_SYNCED},"
   echo "    \"package_json_present\": ${PACKAGE_JSON_PRESENT},"
   echo "    \"package_json_synced\": ${PACKAGE_JSON_SYNCED},"
   echo "    \"build_script_present\": ${BUILD_SCRIPT_PRESENT},"
   echo "    \"lint_script_present\": ${LINT_SCRIPT_PRESENT},"
+  echo "    \"media_script_present\": ${MEDIA_SCRIPT_PRESENT},"
+  echo "    \"spec_generate_script_present\": ${SPEC_GENERATE_SCRIPT_PRESENT},"
+  echo "    \"spec_script_present\": ${SPEC_SCRIPT_PRESENT},"
+  echo "    \"spec_review_script_present\": ${SPEC_REVIEW_SCRIPT_PRESENT},"
+  echo "    \"spec_validate_script_present\": ${SPEC_VALIDATE_SCRIPT_PRESENT},"
   echo "    \"typecheck_script_present\": ${TYPECHECK_SCRIPT_PRESENT},"
   echo "    \"test_script_present\": ${TEST_SCRIPT_PRESENT},"
   echo "    \"validate_script_present\": ${VALIDATE_SCRIPT_PRESENT},"
@@ -430,6 +970,58 @@ fi
   echo "    \"validate_wrapper_synced\": ${VALIDATE_WRAPPER_SYNCED},"
   echo "    \"deck_entry_present\": ${DECK_ENTRY_PRESENT},"
   echo "    \"deck_entry_synced\": ${DECK_ENTRY_SYNCED},"
+  echo "    \"media_generate_present\": ${MEDIA_GENERATE_PRESENT},"
+  echo "    \"media_generate_synced\": ${MEDIA_GENERATE_SYNCED},"
+  echo "    \"asset_pipeline_policy_present\": ${MEDIA_POLICY_PRESENT},"
+  echo "    \"asset_pipeline_policy_synced\": ${MEDIA_POLICY_SYNCED},"
+  echo "    \"asset_pipeline_paths_present\": ${MEDIA_PATHS_PRESENT},"
+  echo "    \"asset_pipeline_paths_synced\": ${MEDIA_PATHS_SYNCED},"
+  echo "    \"planner_agent_image_env_present\": ${PLANNER_AGENT_IMAGE_ENV_PRESENT},"
+  echo "    \"planner_agent_image_env_synced\": ${PLANNER_AGENT_IMAGE_ENV_SYNCED},"
+  echo "    \"planner_agent_gemini_present\": ${PLANNER_AGENT_GEMINI_PRESENT},"
+  echo "    \"planner_agent_gemini_synced\": ${PLANNER_AGENT_GEMINI_SYNCED},"
+  echo "    \"planner_agent_material_present\": ${PLANNER_AGENT_MATERIAL_PRESENT},"
+  echo "    \"planner_agent_material_synced\": ${PLANNER_AGENT_MATERIAL_SYNCED},"
+  echo "    \"planner_agent_brief_present\": ${PLANNER_AGENT_BRIEF_PRESENT},"
+  echo "    \"planner_agent_brief_synced\": ${PLANNER_AGENT_BRIEF_SYNCED},"
+  echo "    \"planner_agent_input_present\": ${PLANNER_AGENT_INPUT_PRESENT},"
+  echo "    \"planner_agent_input_synced\": ${PLANNER_AGENT_INPUT_SYNCED},"
+  echo "    \"planner_agent_output_present\": ${PLANNER_AGENT_OUTPUT_PRESENT},"
+  echo "    \"planner_agent_output_synced\": ${PLANNER_AGENT_OUTPUT_SYNCED},"
+  echo "    \"planner_agent_prompt_present\": ${PLANNER_AGENT_PROMPT_PRESENT},"
+  echo "    \"planner_agent_prompt_synced\": ${PLANNER_AGENT_PROMPT_SYNCED},"
+  echo "    \"planner_agent_review_brief_present\": ${PLANNER_AGENT_REVIEW_BRIEF_PRESENT},"
+  echo "    \"planner_agent_review_brief_synced\": ${PLANNER_AGENT_REVIEW_BRIEF_SYNCED},"
+  echo "    \"planner_agent_scorecard_present\": ${PLANNER_AGENT_SCORECARD_PRESENT},"
+  echo "    \"planner_agent_scorecard_synced\": ${PLANNER_AGENT_SCORECARD_SYNCED},"
+  echo "    \"spec_contract_present\": ${SPEC_CONTRACT_PRESENT},"
+  echo "    \"spec_contract_synced\": ${SPEC_CONTRACT_SYNCED},"
+  echo "    \"spec_derive_present\": ${SPEC_DERIVE_PRESENT},"
+  echo "    \"spec_derive_synced\": ${SPEC_DERIVE_SYNCED},"
+  echo "    \"spec_generate_present\": ${SPEC_GENERATE_PRESENT},"
+  echo "    \"spec_generate_synced\": ${SPEC_GENERATE_SYNCED},"
+  echo "    \"spec_normalize_present\": ${SPEC_NORMALIZE_PRESENT},"
+  echo "    \"spec_normalize_synced\": ${SPEC_NORMALIZE_SYNCED},"
+  echo "    \"spec_planner_context_present\": ${SPEC_PLANNER_CONTEXT_PRESENT},"
+  echo "    \"spec_planner_context_synced\": ${SPEC_PLANNER_CONTEXT_SYNCED},"
+  echo "    \"spec_promote_present\": ${SPEC_PROMOTE_PRESENT},"
+  echo "    \"spec_promote_synced\": ${SPEC_PROMOTE_SYNCED},"
+  echo "    \"spec_review_promote_present\": ${SPEC_REVIEW_PROMOTE_PRESENT},"
+  echo "    \"spec_review_promote_synced\": ${SPEC_REVIEW_PROMOTE_SYNCED},"
+  echo "    \"spec_read_present\": ${SPEC_READ_PRESENT},"
+  echo "    \"spec_read_synced\": ${SPEC_READ_SYNCED},"
+  echo "    \"spec_renderer_contract_present\": ${SPEC_RENDERER_CONTRACT_PRESENT},"
+  echo "    \"spec_renderer_contract_synced\": ${SPEC_RENDERER_CONTRACT_SYNCED},"
+  echo "    \"spec_review_render_present\": ${SPEC_REVIEW_RENDER_PRESENT},"
+  echo "    \"spec_review_render_synced\": ${SPEC_REVIEW_RENDER_SYNCED},"
+  echo "    \"spec_review_contract_present\": ${SPEC_REVIEW_CONTRACT_PRESENT},"
+  echo "    \"spec_review_contract_synced\": ${SPEC_REVIEW_CONTRACT_SYNCED},"
+  echo "    \"spec_validate_present\": ${SPEC_VALIDATE_PRESENT},"
+  echo "    \"spec_validate_synced\": ${SPEC_VALIDATE_SYNCED},"
+  echo "    \"spec_review_validate_present\": ${SPEC_REVIEW_VALIDATE_PRESENT},"
+  echo "    \"spec_review_validate_synced\": ${SPEC_REVIEW_VALIDATE_SYNCED},"
+  echo "    \"spec_write_present\": ${SPEC_WRITE_PRESENT},"
+  echo "    \"spec_write_synced\": ${SPEC_WRITE_SYNCED},"
   echo "    \"tsconfig_present\": ${TSCONFIG_PRESENT},"
   echo "    \"tsconfig_synced\": ${TSCONFIG_SYNCED},"
   echo "    \"build_deck_present\": ${BUILD_DECK_PRESENT},"

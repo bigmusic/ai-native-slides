@@ -77,6 +77,10 @@ if [[ "$bootstrap_exit" -ne 0 ]]; then
 fi
 
 declare -a missing_project_content=()
+if [[ ! -f "${PROJECT_DIR}/spec/deck-spec.json" ]]; then
+  missing_project_content+=("spec/deck-spec.json")
+fi
+
 if [[ ! -f "${PROJECT_DIR}/src/buildDeck.ts" ]]; then
   missing_project_content+=("src/buildDeck.ts")
 fi
@@ -93,18 +97,47 @@ cat <<EOF
 Project scaffold initialized: $PROJECT_DIR
 Template-managed files:
 - .gitignore
+- spec/deck-spec.schema.json
 - package.json
 - tsconfig.json
 - vitest.config.ts
 - run-project.sh
 - validate-local.sh
 - src/main.ts
+- src/asset-pipeline/generateMedia.ts
+- src/asset-pipeline/imagePolicy.ts
+- src/asset-pipeline/paths.ts
+- src/planner-agent/image-generation/env.ts
+- src/planner-agent/image-generation/geminiAdapter.ts
+- src/planner-agent/material-quality.ts
+- src/planner-agent/planner-brief.ts
+- src/planner-agent/planner-input.ts
+- src/planner-agent/planner-output.ts
+- src/planner-agent/prompt-quality.ts
+- src/planner-agent/review-brief.ts
+- src/planner-agent/scorecard.ts
+- src/spec/contract.ts
+- src/spec/deriveOutputFileName.ts
+- src/spec/generatePlannerBrief.ts
+- src/spec/normalizeSystemManagedFields.ts
+- src/spec/plannerContext.ts
+- src/spec/promoteDeckSpecCandidate.ts
+- src/spec/promoteSpecReviewCandidate.ts
+- src/spec/readDeckSpec.ts
+- src/spec/rendererContract.ts
+- src/spec/reviewContext.ts
+- src/spec/renderSpecReview.ts
+- src/spec/reviewContract.ts
+- src/spec/validateDeckSpec.ts
+- src/spec/validateSpecReview.ts
+- src/spec/writeFileAtomic.ts
 EOF
 
 if [[ "${#missing_project_content[@]}" -eq 0 ]]; then
   cat <<EOF
 
 Project content already exists. Existing prompt-generated files were left untouched:
+- spec/deck-spec.json
 - src/buildDeck.ts
 - src/presentationModel.ts
 - tests/buildDeck.test.ts
