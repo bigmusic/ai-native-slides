@@ -14,6 +14,7 @@ This file is the single source of truth for the current shared-root / shared-pac
   - keep the skill repo as the reusable source of truth
 - Current boundary:
   - shared runtime lives at `<deck-root>/packages/deck-spec-module/`
+  - that shared runtime is a stateless black box: callers pass prompt, project slug, API key, and explicit output paths; the module returns only typed results plus artifact files
   - project code keeps only project content, thin wrappers, media adapters, tests, and outputs
   - project-local planner/runtime code under `src/deck-spec-module/{planning,reviewing,...}` is retired
 
@@ -42,6 +43,12 @@ Session rules that remain in scope:
 The runtime contract must stay:
 
 - shared package path: `packages/deck-spec-module/`
+- stateless black-box boundary:
+  - the module does not discover the active project on its own
+  - the module does not infer canonical-spec or artifact output paths
+  - the module does not depend on project-local mutable runtime state
+  - the module does not write inside its own package directory
+  - the caller supplies inputs; the module either publishes the canonical spec plus artifacts on success or leaves the canonical target untouched on failure
 - prompt-driven API:
   - `runDeckSpecModule({ prompt, projectSlug, apiKey, model?, seed?, paths: { canonicalSpecPath, artifactRootDir } })`
   - `runDeckSpecValidateModule({ canonicalSpecPath, reportPath? })`
@@ -80,6 +87,7 @@ Current open gap:
 - [x] 2026-03-15 14:26 PDT: removed remaining legacy planner/compat tails from the active workspace and refreshed the demo validation report.
 - [x] 2026-03-15 14:43 PDT: hardened the stateless boundary. Shared CLIs now require explicit output paths, project wrappers forward canonical-spec and artifact-root paths explicitly, and the package rejects writes into its own directory.
 - [x] 2026-03-15 15:03 PDT: compressed and aligned repo docs so the remaining operator-facing docs describe the same shared-runtime contract.
+- [x] 2026-03-15 15:30 PDT: tightened the plan wording so `deck-spec-module` is described explicitly as a stateless black box with caller-owned discovery and path selection, module-owned publish semantics, and no hidden package-local writes.
 - [ ] 2026-03-15 15:09 PDT: provider-backed acceptance is still open. Current `spec:live` attempts reached the provider path but failed with `planning_failed` (`fetch failed`) and `contract_validation_failed` after fallback repair.
 
 ## Plan of Work
@@ -88,7 +96,7 @@ Current open gap:
 
 Goal:
 
-- shared package remains the only planner/validator runtime
+- shared package remains the only planner/validator runtime and stays a stateless black box
 - project wrappers stay thin
 - docs and scaffold keep matching the implemented contract
 
@@ -97,6 +105,7 @@ Validation:
 - root/project preflight passes
 - shared package typecheck and tests pass
 - demo project lint/typecheck/test/build/spec:validate stay green
+- wrappers still own deck-root / project-root discovery and default path selection
 
 ### Milestone 2: Close provider-backed acceptance
 
@@ -118,6 +127,7 @@ Validation:
 - [x] Keep converge order explicit: run `ensure_deck_root.sh` before `init_deck_root.sh` when root repair is needed, and `ensure_deck_project.sh` before `init_deck_project.sh` when scaffold repair is needed.
 - [x] Convert project `src/spec/*` into thin wrapper / re-export surfaces.
 - [x] Remove retired planner/runtime template files from the project scaffold.
+- [x] Keep black-box ownership explicit: wrappers discover context and choose paths; the module consumes explicit inputs and owns publish / artifact behavior.
 - [x] Keep media generation as a separate subsystem under `src/asset-pipeline/*`.
 - [x] Add deterministic shared-package coverage for valid output, fallback repair, semantic-review failure, prompt failure, malformed model output, and output-path guards.
 - [x] Add and document root-level `pnpm spec:live`.
@@ -173,6 +183,7 @@ Acceptance bar:
 - 2026-03-15: the official prompt-driven API is writer-first `runDeckSpecModule(...)`, not a value-returning planner helper.
 - 2026-03-15: artifact-bundle writes are always on; `--debug` is no longer part of the supported happy path.
 - 2026-03-15: shared CLIs do not infer runtime output locations. Callers must pass explicit output paths.
+- 2026-03-15: `deck-spec-module` is treated as a stateless black box, not as a project-aware orchestrator. Project discovery, default-path selection, and workspace-specific context stay in wrappers.
 - 2026-03-15: `pnpm spec:live` writes only to temp output and never mutates the project canonical spec.
 - 2026-03-15: `src/asset-pipeline/*` remains separate from the shared planning/validation runtime.
 
@@ -189,7 +200,7 @@ Acceptance bar:
 
 ## Outcomes and Retrospective
 
-- The shared `deck-spec-module` runtime is now the real planner/validator boundary.
+- The shared `deck-spec-module` runtime is now the real stateless black-box planner/validator boundary.
 - The demo project is reduced to project content plus thin wrappers and still validates end to end in the deterministic path.
 - Root/project preflight, docs, and scaffold boundaries now match the current contract.
 - The remaining work is narrow and concrete: close provider-backed acceptance by reducing or absorbing model contract drift without weakening deterministic guarantees.
