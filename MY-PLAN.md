@@ -80,33 +80,16 @@ Template-managed files:
 - `src/deck-spec-module/media/providerEnv.ts`
 - `src/deck-spec-module/media/providerPrompt.ts`
 - `src/spec/contract.ts`
-- `src/spec/compat/legacyPromoteDeckSpecCandidate.ts`
 - `src/spec/deriveOutputFileName.ts`
-- `src/spec/generatePlannerBrief.ts`
 - `src/spec/normalizeSystemManagedFields.ts`
-- `src/spec/plannerContext.ts`
 - `src/spec/promoteDeckSpecCandidate.ts`
-- `src/spec/promoteSpecReviewCandidate.ts`
 - `src/spec/readDeckSpec.ts`
-- `src/spec/reviewContext.ts`
 - `src/spec/rendererContract.ts`
 - `src/spec/renderSpecReview.ts`
 - `src/spec/reviewContract.ts`
 - `src/spec/validateDeckSpec.ts`
 - `src/spec/validateSpecReview.ts`
 - `src/spec/writeFileAtomic.ts`
-
-Compatibility-only internals that may still ship during transition:
-
-- `src/planner-agent/image-generation/env.ts`
-- `src/planner-agent/image-generation/geminiAdapter.ts`
-- `src/planner-agent/material-quality.ts`
-- `src/planner-agent/planner-brief.ts`
-- `src/planner-agent/planner-input.ts`
-- `src/planner-agent/planner-output.ts`
-- `src/planner-agent/prompt-quality.ts`
-- `src/planner-agent/review-brief.ts`
-- `src/planner-agent/scorecard.ts`
 
 Prompt-generated project content:
 
@@ -148,6 +131,7 @@ Expected in Codex:
 
 - The same skill-owned session begins by classifying the prompt as `new_project` or `revise_existing_project` and resolving the target project from explicit prompt wording plus local project metadata when available
 - `pnpm spec -- --prompt "<prompt>"` invokes the stateless deck-spec module, lets the module call the external planner model, and publishes canonical `spec/deck-spec.json` only after module-internal canonicalization, structural validation, semantic review, and one repair retry succeed
+- `planDeckSpecFromPrompt(prompt, { apiKey, projectSlug, ... })` is now an explicit async module contract: the module no longer infers planner identity from `process.cwd()` or `process.env`, and bootstrap/ensure no longer treat retired planner-agent or review-promotion files as scaffold requirements
 - `pnpm spec -- --prompt "<prompt>" --debug` is the only happy-path diagnostics mode; it writes `tmp/spec-candidate.json`, `tmp/spec-review.json`, `tmp/spec-diagnostics.json`, and `output/spec-review.md`
 - `pnpm media` requires `spec/deck-spec.json.status` to be `reviewed` or `media_ready`, generates required image/shared assets, and updates canonical spec status to `media_ready` when all required outputs exist
 - `pnpm lint`, `pnpm typecheck`, `pnpm test`, and `pnpm build` are expected to run inside that same skill-owned session before the workflow is considered complete for that prompt

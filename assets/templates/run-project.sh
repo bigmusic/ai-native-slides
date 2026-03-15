@@ -2,7 +2,7 @@
 set -euo pipefail
 
 usage() {
-  echo "Usage: $0 <media|build|lint|format|spec:generate|spec|spec:review|spec:validate|typecheck|test|test:watch> [args...]" >&2
+  echo "Usage: $0 <media|build|lint|format|spec|spec:validate|typecheck|test|test:watch> [args...]" >&2
 }
 
 if [[ "$#" -lt 1 ]]; then
@@ -80,22 +80,10 @@ case "$ACTION" in
       node --import tsx src/spec/validateDeckSpec.ts "$@"
     )
     ;;
-  spec:generate)
-    (
-      cd "$PROJECT_DIR"
-      node --import tsx src/spec/generatePlannerBrief.ts "$@"
-    )
-    ;;
   spec)
     (
       cd "$PROJECT_DIR"
       node --import tsx src/spec/promoteDeckSpecCandidate.ts "$@"
-    )
-    ;;
-  spec:review)
-    (
-      cd "$PROJECT_DIR"
-      node --import tsx src/spec/promoteSpecReviewCandidate.ts "$@"
     )
     ;;
   lint)

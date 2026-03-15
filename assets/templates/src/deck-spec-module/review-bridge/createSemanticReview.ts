@@ -1,3 +1,11 @@
+import type { DeckSpec } from "../../spec/contract.js";
+import type {
+	DeckMaterialScorecard,
+	ImagePromptScorecard,
+	SpecReviewFinding,
+	SpecReviewResult,
+	SpecReviewStatus,
+} from "../../spec/reviewContract.js";
 import {
 	collectMaterialQualitySignals,
 	type MaterialQualitySignal,
@@ -12,14 +20,6 @@ import {
 	deckMaterialScoreDimensionSpecs,
 	imagePromptScoreDimensionSpecs,
 } from "../reviewing/scorecard.js";
-import type { DeckSpec } from "../../spec/contract.js";
-import type {
-	DeckMaterialScorecard,
-	ImagePromptScorecard,
-	SpecReviewFinding,
-	SpecReviewResult,
-	SpecReviewStatus,
-} from "../../spec/reviewContract.js";
 
 function createReviewTimestamp(): string {
 	return new Date().toISOString().replace(/\.\d{3}Z$/, "Z");

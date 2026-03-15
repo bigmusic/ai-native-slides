@@ -9,7 +9,7 @@ import {
 	hasCanonicalDimensionOrder,
 	imagePromptScoreDimensionSpecs,
 	type ScoreDimensionSpec,
-} from "../planner-agent/scorecard.js";
+} from "../deck-spec-module/reviewing/scorecard.js";
 import type { DeckSpec } from "./contract.js";
 import type {
 	DeckMaterialScorecard,

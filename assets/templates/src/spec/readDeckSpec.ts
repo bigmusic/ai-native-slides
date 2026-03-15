@@ -8,19 +8,7 @@ export const DECK_SPEC_SCHEMA_FILE_NAME = "deck-spec.schema.json";
 export const TMP_DIR_NAME = "tmp";
 export const OUTPUT_DIR_NAME = "output";
 export const SPEC_CANDIDATE_FILE_NAME = "spec-candidate.json";
-export const SPEC_CANDIDATE_LAST_INVALID_FILE_NAME =
-	"spec-candidate.last-invalid.json";
-export const SPEC_CANDIDATE_LAST_ERRORS_FILE_NAME =
-	"spec-candidate.last-errors.txt";
-export const PLANNER_CONTEXT_FILE_NAME = "planner-context.json";
-export const PLANNER_BRIEF_FILE_NAME = "planner-brief.md";
 export const SPEC_DIAGNOSTICS_FILE_NAME = "spec-diagnostics.json";
-export const DECK_SPEC_BACKUP_FILE_NAME = "deck-spec.backup.json";
-export const REVIEW_CONTEXT_FILE_NAME = "review-context.json";
-export const REVIEW_CONTEXT_BACKUP_FILE_NAME = "review-context.backup.json";
-export const REVIEW_BRIEF_FILE_NAME = "review-brief.md";
-export const REVIEW_BRIEF_BACKUP_FILE_NAME = "review-brief.backup.md";
-export const SPEC_REVIEW_CANDIDATE_FILE_NAME = "spec-review-candidate.json";
 export const SPEC_REVIEW_FILE_NAME = "spec-review.json";
 export const SPEC_REVIEW_MARKDOWN_FILE_NAME = "spec-review.md";
 
@@ -60,56 +48,8 @@ export function resolveSpecCandidatePath(projectDir: string): string {
 	return path.join(resolveTmpDir(projectDir), SPEC_CANDIDATE_FILE_NAME);
 }
 
-export function resolveSpecCandidateLastInvalidPath(
-	projectDir: string,
-): string {
-	return path.join(
-		resolveTmpDir(projectDir),
-		SPEC_CANDIDATE_LAST_INVALID_FILE_NAME,
-	);
-}
-
-export function resolveSpecCandidateLastErrorsPath(projectDir: string): string {
-	return path.join(
-		resolveTmpDir(projectDir),
-		SPEC_CANDIDATE_LAST_ERRORS_FILE_NAME,
-	);
-}
-
-export function resolvePlannerContextPath(projectDir: string): string {
-	return path.join(resolveTmpDir(projectDir), PLANNER_CONTEXT_FILE_NAME);
-}
-
-export function resolvePlannerBriefPath(projectDir: string): string {
-	return path.join(resolveTmpDir(projectDir), PLANNER_BRIEF_FILE_NAME);
-}
-
-export function resolveDeckSpecBackupPath(projectDir: string): string {
-	return path.join(resolveTmpDir(projectDir), DECK_SPEC_BACKUP_FILE_NAME);
-}
-
 export function resolveSpecDiagnosticsPath(projectDir: string): string {
 	return path.join(resolveTmpDir(projectDir), SPEC_DIAGNOSTICS_FILE_NAME);
-}
-
-export function resolveReviewContextPath(projectDir: string): string {
-	return path.join(resolveTmpDir(projectDir), REVIEW_CONTEXT_FILE_NAME);
-}
-
-export function resolveReviewContextBackupPath(projectDir: string): string {
-	return path.join(resolveTmpDir(projectDir), REVIEW_CONTEXT_BACKUP_FILE_NAME);
-}
-
-export function resolveReviewBriefPath(projectDir: string): string {
-	return path.join(resolveTmpDir(projectDir), REVIEW_BRIEF_FILE_NAME);
-}
-
-export function resolveReviewBriefBackupPath(projectDir: string): string {
-	return path.join(resolveTmpDir(projectDir), REVIEW_BRIEF_BACKUP_FILE_NAME);
-}
-
-export function resolveSpecReviewCandidatePath(projectDir: string): string {
-	return path.join(resolveTmpDir(projectDir), SPEC_REVIEW_CANDIDATE_FILE_NAME);
 }
 
 export function resolveSpecReviewPath(projectDir: string): string {

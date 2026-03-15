@@ -124,9 +124,9 @@ The skill exists to keep orchestration and deck authoring outside the planning m
 The current workflow keeps prompt-to-spec generation, semantic review, and one internal repair retry inside one stateless deck-spec module while leaving filesystem writes to the local CLI:
 
 - `pnpm spec -- --prompt "<prompt>"` is the main path. It calls `src/deck-spec-module/public-api.ts`, lets the module call the external planner model, validates and semantically reviews the result inside the module, then writes canonical `spec/deck-spec.json`.
+- The module boundary is explicit: `planDeckSpecFromPrompt(prompt, { apiKey, projectSlug, ... })` owns prompt interpretation, canonicalization, validation, and semantic review, and it does not read filesystem paths or ambient shell state to infer planning identity.
 - `pnpm spec -- --prompt "<prompt>" --debug` additionally writes debug artifacts such as `tmp/spec-candidate.json`, `tmp/spec-review.json`, `tmp/spec-diagnostics.json`, and `output/spec-review.md`.
-- `pnpm spec:generate` and `pnpm spec:review` remain transition-only compatibility/debug surfaces. They are not part of the main operator workflow or skill contract and should emit explicit deprecation warnings when used.
-- The stateless core now lives under `src/deck-spec-module/`, with `src/spec/*` and `src/asset-pipeline/generateMedia.ts` acting as filesystem and CLI adapters around that core.
+- The stateless core now lives under `src/deck-spec-module/`, with `src/spec/*` and `src/asset-pipeline/generateMedia.ts` acting as thin filesystem and CLI adapters around that core.
 - Semantic review artifacts still include dimension scorecards for deck materials and image prompts, but the publish gate now stays entirely inside the module rather than in a workflow-owned promotion phase.
 - Validation/eval, not exact byte-for-byte determinism, is the success bar for planner output because spec content is model-generated.
 

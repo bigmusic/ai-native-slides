@@ -1,5 +1,5 @@
-import type { DeckSpecValidationError } from "../spec/validateDeckSpec.js";
 import type { SpecReviewResult } from "../spec/reviewContract.js";
+import type { DeckSpecValidationError } from "../spec/validateDeckSpec.js";
 
 export const deckSpecPlanningErrorCodes = [
 	"prompt_invalid",

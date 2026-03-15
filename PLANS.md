@@ -149,6 +149,10 @@ These non-verifiable semantic qualities require either:
 
 ## Progress
 
+- [x] 2026-03-15 12:00 PDT: revalidated the purified boundary end-to-end. `ensure_deck_project.sh --json` now returns `bootstrap_complete=true` and `project_ready=true` for the live demo project, a fresh workspace-local `init_deck_project.sh` smoke run succeeds without deleted-template failures, and the demo project passes `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm spec:validate`, and `pnpm build` while `pnpm validate` again ends at the expected Codex `human-in-the-loop required` boundary instead of a scaffold or legacy-workflow hard failure.
+- [x] 2026-03-15 11:59 PDT: completed the final scaffold/module cleanup for the planner-core purification prompt. `scripts/bootstrap_deck_project.sh`, `scripts/ensure_deck_project.sh`, `scripts/init_deck_project.sh`, and `scripts/project_lib.sh` no longer reference retired planner-agent or review-promotion files; project converge now refreshes `src/deck-spec-module/*` as template-managed scaffold; and fresh `init_deck_project.sh` smoke runs no longer fail on deleted legacy templates.
+- [x] 2026-03-15 11:56 PDT: completed the explicit module-input closure. `planDeckSpecFromPrompt(prompt, options)` now requires caller-provided `apiKey` and `projectSlug` instead of inferring from ambient shell state, the prompt-driven CLI passes only explicit module options, and module-level regression coverage now asserts the boundary fails fast when those inputs are omitted.
+- [x] 2026-03-15 11:27 PDT: completed the legacy-surface removal pass. The demo project and reusable templates no longer ship `spec:generate`, `spec:review`, no-`--prompt` promotion fallback, planner handoff artifacts, or `src/planner-agent/*`. Module-first tests now validate module input/output directly, the prompt-driven CLI remains a thin publish wrapper with optional `--debug` artifacts, and the deterministic regression suite was rerun after the removals.
 - [x] 2026-03-15 11:18 PDT: reopened the planner-core purification slice after a fresh completion audit confirmed that the old compatibility surfaces were still live, not merely documented. The next cleanup pass is now explicit: remove `spec:generate`, remove `spec:review`, remove legacy candidate-promotion entrypoints and planner handoff artifacts, and make module-level input/output testing the only planning test surface.
 - [x] 2026-03-15 10:47 PDT: clarified workspace directory roles at the top of this plan after confirming that `ai-native-slides/` is the only git-backed directory under `/Volumes/BiGROG/skills-test`; the plan now states explicitly that this git-backed skill repo directory is also the active skill development directory and that reusable changes must be synced back there before work is complete.
 - [x] 2026-03-13 23:09 PDT: completed Milestone 1 and Milestone 2 foundations: shared-root runtime dependencies and scaffold convergence landed, `spec/deck-spec.schema.json` became the canonical contract, and the demo project passed `pnpm spec:validate`, `pnpm lint`, `pnpm typecheck`, `pnpm test`, and `pnpm build`.
@@ -182,13 +186,9 @@ These non-verifiable semantic qualities require either:
 - Milestone 4: Completed. Planner handoff artifacts and Gemini-backed media generation are implemented behind deterministic local commands.
 - Milestone 5: Completed. The example project builds from canonical `spec/deck-spec.json` plus `media/generated-images/` and fails fast on missing required inputs.
 - Milestone 6: Completed. User-facing and skill-facing docs match the implemented command flow and runtime boundaries.
-- Milestone 7: In final cleanup. The stateless deck-spec module boundary is implemented, but the repository still ships live legacy publish/review surfaces that must be removed before this slice can be considered fully complete.
-- Current phase: legacy-surface removal, planner-artifact deletion, and module-first regression hardening.
-- Remaining work in this plan:
-  - remove `spec:generate`, `spec:review`, and no-`--prompt` legacy behavior from the project CLI
-  - delete planner handoff artifacts and retired `planner-agent` runtime code from the demo project and reusable templates
-  - replace compatibility tests with module-first input/output tests plus thin CLI wrapper tests
-  - resync docs and templates, then rerun the full validation matrix
+- Milestone 7: Completed. The stateless deck-spec module is now the only planning boundary; legacy publish/review surfaces, planner handoff artifacts, and retired planner-agent runtime code have been removed from the demo project and reusable templates.
+- Current phase: final validation and closeout completed on 2026-03-15 11:59 PDT.
+- Remaining work in this plan: none beyond normal future maintenance.
 
 ### Milestone 1: Shared runtime and workflow foundations
 
@@ -196,7 +196,7 @@ Add the root dependencies and scaffold-managed workflow files required to suppor
 
 Success condition:
 
-- the demo project `ai-native-product-deck` can expose `spec`, `spec:validate`, `spec:review`, and `media` commands without manual file copying
+- the demo project `ai-native-product-deck` can expose `spec`, `spec:validate`, and `media` commands without manual file copying
 
 Validation:
 
@@ -227,7 +227,7 @@ Add a separate semantic eval step so the agent checks whether `spec/deck-spec.js
 
 Success condition:
 
-- `spec:review` compares `source_prompt` and `spec/deck-spec.json` without pretending to be a hard schema validator
+- module-internal semantic review compares `source_prompt` and the candidate `DeckSpec` without pretending to be a hard schema validator
 - the review can fail on obvious prompt drift, missing major requirements, or obviously mismatched asset planning
 - media generation does not proceed on a failed semantic review
 
@@ -299,7 +299,7 @@ Validation:
 
 - docs identify the deck-spec module's inputs, outputs, non-goals, and remaining skill-owned responsibilities
 - contract or unit tests cover deterministic planner-boundary transforms without relying on hidden mutable state
-- the current prompt-driven `spec -- --prompt` workflow, plus the downgraded `spec:generate` / `spec:review` compatibility surfaces, stay documented and test-covered
+- the current prompt-driven `spec -- --prompt` workflow stays documented and test-covered
 
 ## Concrete Steps
 
@@ -309,7 +309,7 @@ Validation:
 - [x] Update `pnpm.onlyBuiltDependencies` to include `sharp`
 - [x] Update root bootstrap/install checks so the new dependencies are treated as required
 - [x] Update root ensure/preflight logic to verify the new dependencies
-- [x] Extend project template `package.json` with `spec`, `spec:validate`, `spec:review`, and `media`
+- [x] Extend project template `package.json` with `spec`, `spec:validate`, and `media`
 - [x] Extend `run-project.sh` so it accepts the new actions and forwards extra CLI args
 - [x] Add scaffold-managed TS modules for:
   - environment variable resolution

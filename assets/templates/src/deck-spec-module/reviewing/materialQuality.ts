@@ -227,9 +227,13 @@ function countAudienceFramingSlidesBeforeWorkflow(plan: DeckSpec): number {
 	const workflowBoundary =
 		workflowSlideIndex === -1 ? plan.slides.length : workflowSlideIndex;
 
-	return plan.slides.slice(0, workflowBoundary).filter((slide) =>
-		audienceFramingSlidePattern.test([slide.title, ...slide.objectives].join(" ")),
-	).length;
+	return plan.slides
+		.slice(0, workflowBoundary)
+		.filter((slide) =>
+			audienceFramingSlidePattern.test(
+				[slide.title, ...slide.objectives].join(" "),
+			),
+		).length;
 }
 
 export function collectUnderdevelopedTextAssetIds(
@@ -314,9 +318,8 @@ export function collectMaterialQualitySignals(
 		});
 	}
 
-	const requiredAudienceFramingSlides = parseAudienceFramingSlideCount(
-		sourcePrompt,
-	);
+	const requiredAudienceFramingSlides =
+		parseAudienceFramingSlideCount(sourcePrompt);
 	if (
 		requiredAudienceFramingSlides > 0 &&
 		countAudienceFramingSlidesBeforeWorkflow(plan) <

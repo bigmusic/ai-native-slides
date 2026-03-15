@@ -25,7 +25,6 @@
   - generate media, author or revise deck source, and run validation-oriented commands
   - produce deliverables
 - Deterministic CLI commands are guardrails inside that same skill session. They are not human approval checkpoints and not external-agent boundaries.
-- Legacy compatibility artifacts may still contain a `skill_handoff` field. Treat it as transition-only debug metadata, not as part of the current workflow contract.
 - Deliverables may be reviewed by humans only after they exist. Humans may inspect final artifacts, rerun local-terminal LibreOffice-backed validation when needed, and then send revision feedback as another prompt.
 
 ## 1. Deck Root Converge
@@ -56,12 +55,10 @@
 ### 3.1 Optional Debug Surfaces
 
 - `pnpm spec -- --prompt "<prompt>" --debug` writes `tmp/spec-candidate.json`, `tmp/spec-review.json`, `tmp/spec-diagnostics.json`, and `output/spec-review.md`.
-- `pnpm spec:generate` and `pnpm spec:review` remain transition-only compatibility/debug surfaces. They are not part of the main workflow contract, and their CLIs should emit explicit deprecation warnings when used.
 
 ### 3.2 Validate The Deck Spec Contract
 
 - `spec/deck-spec.schema.json`, `src/deck-spec-module/*`, and `src/spec/*` are scaffold-managed files for the primary workflow.
-- Compatibility-only internals may still ship under `src/spec/compat/*` and `src/planner-agent/*`, but they are not part of the prompt-driven happy path.
 - `spec/deck-spec.json` is canonical project input.
 - Run `pnpm spec:validate` for structural validation.
 - This step validates the contract only. It does not do semantic review and does not generate media.

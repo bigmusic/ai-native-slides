@@ -52,8 +52,6 @@ Within that same session, the skill agent is expected to:
 
 Deterministic CLI steps are guardrails inside that same skill session. They are not human approval checkpoints and not external-agent boundaries.
 
-Legacy compatibility artifacts may still contain a `skill_handoff` field, but it is transition-only debug metadata rather than part of the current operator contract.
-
 ## Shared-Root Model
 
 Use one shared deck root and one project directory per deck:
@@ -126,25 +124,11 @@ Template-managed files are copied from `assets/templates/` and can be refreshed 
 - `src/deck-spec-module/media/providerEnv.ts`
 - `src/deck-spec-module/media/providerPrompt.ts`
 - `src/deck-spec-module/media/geminiImageProvider.ts`
-- `src/spec/compat/legacyPromoteDeckSpecCandidate.ts`
-- `src/planner-agent/image-generation/env.ts`
-- `src/planner-agent/image-generation/geminiAdapter.ts`
-- `src/planner-agent/material-quality.ts`
-- `src/planner-agent/planner-brief.ts`
-- `src/planner-agent/planner-input.ts`
-- `src/planner-agent/planner-output.ts`
-- `src/planner-agent/prompt-quality.ts`
-- `src/planner-agent/review-brief.ts`
-- `src/planner-agent/scorecard.ts`
 - `src/spec/contract.ts`
 - `src/spec/deriveOutputFileName.ts`
-- `src/spec/generatePlannerBrief.ts`
 - `src/spec/normalizeSystemManagedFields.ts`
-- `src/spec/plannerContext.ts`
 - `src/spec/promoteDeckSpecCandidate.ts`
-- `src/spec/promoteSpecReviewCandidate.ts`
 - `src/spec/readDeckSpec.ts`
-- `src/spec/reviewContext.ts`
 - `src/spec/rendererContract.ts`
 - `src/spec/renderSpecReview.ts`
 - `src/spec/reviewContract.ts`
@@ -212,8 +196,6 @@ Before running that loop, resolve whether the prompt is creating a new project o
 `pnpm spec:validate` performs structural validation only. It checks the canonical `spec/deck-spec.json` against `spec/deck-spec.schema.json` plus local rule validation, and it does not mutate project files.
 
 `pnpm spec -- --prompt "<prompt>" --debug` is the only recommended diagnostics mode for the happy path. It writes `tmp/spec-candidate.json`, `tmp/spec-review.json`, `tmp/spec-diagnostics.json`, and `output/spec-review.md` after a prompt-driven run. Default runs should not emit those files.
-
-`pnpm spec:generate` and `pnpm spec:review` remain transition-only compatibility/debug commands. They are no longer part of the main operator path or primary skill contract, and their CLIs should emit explicit deprecation warnings when used.
 
 `pnpm media` is the only Gemini-dependent command in v1. It reads `GEMINI_API_KEY` from the current shell or from `<deck-root>/.env`, requires `spec/deck-spec.json.status` to be `reviewed` or `media_ready`, and writes canonical deck-ready files into `media/generated-images/`.
 

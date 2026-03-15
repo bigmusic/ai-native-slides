@@ -3,6 +3,7 @@ export type {
 	PlanDeckSpecFromPromptDebugResult,
 	PlanDeckSpecFromPromptOptions,
 } from "./canonicalization/finalizeDeckSpec.js";
+export { planDeckSpecFromPrompt } from "./canonicalization/finalizeDeckSpec.js";
 export type {
 	DeckSpecPlanningDiagnostics,
 	DeckSpecPlanningErrorCode,
@@ -13,4 +14,3 @@ export {
 	DeckSpecPlanningError,
 	isDeckSpecPlanningError,
 } from "./errors.js";
-export { planDeckSpecFromPrompt } from "./canonicalization/finalizeDeckSpec.js";
