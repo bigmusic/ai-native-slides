@@ -118,6 +118,7 @@ Current open gaps:
 - [x] 2026-03-15 15:30 PDT: tightened the plan wording so `deck-spec-module` is described explicitly as a stateless black box with caller-owned discovery and path selection, module-owned publish semantics, and no hidden package-local writes.
 - [x] 2026-03-15 15:37 PDT: aligned `README.md`, `SKILL.md`, and `references/project-workflow.md` with the current code surface so they now describe the shared module as a stateless black box, wrapper-owned path selection, explicit output-path requirements, and non-mutating failure semantics.
 - [x] 2026-03-15 15:57 PDT: expanded this execution plan to cover shared black-box media materialization, phase-aware publish semantics, unified run artifacts, and the requirement for a dedicated design note instead of a second `PLANS.md`.
+- [x] 2026-03-15 16:08 PDT: moved the black-box design note to `/Volumes/BiGROG/skills-test/ai-native-slides/DECK-SPEC-MODULE-MATERIALIZATION.md` so it is clearly maintainer-facing and no longer mixed into user-facing `references/`.
 - [ ] 2026-03-15 15:09 PDT: provider-backed acceptance is still open. Current `spec:live` attempts reached the provider path but failed with `planning_failed` (`fetch failed`) and `contract_validation_failed` after fallback repair.
 - [ ] 2026-03-15 15:57 PDT: the design and migration work for moving Gemini text-to-image into the shared black box has started, but the contract, wrappers, tests, and docs are not yet implemented.
 
@@ -176,7 +177,7 @@ Validation:
 - [x] Add deterministic shared-package coverage for valid output, fallback repair, semantic-review failure, prompt failure, malformed model output, and output-path guards.
 - [x] Add and document root-level `pnpm spec:live`.
 - [x] Keep deck authoring in the same session after planning succeeds: revise `src/buildDeck.ts`, `src/presentationModel.ts`, project tests, then run lint/typecheck/test/build.
-- [ ] Add a dedicated design note under `references/` for the revised `deck-spec-module` materialization contract.
+- [x] Add a dedicated maintainer-facing design note at `/Volumes/BiGROG/skills-test/ai-native-slides/DECK-SPEC-MODULE-MATERIALIZATION.md` for the revised `deck-spec-module` materialization contract.
 - [ ] Move project-local media generation orchestration into the shared package while reusing the existing provider and normalization code where practical.
 - [ ] Introduce explicit shared-module support for `mediaOutputDir` while preserving explicit caller-owned output selection.
 - [ ] Extend the shared API, CLI wiring, and artifact manifest so spec planning and media materialization are reported in one run.
@@ -262,9 +263,10 @@ Acceptance bar for the revised contract:
 - 2026-03-15: shared CLIs do not infer runtime output locations. Callers must pass explicit output paths.
 - 2026-03-15: `deck-spec-module` is treated as a stateless black box, not as a project-aware orchestrator. Project discovery, default-path selection, and workspace-specific context stay in wrappers.
 - 2026-03-15: `pnpm spec:live` writes only to temp output and never mutates the project canonical spec.
-- 2026-03-15: do not create a second `PLANS.md` under `deck-spec-module`; keep this file as the only execution plan for the current workstream and add a separate design note for deeper module-internal detail.
+- 2026-03-15: do not create a second `PLANS.md` under `deck-spec-module`; keep this file as the only execution plan for the current workstream and add a separate maintainer-facing design note for deeper module-internal detail.
 - 2026-03-15: Gemini image generation will move into the shared black box, but canonical spec and generated media will keep distinct phase semantics for recovery and reporting.
 - 2026-03-15: phase 1 of the migration keeps project-facing publish paths stable and explicit (`spec/deck-spec.json` and `media/generated-images/`) instead of immediately collapsing everything into a single new run-root abstraction.
+- 2026-03-15: the black-box design note belongs at the skill repo root, not under `references/`, because `references/` is reserved for user-facing workflow and helper documents.
 
 ## Surprises and Discoveries
 

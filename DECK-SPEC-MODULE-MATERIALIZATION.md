@@ -7,6 +7,9 @@ This note records the intended design for moving Gemini text-to-image generation
 This file is not an execution plan and does not replace `PLANS.md`.
 `PLANS.md` remains the single execution-tracking document for this workstream.
 
+This note lives at the repository root on purpose.
+It is a maintainer-facing black-box design document, not a user-facing skill reference.
+
 ## Problem Statement
 
 The current split is:
