@@ -1,9 +1,7 @@
 import process from "node:process";
 import { pathToFileURL } from "node:url";
 
-export {
-	runSpecCli,
-} from "../../../../packages/deck-spec-module/src/cli/runSpecCli.ts";
+export { runSpecCli } from "../../../../packages/deck-spec-module/src/cli/runSpecCli.ts";
 
 if (
 	typeof process.argv[1] === "string" &&
