@@ -1,7 +1,6 @@
-# Execution Plan: Shared Deck-Spec Black-Box Runtime
+# Execution Plan: Shared Deck-Spec Runtime
 
-This is the living execution plan for the shared `deck-spec-module` refactor.
-It is self-contained so another implementer can continue from this file without chat history.
+This file is the single source of truth for the current shared-root / shared-package refactor.
 
 ## Context and Orientation
 
@@ -10,30 +9,31 @@ It is self-contained so another implementer can continue from this file without 
 - Demo deck root: `/Volumes/BiGROG/skills-test/ai-education-deck`
 - Demo project: `/Volumes/BiGROG/skills-test/ai-education-deck/projects/ai-native-product-deck`
 - Development loop:
-  - prove behavior in the demo project and deck root
+  - prove behavior in the demo deck root and demo project
   - sync reusable changes back into the skill repo templates, scripts, and docs
   - keep the skill repo as the reusable source of truth
-
-The old project-local planner and validator boundary is retired.
-The active runtime boundary is now the shared package at `<deck-root>/packages/deck-spec-module/`.
+- Current boundary:
+  - shared runtime lives at `<deck-root>/packages/deck-spec-module/`
+  - project code keeps only project content, thin wrappers, media adapters, tests, and outputs
+  - project-local planner/runtime code under `src/deck-spec-module/{planning,reviewing,...}` is retired
 
 ## Desired Outcome
 
-The workflow must support this operator path:
+The operator path must be:
 
-1. classify the user prompt as `new_project` or `revise_existing_project`
-2. converge the shared deck root and the target project scaffold
+1. classify the prompt as `new_project` or `revise_existing_project`
+2. converge the deck root and target project scaffold
 3. run `pnpm spec -- --prompt "<prompt>"`
 4. run `pnpm spec:validate`
 5. run `pnpm media`
 6. run `pnpm lint`, `pnpm typecheck`, `pnpm test`, and `pnpm build`
-7. optionally run `pnpm spec:live -- <project-dir> --tmp-root-dir "<path>" --prompt "<prompt>"` from the deck root for a real provider-backed smoke
+7. optionally run `pnpm spec:live -- <project-dir> --tmp-root-dir "<path>" --prompt "<prompt>" [--label "<name>"]`
 8. run `pnpm validate` in a local terminal when LibreOffice-backed checks are required
 
-The resulting runtime contract must be:
+The runtime contract must stay:
 
 - shared package path: `packages/deck-spec-module/`
-- official prompt-driven API:
+- prompt-driven API:
   - `runDeckSpecModule({ prompt, projectSlug, apiKey, model?, seed?, paths: { canonicalSpecPath, artifactRootDir } })`
   - `runDeckSpecValidateModule({ canonicalSpecPath, reportPath? })`
 - typed failure codes:
@@ -41,159 +41,137 @@ The resulting runtime contract must be:
   - `planning_failed`
   - `semantic_review_failed`
   - `contract_validation_failed`
-- project wrappers remain thin and project-local planner logic is removed
-- the module always writes a fixed artifact bundle and owns the canonical spec write
+- fixed artifact bundle on every `pnpm spec` / `pnpm spec:live` run:
+  - `result.json`
+  - `diagnostics.json`
+  - `candidate.primary.json`
+  - `candidate.fallback.json`
+  - `review.final.json`
+  - `report.md`
+- project wrapper defaults:
+  - canonical spec: `<project>/spec/deck-spec.json`
+  - artifact root: `<deck-root>/tmp/deck-spec-module/<project-slug>/`
+
+Current open gap:
+
+- deterministic local validation is green
+- one successful provider-backed `pnpm spec:live` run is still required
 
 ## Progress
 
-- [x] 2026-03-15 12:24 PDT: started the shared deck-spec black-box refactor by scaffolding `packages/deck-spec-module/` into the root template and syncing workspace metadata into the deck root.
-- [x] 2026-03-15 13:32 PDT: repaired scaffold/preflight drift. Package tests and vitest cache now write only to workspace-local temp locations outside the installed package tree, root/project metadata temp files no longer use system temp, and `ensure_deck_root.sh --json` plus `ensure_deck_project.sh --json` both returned ready again for the demo workspace.
-- [x] 2026-03-15 13:34 PDT: removed the last legacy project wrapper naming from the active scaffold by renaming `src/spec/promoteDeckSpecCandidate.ts` to `src/spec/runDeckSpec.ts`, updating bootstrap/ensure state keys, and confirming the prompt-driven workflow tests still pass.
-- [x] 2026-03-15 13:37 PDT: completed the shared runtime slice and synced it end-to-end. The shared package typechecks, the deterministic module suite passes with 35 tests, the demo project passes `pnpm typecheck`, `pnpm test`, and `pnpm spec:validate`, and both root/project preflight JSON reports are green.
-- [x] 2026-03-15 13:39 PDT: added an opt-in live smoke command at the deck root, later finalized as `pnpm spec:live -- <project-dir> --tmp-root-dir "<path>" --prompt "<prompt>" [--label "<name>"]`.
-- [x] 2026-03-15 13:53 PDT: removed the remaining legacy compat surface from the shared package by deleting the old `src/deck-spec-module/public-api.ts` export path and stopping the package public API from exposing `planDeckSpecFromPrompt(...)`.
-- [x] 2026-03-15 13:57 PDT: fixed wrapper lint drift, reran demo project `pnpm lint`, and verified the thin-wrapper surface stays green after scaffold refresh.
-- [x] 2026-03-15 14:01 PDT: rewrote README, FLOW, SKILL, `references/project-workflow.md`, and the plan docs so they now describe the writer-first shared package, always-on artifact bundles, project thin wrappers, and the current live-smoke status.
-- [x] 2026-03-15 14:26 PDT: cleaned the remaining legacy tails from the active workspace by removing empty `src/planner-agent` and `src/spec/compat` directories, renaming test fixtures away from `plannerAgent*`, rerunning scaffold converge, and refreshing the demo validation report so it no longer references `--debug`.
-- [x] 2026-03-15 14:43 PDT: hardened the stateless boundary. Shared CLIs now fail fast unless the caller passes explicit output paths, project wrappers forward the canonical spec path plus artifact root explicitly, the package rejects writes back into its own directory, and the new CLI guard tests pass in the shared package plus demo workflow coverage.
-- [x] 2026-03-15 14:40 PDT: hardened the runtime boundary so shared CLIs no longer infer output locations, project wrappers now pass explicit canonical-spec and artifact-root paths, and `spec:live` now requires an explicit `--tmp-root-dir`.
-- [x] 2026-03-15 14:50 PDT: reviewed completion status against the live runtime, corrected stale plan commands to match the guarded CLI contract, reran shared-package direct validate plus prompt-workflow coverage, and confirmed root preflight stayed green after test execution.
-- [x] 2026-03-15 14:56 PDT: reran deck-root preflight and the shared-package direct validate after the plan cleanup, producing a fresh validation report and confirming the docs now describe only rerunnable commands.
-- [x] 2026-03-15 15:03 PDT: finished a repo-wide markdown audit, correcting the remaining command-surface and Gemini-dependency drift in `FLOW.md`, `SKILL.md`, and `references/project-workflow.md` so the user-facing docs now match the guarded shared-runtime contract.
-- [x] 2026-03-15 15:09 PDT: retried provider-backed live smoke with the current guarded command. One escalated run reached the provider and failed at `contract_validation_failed` after the internal repair attempt, while another simpler-prompt escalated run still failed with `planning_failed` / `fetch failed`, so acceptance remains open but the external provider path is no longer blocked purely at fetch time.
-- [ ] 2026-03-15 13:58 PDT: reran `pnpm spec:live` after the deterministic matrix turned green again. The command still reached the provider layer but failed with `planning_failed` / `fetch failed`, so provider-backed acceptance remains open even though local wiring is confirmed.
-- [ ] 2026-03-15 13:40 PDT: one real live smoke attempt reached the provider layer but failed with `planning_failed` / `fetch failed`, so the command wiring is verified but the provider-backed acceptance still needs a successful rerun when network/provider conditions are stable.
+- [x] 2026-03-15 12:24 PDT: scaffolded the shared package under `assets/root_templates/packages/deck-spec-module/` and synced root metadata into the demo deck root.
+- [x] 2026-03-15 13:37 PDT: completed the writer-first shared runtime slice. Shared-package typecheck passed, deterministic package tests passed, and the demo project passed `pnpm typecheck`, `pnpm test`, and `pnpm spec:validate`.
+- [x] 2026-03-15 13:39 PDT: added root-level live smoke support as `pnpm spec:live -- <project-dir> --tmp-root-dir "<path>" --prompt "<prompt>" [--label "<name>"]`.
+- [x] 2026-03-15 14:26 PDT: removed remaining legacy planner/compat tails from the active workspace and refreshed the demo validation report.
+- [x] 2026-03-15 14:43 PDT: hardened the stateless boundary. Shared CLIs now require explicit output paths, project wrappers forward canonical-spec and artifact-root paths explicitly, and the package rejects writes into its own directory.
+- [x] 2026-03-15 15:03 PDT: compressed and aligned repo docs so README, FLOW, SKILL, references, and plan docs all describe the same shared-runtime contract.
+- [ ] 2026-03-15 15:09 PDT: provider-backed acceptance is still open. Current `spec:live` attempts reached the provider path but failed with `planning_failed` (`fetch failed`) and `contract_validation_failed` after fallback repair.
 
 ## Plan of Work
 
-### Milestone 1: Shared Runtime Package
+### Milestone 1: Keep the deterministic path stable
 
-Move planning, canonicalization, validation, semantic review, and artifact writing into the shared runtime package and keep project-local code as thin forwarding wrappers.
+Goal:
 
-Success condition:
-
-- shared runtime package exists at `packages/deck-spec-module/`
-- project wrappers do not carry planner business logic
-- prompt-driven planning is writer-first and stateless from the project’s perspective
+- shared package remains the only planner/validator runtime
+- project wrappers stay thin
+- docs and scaffold keep matching the implemented contract
 
 Validation:
 
-- package typecheck passes
-- deterministic package tests pass
-- demo project `pnpm spec:validate` still passes
+- root/project preflight passes
+- shared package typecheck and tests pass
+- demo project lint/typecheck/test/build/spec:validate stay green
 
-### Milestone 2: Scaffold and Template Hard Cut
+### Milestone 2: Close provider-backed acceptance
 
-Delete retired project-local planner files, update managed-file boundaries, and keep only project content plus wrappers in the project scaffold.
+Goal:
 
-Success condition:
-
-- retired `src/deck-spec-module/{planning,reviewing,...}` template files are gone
-- active wrapper path is `src/spec/runDeckSpec.ts`
-- root/project preflight no longer checks retired files
+- `pnpm spec:live` succeeds with a real provider-backed planning run
+- the temp output contains a validated canonical spec plus full artifact bundle
+- the project canonical spec is not mutated during live smoke
 
 Validation:
 
-- `ensure_deck_root.sh --json`
-- `ensure_deck_project.sh --json`
-- `pnpm test` in the demo project
-
-### Milestone 3: Documentation and Acceptance
-
-Rewrite operator-facing docs and maintain the execution plan so the written contract matches the implemented one.
-
-Success condition:
-
-- docs describe the shared package as the only planner/validator runtime
-- docs describe artifact bundles as always-on
-- docs describe `pnpm spec:live` as opt-in acceptance
-- no active doc path tells operators to use `--debug`, `spec:generate`, or `spec:review`
-
-Validation:
-
-- targeted grep over docs and plans shows no stale contract language
-- final validation matrix is recorded here with concrete commands and outcomes
+- rerun the current guarded `pnpm spec:live` command
+- inspect temp artifacts
+- confirm the canonical project spec file did not change
 
 ## Concrete Steps
 
-- [x] Add shared package scaffolding under `assets/root_templates/packages/deck-spec-module/`
-- [x] Add writer-first public API and shared CLIs for spec + validate
-- [x] Convert project-local `src/spec/*` into thin re-export or forwarding wrappers
-- [x] Remove retired project-local planner template files from `assets/templates/src/deck-spec-module/`
-- [x] Keep media generation separate under `src/asset-pipeline/*`
-- [x] Add deterministic shared-package tests for success, fallback, validation failure, prompt failure, atomic publish protection, and path-free diagnostics
-- [x] Add root-level opt-in live smoke command
-- [x] Rewrite README, FLOW, SKILL, MY-PLAN, and `references/project-workflow.md`
-- [ ] Rerun one successful provider-backed live smoke when network/provider conditions permit
+- [x] Move prompt-to-spec planning, canonicalization, validation, semantic review, and artifact writing into the shared package.
+- [x] Convert project `src/spec/*` into thin wrapper / re-export surfaces.
+- [x] Remove retired planner/runtime template files from the project scaffold.
+- [x] Keep media generation as a separate subsystem under `src/asset-pipeline/*`.
+- [x] Add deterministic shared-package coverage for valid output, fallback repair, semantic-review failure, prompt failure, malformed model output, and output-path guards.
+- [x] Add and document root-level `pnpm spec:live`.
+- [ ] Inspect repeated live-smoke artifact drift and decide whether prompt hardening alone is enough or a deterministic repair pass is required.
+- [ ] Rerun one successful provider-backed `pnpm spec:live` when provider/network conditions permit.
 
 ## Validation and Acceptance
 
-Completed deterministic validation on 2026-03-15:
+Deterministic validation verified on 2026-03-15:
 
 - `bash /Volumes/BiGROG/skills-test/ai-native-slides/scripts/ensure_deck_root.sh /Volumes/BiGROG/skills-test/ai-education-deck --json`
 - `bash /Volumes/BiGROG/skills-test/ai-native-slides/scripts/ensure_deck_project.sh /Volumes/BiGROG/skills-test/ai-education-deck/projects/ai-native-product-deck --json`
 - `cd /Volumes/BiGROG/skills-test/ai-education-deck/packages/deck-spec-module && ../../node_modules/.bin/tsc --noEmit -p tsconfig.json`
 - `cd /Volumes/BiGROG/skills-test/ai-education-deck/packages/deck-spec-module && ../../node_modules/.bin/vitest run tests/deckSpecCli.test.ts tests/deckSpecModule.test.ts tests/deckSpecContract.test.ts tests/deckSpecReviewing.test.ts`
 - `cd /Volumes/BiGROG/skills-test/ai-education-deck && node --import tsx -e 'import { runDeckSpecValidateModule } from "./packages/deck-spec-module/src/public-api.ts"; await runDeckSpecValidateModule({ canonicalSpecPath: "./projects/ai-native-product-deck/spec/deck-spec.json", reportPath: "./tmp/review-deck-spec-validate-report-20260315T1458.md" }); console.log("validate ok")'`
-- `cd /Volumes/BiGROG/skills-test/ai-education-deck/projects/ai-native-product-deck && pnpm typecheck`
 - `cd /Volumes/BiGROG/skills-test/ai-education-deck/projects/ai-native-product-deck && pnpm lint`
+- `cd /Volumes/BiGROG/skills-test/ai-education-deck/projects/ai-native-product-deck && pnpm typecheck`
 - `cd /Volumes/BiGROG/skills-test/ai-education-deck/projects/ai-native-product-deck && pnpm test`
 - `cd /Volumes/BiGROG/skills-test/ai-education-deck/projects/ai-native-product-deck && pnpm test -- --run tests/promptSpecWorkflow.test.ts`
 - `cd /Volumes/BiGROG/skills-test/ai-education-deck/projects/ai-native-product-deck && pnpm build`
 - `cd /Volumes/BiGROG/skills-test/ai-education-deck/projects/ai-native-product-deck && pnpm spec:validate`
+- `cd /Volumes/BiGROG/skills-test/ai-education-deck/projects/ai-native-product-deck && pnpm validate`
 
-Provider-backed acceptance on 2026-03-15:
+Provider-backed acceptance status on 2026-03-15:
 
-- historical attempts were made before `--tmp-root-dir` became mandatory on the live-smoke CLI.
-- current equivalent rerun command:
-  - `cd /Volumes/BiGROG/skills-test/ai-education-deck && pnpm spec:live -- projects/ai-native-product-deck --tmp-root-dir "./tmp/deck-spec-module-live/ai-native-product-deck" --prompt "Create a six-slide deck about shared deck-spec black-box planning, validation, semantic review, and deterministic build delivery." --label "black-box-refactor"`
-- current equivalent rerun command with alternate label:
-  - `cd /Volumes/BiGROG/skills-test/ai-education-deck && pnpm spec:live -- projects/ai-native-product-deck --tmp-root-dir "./tmp/deck-spec-module-live/ai-native-product-deck" --prompt "Create a six-slide deck about shared deck-spec black-box planning, validation, semantic review, and deterministic build delivery." --label "black-box-refactor-rerun"`
-- escalated acceptance retry:
+- guarded live-smoke command:
   - `cd /Volumes/BiGROG/skills-test/ai-education-deck && pnpm spec:live -- projects/ai-native-product-deck --tmp-root-dir "./tmp/deck-spec-module-live/ai-native-product-deck" --prompt "Create a six-slide deck about shared deck-spec black-box planning, validation, semantic review, and deterministic build delivery." --label "black-box-refactor-acceptance-escalated"`
-- escalated simpler-prompt retry:
+- simpler-prompt retry:
   - `cd /Volumes/BiGROG/skills-test/ai-education-deck && pnpm spec:live -- projects/ai-native-product-deck --tmp-root-dir "./tmp/deck-spec-module-live/ai-native-product-deck" --prompt "Create a simple six-slide deck about canonical deck-spec planning, structural validation, semantic review, media generation, and deterministic build delivery. Keep the slide structure concrete and simple." --label "black-box-refactor-acceptance-simple"`
-- observed result:
-  - historical attempts failed with `planning_failed`
-  - the `black-box-refactor-acceptance-escalated` retry failed with `contract_validation_failed`
-  - the `black-box-refactor-acceptance-simple` retry failed with `planning_failed`
-  - observed provider-layer messages included both `fetch failed` and `Planner model returned candidates that failed canonical validation after the internal repair attempt.`
-- artifacts were written under `/Volumes/BiGROG/skills-test/ai-education-deck/tmp/deck-spec-module-live/ai-native-product-deck/20260315T204018Z-black-box-refactor`
-  and `/Volumes/BiGROG/skills-test/ai-education-deck/tmp/deck-spec-module-live/ai-native-product-deck/20260315T205809Z-black-box-refactor-rerun`
-  and `/Volumes/BiGROG/skills-test/ai-education-deck/tmp/deck-spec-module-live/ai-native-product-deck/20260315T220551Z-black-box-refactor-acceptance-escalated`
-  and `/Volumes/BiGROG/skills-test/ai-education-deck/tmp/deck-spec-module-live/ai-native-product-deck/20260315T220805Z-black-box-refactor-acceptance-simple`
+- observed outcomes:
+  - one run reached the provider and failed with `contract_validation_failed`
+  - another run failed with `planning_failed` / `fetch failed`
+  - temp artifacts were written under `/Volumes/BiGROG/skills-test/ai-education-deck/tmp/deck-spec-module-live/ai-native-product-deck/`
 
 Acceptance bar:
 
-- deterministic matrix must stay green
-- one provider-backed `pnpm spec:live` run should eventually produce a validated canonical spec in temp output and a validation report without mutating the project canonical spec
+- deterministic matrix stays green
+- one provider-backed `pnpm spec:live` run writes a validated temp canonical spec and artifact bundle
+- the project canonical spec remains untouched during live smoke
 
 ## Idempotence and Recovery
 
-- `scripts/init_deck_root.sh` is safe to rerun; it refreshes shared runtime files and dependencies without requiring destructive cleanup.
-- `scripts/init_deck_project.sh` is safe to rerun; it refreshes template-managed files and preserves prompt-generated deck content.
-- `pnpm spec -- --prompt "<prompt>"` is safe to rerun; the shared module only overwrites the canonical spec on successful publish.
-- `pnpm spec:live` is safe to rerun; it writes to a timestamped temp directory under the caller-selected `--tmp-root-dir`.
-- If a provider-backed run fails, inspect the emitted artifact bundle in temp output rather than patching canonical project files manually.
+- `scripts/init_deck_root.sh` is safe to rerun. It refreshes root-managed files and dependencies without requiring destructive cleanup.
+- `scripts/init_deck_project.sh` is safe to rerun. It refreshes template-managed files without overwriting prompt-generated deck content.
+- `pnpm spec -- --prompt "<prompt>"` is safe to rerun. Canonical publish happens only on success.
+- `pnpm spec:live` is safe to rerun. It writes into a timestamped directory under the caller-selected `--tmp-root-dir`.
+- If a provider-backed run fails, inspect the emitted artifact bundle first. Do not manually patch canonical project files as a workaround.
 
 ## Decision Log
 
-- 2026-03-15: the official public prompt-driven contract changed from a value-returning planner function to writer-first `runDeckSpecModule(...)`.
-- 2026-03-15: the module now always emits an artifact bundle; there is no supported `--debug` mode on the happy path.
-- 2026-03-15: project wrapper default artifact output is `<deck-root>/tmp/deck-spec-module/<project-slug>/`, but the shared package itself stays path-agnostic by requiring caller-provided paths.
-- 2026-03-15: `src/asset-pipeline/*` remains a separate subsystem and is not folded into this module refactor.
-- 2026-03-15: `pnpm spec:live` writes only to temp output so provider-backed acceptance cannot corrupt the project canonical spec.
+- 2026-03-15: the official prompt-driven API is writer-first `runDeckSpecModule(...)`, not a value-returning planner helper.
+- 2026-03-15: artifact-bundle writes are always on; `--debug` is no longer part of the supported happy path.
+- 2026-03-15: shared CLIs do not infer runtime output locations. Callers must pass explicit output paths.
+- 2026-03-15: `pnpm spec:live` writes only to temp output and never mutates the project canonical spec.
+- 2026-03-15: `src/asset-pipeline/*` remains separate from the shared planning/validation runtime.
 
 ## Surprises and Discoveries
 
-- Preflight drift was caused by package-local temp output from tests and vitest cache, not by module logic itself.
-- `rsync --delete` on the root package sync was not enough by itself; tests also had to stop recreating temp files under the installed package tree.
-- The most persistent contract drift was in docs and wrapper naming, not in the deterministic runtime behavior.
-- The provider-backed live smoke command can fail even when deterministic validation is fully green; those failures need to be recorded distinctly as provider/network issues, not treated as local contract regressions.
+- The biggest remaining risk is not local wiring. It is provider-backed candidate drift.
+- Repeated live-smoke artifacts showed concrete schema drift patterns:
+  - `card` blocks emitted with `text_asset_id` instead of `title_asset_id` + `body_asset_id`
+  - `metric` blocks emitted with `text_asset_id` instead of `value_asset_id` + `label_asset_id`
+- Provider-backed failure modes split into two different classes and must stay distinguished:
+  - external failure: `planning_failed` / `fetch failed`
+  - contract failure: `contract_validation_failed` after fallback repair
+- Preflight drift earlier in the day came from package-local temp output, not from the shared runtime contract itself.
 
 ## Outcomes and Retrospective
 
-- The shared deck-spec black-box runtime is now real, not project-local scaffolding.
-- The demo workspace validates the shared package directly and the project only carries thin wrappers plus deck-specific content.
-- Root/project preflight is trustworthy again after temp handling was moved back inside workspace-local directories.
-- One remaining follow-up remains outside deterministic local control: a successful provider-backed `pnpm spec:live` rerun when the external fetch path is healthy.
+- The shared `deck-spec-module` runtime is now the real planner/validator boundary.
+- The demo project is reduced to project content plus thin wrappers and still validates end to end in the deterministic path.
+- Root/project preflight, docs, and scaffold boundaries now match the current contract.
+- The remaining work is narrow and concrete: close provider-backed acceptance by reducing or absorbing model contract drift without weakening deterministic guarantees.
