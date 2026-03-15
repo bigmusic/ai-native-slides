@@ -3,6 +3,9 @@
 	"version": "1.0.0",
 	"private": true,
 	"type": "module",
+	"scripts": {
+		"spec:live": "node --import tsx packages/deck-spec-module/src/cli/runLiveSmokeCli.ts"
+	},
 	"workspaces": [
 		"packages/*"
 	],
