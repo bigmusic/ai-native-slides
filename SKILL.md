@@ -57,6 +57,8 @@ Routing rules:
 - `pnpm spec:validate`: validates the canonical `spec/deck-spec.json` by forwarding into the shared package's `pnpm spec:validate` CLI without mutating project files.
 - `pnpm spec:live -- <project-dir> --tmp-root-dir "<path>" --prompt "<prompt>" [--label "<name>"] [--no-media]`: opt-in provider-backed smoke from the deck root. It writes only to the caller-selected temp root and does not mutate the project canonical spec.
 
+For operator workflows, treat those `pnpm` commands as the stable shared-module entrypoints. Do not treat `packages/deck-spec-module/src/*` file paths as supported operator entrypoints.
+
 ## Responsibility Boundaries
 
 - Skill agent owns:
@@ -75,6 +77,8 @@ Routing rules:
   - default runtime path selection
   - project-local mutable state
   - hidden package-local output directories
+- Current caveat:
+  - validate now uses a stable package CLI/public-API boundary, but the package is not yet fully integration-isolated overall because other wrapper surfaces still import `packages/deck-spec-module/src/*`
 - Project wrapper owns:
   - deck-root / project-root discovery
   - default path selection for `canonicalSpecPath`, `artifactRootDir`, and `mediaOutputDir`

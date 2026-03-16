@@ -128,6 +128,7 @@ Current open gaps:
 - [x] 2026-03-16 13:12 PDT: removed the last retired source-tree maintenance tails from skill scripts. `project.json` no longer emits `legacy_cleanup_targets`, `ensure_deck_project.sh` no longer exposes retired source-dir status flags, `bootstrap_deck_project.sh` no longer carries source-tree cleanup branches for removed layouts, and the single-workspace migration script dropped its `asset-pipeline` import rewrite. Added a demo regression test to lock that reduced maintenance surface.
 - [x] 2026-03-16 13:55 PDT: upstreamed the demo-only maintenance regression into the reusable project template as `tests/projectScaffoldMaintenance.test.ts`, updated bootstrap/init/ensure/run-project script contracts so the new scaffold test is template-managed but does not count as prompt-generated content coverage, refreshed the demo project scaffold, and reran the full deterministic demo matrix successfully.
 - [x] 2026-03-16 14:33 PDT: hardened validate boundary and freshness semantics. `spec:validate` now routes through the shared package's `pnpm` CLI instead of direct internal `src/cli/*` paths, `validate-local.sh` now requires a fresh build artifact from the current run, added direct `runDeckSpecValidateModule(...)` coverage plus validate-wrapper regression coverage, refreshed the demo deck root/project, and reran the targeted deterministic validation set successfully.
+- [x] 2026-03-16 14:39 PDT: clarified the operator-facing docs so they now say explicitly that the stable shared validate entrypoint is the package `pnpm` CLI, while also recording that `deck-spec-module` is not yet fully integration-isolated overall because non-validate wrapper surfaces still deep-import `packages/deck-spec-module/src/*`.
 
 ## Plan of Work
 
@@ -293,6 +294,7 @@ Acceptance status:
 - 2026-03-16: the reusable scaffold may ship a template-managed maintenance regression test, but operator/content readiness must continue to require at least one non-template project test generated from the prompt-owned deck content.
 - 2026-03-16: the stable operator entrypoint for shared validation is the package `pnpm spec:validate` CLI, while TypeScript consumers should stay on `src/public-api.ts`; project wrappers should not call internal `src/cli/*` validate files directly.
 - 2026-03-16: `pnpm validate` must validate only the `.pptx` produced by the current build run; if build fails or does not report a fresh artifact path, downstream artifact checks must stop immediately.
+- 2026-03-16: `deck-spec-module` should not yet be described as fully independent at the integration boundary; validate is now on the intended CLI/public-API boundary, but other wrapper surfaces still depend on `packages/deck-spec-module/src/*`.
 
 ## Surprises and Discoveries
 

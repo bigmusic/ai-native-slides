@@ -136,6 +136,7 @@ The current workflow hard-cuts planning and contract validation into the shared 
 - `pnpm spec -- --prompt "<prompt>"` is the main path. The project wrapper forwards into the shared CLI with explicit `--canonical-spec-path`, `--artifact-root-dir`, and `--media-output-dir` values, and that CLI forwards into `runDeckSpecModule({ prompt, projectSlug, apiKey, model?, seed?, paths: { canonicalSpecPath, artifactRootDir, mediaOutputDir }, media?: { enabled?: boolean } })`.
 - The official validate entrypoint is `runDeckSpecValidateModule({ canonicalSpecPath, reportPath? })`.
 - The project-facing `pnpm spec:validate` path shells into the shared package's `pnpm spec:validate` CLI instead of calling internal `src/cli/*` file paths directly.
+- For operator use, treat the shared package's `pnpm` CLIs as the stable command boundary. Internal `packages/deck-spec-module/src/*` paths are package internals, not supported operator entrypoints.
 - The shared module is writer-first and stateless. It owns planning, canonicalization, structural validation, semantic review, one repair retry, canonical spec publish, media materialization, and artifact-bundle writes.
 - The shared module does not discover the active project, infer runtime output locations, or depend on project-local mutable state.
 - The project wrapper owns deck-root / project-root discovery and default path selection for `canonicalSpecPath`, `artifactRootDir`, and `mediaOutputDir`.
@@ -161,6 +162,11 @@ The current workflow hard-cuts planning and contract validation into the shared 
 - `pnpm validate` always starts from a fresh `pnpm build` and only validates the `.pptx` emitted by that build run. It does not accept or fall back to older `output/*.pptx` artifacts.
 - `pnpm spec:live -- <project-dir> --tmp-root-dir "<path>" --prompt "<prompt>" [--label "<name>"] [--no-media]` is the opt-in provider-backed acceptance command from the deck root. It writes only to the caller-selected temp root and does not mutate the project canonical spec.
 - Validation/eval, not exact byte-for-byte determinism, is the success bar for model-generated spec content.
+
+Current independence status:
+
+- validate is now isolated at the operator boundary through the package `pnpm spec:validate` CLI and the public `runDeckSpecValidateModule(...)` API.
+- `deck-spec-module` is not yet fully integration-isolated as a package because project wrappers still deep-import several `packages/deck-spec-module/src/*` modules outside the validate path, and `pnpm spec` still shells into an internal CLI file.
 
 Human review is intentionally late in the loop: inspect the final `.pptx`, the source, the generated media, and the validation outputs after the skill finishes, then send revision feedback as a new `Revise project <slug>` prompt if another run is needed.
 
