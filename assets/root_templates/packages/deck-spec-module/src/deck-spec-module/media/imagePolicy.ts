@@ -5,7 +5,7 @@ import type {
 	ImageIntendedUsage,
 	OutputFormat,
 	SizeTier,
-} from "../spec/contract.js";
+} from "../../spec/contract.js";
 
 export type TargetDimensions = {
 	width: number;

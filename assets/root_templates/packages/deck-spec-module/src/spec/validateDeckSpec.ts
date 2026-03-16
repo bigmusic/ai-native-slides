@@ -1,5 +1,5 @@
 import path from "node:path";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { Ajv, type ErrorObject } from "ajv";
 
@@ -14,6 +14,7 @@ import type {
 import { deriveOutputFileName } from "./deriveOutputFileName.js";
 import {
 	readDeckSpec,
+	readJsonFile,
 	readDeckSpecSchema,
 	resolveDeckSpecPath,
 	resolveDeckSpecSchemaPath,
@@ -40,7 +41,8 @@ export type CliIo = {
 };
 
 type ValidationContext = {
-	projectDir: string;
+	projectDir?: string;
+	projectSlug?: string;
 };
 
 type ReferenceSets = {
@@ -53,6 +55,16 @@ const defaultCliIo: CliIo = {
 	stdout: (message) => console.log(message),
 	stderr: (message) => console.error(message),
 };
+const packageRootDir = path.resolve(
+	path.dirname(fileURLToPath(import.meta.url)),
+	"..",
+	"..",
+);
+const bundledDeckSpecSchemaPath = path.join(
+	packageRootDir,
+	"spec",
+	"deck-spec.schema.json",
+);
 
 function makeError(
 	pathValue: string,
@@ -360,7 +372,13 @@ function validateDeckSpecRules(
 	context: ValidationContext,
 ): DeckSpecValidationError[] {
 	const errors: DeckSpecValidationError[] = [];
-	const projectSlugFromDir = path.basename(context.projectDir);
+	const projectSlugFromContext =
+		typeof context.projectSlug === "string" && context.projectSlug.trim() !== ""
+			? context.projectSlug
+			: typeof context.projectDir === "string" &&
+				  context.projectDir.trim() !== ""
+				? path.basename(context.projectDir)
+				: plan.project_slug;
 
 	if (plan.target_slide_count !== plan.slides.length) {
 		errors.push(
@@ -371,11 +389,11 @@ function validateDeckSpecRules(
 		);
 	}
 
-	if (plan.project_slug !== projectSlugFromDir) {
+	if (plan.project_slug !== projectSlugFromContext) {
 		errors.push(
 			makeError(
 				"$.project_slug",
-				`project_slug must match the project directory basename "${projectSlugFromDir}".`,
+				`project_slug must match the project directory basename "${projectSlugFromContext}".`,
 			),
 		);
 	}
@@ -650,8 +668,23 @@ export async function validateDeckSpecFile(
 export async function validateDeckSpecFileFromPath(
 	canonicalSpecPath: string,
 ): Promise<DeckSpecValidationResult> {
+	const [schema, deckSpec] = await Promise.all([
+		readJsonFile(bundledDeckSpecSchemaPath, "deck-spec.schema.json"),
+		readJsonFile(canonicalSpecPath, "deck-spec.json"),
+	]);
 	const projectDir = path.resolve(path.dirname(canonicalSpecPath), "..");
-	return validateDeckSpecFile(projectDir);
+	const projectSlug =
+		typeof deckSpec === "object" &&
+		deckSpec !== null &&
+		"project_slug" in deckSpec &&
+		typeof (deckSpec as { project_slug?: unknown }).project_slug === "string"
+			? (deckSpec as { project_slug: string }).project_slug
+			: undefined;
+
+	return validateDeckSpecDocument(deckSpec, schema as object, {
+		projectDir,
+		projectSlug,
+	});
 }
 
 export async function runSpecValidateCli(

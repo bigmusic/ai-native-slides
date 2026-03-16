@@ -14,6 +14,10 @@ export const MODULE_DIAGNOSTICS_FILE_NAME = "diagnostics.json";
 export const MODULE_PRIMARY_CANDIDATE_FILE_NAME = "candidate.primary.json";
 export const MODULE_FALLBACK_CANDIDATE_FILE_NAME = "candidate.fallback.json";
 export const MODULE_REVIEW_FILE_NAME = "review.final.json";
+export const MODULE_GENERATED_ASSETS_MANIFEST_FILE_NAME =
+	"generated-assets.manifest.json";
+export const MODULE_MEDIA_RESULT_FILE_NAME = "media.result.json";
+export const MODULE_MEDIA_FAILURES_FILE_NAME = "media.failures.json";
 export const MODULE_REPORT_FILE_NAME = "report.md";
 
 type NodeStyleError = Error & {
@@ -104,6 +108,22 @@ export function resolveModuleFallbackCandidatePath(
 
 export function resolveModuleReviewPath(artifactRootDir: string): string {
 	return path.join(artifactRootDir, MODULE_REVIEW_FILE_NAME);
+}
+
+export function resolveModuleGeneratedAssetsManifestPath(
+	artifactRootDir: string,
+): string {
+	return path.join(artifactRootDir, MODULE_GENERATED_ASSETS_MANIFEST_FILE_NAME);
+}
+
+export function resolveModuleMediaResultPath(artifactRootDir: string): string {
+	return path.join(artifactRootDir, MODULE_MEDIA_RESULT_FILE_NAME);
+}
+
+export function resolveModuleMediaFailuresPath(
+	artifactRootDir: string,
+): string {
+	return path.join(artifactRootDir, MODULE_MEDIA_FAILURES_FILE_NAME);
 }
 
 export function resolveModuleReportPath(artifactRootDir: string): string {

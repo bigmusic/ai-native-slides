@@ -117,12 +117,12 @@ The skill exists to keep orchestration and deck authoring outside the planning m
   - write the fixed artifact bundle for every run
 - Project wrapper responsibilities:
   - discover deck-root and project-root context
-  - choose default `canonicalSpecPath` and `artifactRootDir`
+  - choose default `canonicalSpecPath`, `artifactRootDir`, and `mediaOutputDir`
   - forward `spec` and `spec:validate` into the shared package
-  - keep deterministic build and media commands separate from planning
+  - keep deterministic build separate from planning and media
 - Gemini responsibilities:
   - spec generation inside the shared `deck-spec-module`
-  - image generation during `pnpm media`
+  - image generation during `pnpm spec`
   - no deck composition
 - Human responsibilities:
   - review the final deliverables after the skill-owned session finishes
@@ -133,11 +133,11 @@ The skill exists to keep orchestration and deck authoring outside the planning m
 
 The current workflow hard-cuts planning and contract validation into the shared package at `<deck-root>/packages/deck-spec-module/`:
 
-- `pnpm spec -- --prompt "<prompt>"` is the main path. The project wrapper forwards into the shared CLI with explicit `--canonical-spec-path` and `--artifact-root-dir` values, and that CLI forwards into `runDeckSpecModule({ prompt, projectSlug, apiKey, model?, seed?, paths: { canonicalSpecPath, artifactRootDir } })`.
+- `pnpm spec -- --prompt "<prompt>"` is the main path. The project wrapper forwards into the shared CLI with explicit `--canonical-spec-path`, `--artifact-root-dir`, and `--media-output-dir` values, and that CLI forwards into `runDeckSpecModule({ prompt, projectSlug, apiKey, model?, seed?, paths: { canonicalSpecPath, artifactRootDir, mediaOutputDir }, media?: { enabled?: boolean } })`.
 - The official validate entrypoint is `runDeckSpecValidateModule({ canonicalSpecPath, reportPath? })`.
-- The shared module is writer-first and stateless. It owns planning, canonicalization, structural validation, semantic review, one repair retry, canonical spec publish, and artifact-bundle writes.
+- The shared module is writer-first and stateless. It owns planning, canonicalization, structural validation, semantic review, one repair retry, canonical spec publish, media materialization, and artifact-bundle writes.
 - The shared module does not discover the active project, infer runtime output locations, or depend on project-local mutable state.
-- The project wrapper owns deck-root / project-root discovery and default path selection for `canonicalSpecPath` and `artifactRootDir`.
+- The project wrapper owns deck-root / project-root discovery and default path selection for `canonicalSpecPath`, `artifactRootDir`, and `mediaOutputDir`.
 - The shared module and CLI do not infer runtime output locations anymore. If the caller does not pass explicit output paths, the CLI fails fast.
 - The shared module rejects runtime output paths that point back into its own package directory.
 - Every prompt-driven run writes the same fixed bundle under the caller-provided artifact root:
@@ -146,15 +146,18 @@ The current workflow hard-cuts planning and contract validation into the shared 
   - `candidate.primary.json`
   - `candidate.fallback.json`
   - `review.final.json`
+  - `generated-assets.manifest.json`
+  - `media.result.json`
+  - `media.failures.json`
   - `report.md`
-- On success, the module publishes the canonical spec plus artifacts. On failure, the canonical target stays untouched and the failure is reported through typed error codes plus artifact diagnostics.
+- On success, the module publishes the canonical spec plus artifacts. On pre-publish failure, the canonical target stays untouched. On post-publish media failure, the canonical spec remains published at `reviewed` and the failure is reported through typed error codes plus artifact diagnostics.
 - The project scaffold keeps only thin wrappers plus project-specific content:
   - `src/spec/*`
-  - `src/deck-spec-module/media/*`
-  - `src/asset-pipeline/*`
+  - `src/media/generatedImagePaths.ts`
 - There is no supported `--debug` mode and no supported value-only planner API.
+- `pnpm spec` runs planning plus media by default. `--no-media` is the explicit escape hatch when you need canonical spec publish without image generation.
 - `pnpm spec:validate` remains structural validation only. It validates the canonical `spec/deck-spec.json` and does not generate media or revise project content.
-- `pnpm spec:live -- <project-dir> --tmp-root-dir "<path>" --prompt "<prompt>" [--label "<name>"]` is the opt-in provider-backed acceptance command from the deck root. It writes only to the caller-selected temp root and does not mutate the project canonical spec.
+- `pnpm spec:live -- <project-dir> --tmp-root-dir "<path>" --prompt "<prompt>" [--label "<name>"] [--no-media]` is the opt-in provider-backed acceptance command from the deck root. It writes only to the caller-selected temp root and does not mutate the project canonical spec.
 - Validation/eval, not exact byte-for-byte determinism, is the success bar for model-generated spec content.
 
 Human review is intentionally late in the loop: inspect the final `.pptx`, the source, the generated media, and the validation outputs after the skill finishes, then send revision feedback as a new `Revise project <slug>` prompt if another run is needed.
@@ -174,7 +177,7 @@ This keeps the skill repo reusable and keeps deck-specific artifacts out of the 
 
 ### Nano Banana Provider
 
-The current image workflow already exists through `pnpm media` with Gemini as the v1 provider.
+The current image workflow now runs through `pnpm spec` with Gemini as the v1 provider.
 
 If another provider such as Nano Banana is added later, it should remain an optional secondary provider behind the same project-level `media/generated-images/` contract:
 

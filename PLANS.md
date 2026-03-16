@@ -16,9 +16,8 @@ For module-internal design detail, use `/Volumes/BiGROG/skills-test/ai-native-sl
   - keep the skill repo as the reusable source of truth
 - Current implemented boundary:
   - shared runtime lives at `<deck-root>/packages/deck-spec-module/`
-  - that shared runtime is currently a stateless black box for prompt-driven spec planning, canonicalization, validation, semantic review, publish, and artifact writing
-  - Gemini image generation still lives in project-local code under `src/asset-pipeline/*`
-  - project-local planner/runtime code under `src/deck-spec-module/{planning,reviewing,...}` is already retired
+  - that shared runtime is currently a stateless black box for prompt-driven spec planning, canonicalization, validation, semantic review, canonical publish, media materialization, and artifact writing
+  - project-local planner/runtime code under `src/deck-spec-module/{planning,reviewing,...}` and the legacy `src/asset-pipeline/*` surface are retired
 - Newly requested boundary change:
   - Gemini text-to-image generation should move into the same shared black box as prompt-driven spec planning
   - the black box should own both canonical-spec publish and media materialization as one prompt-owned session
@@ -47,7 +46,7 @@ The operator path must become:
 5. run `pnpm lint`, `pnpm typecheck`, `pnpm test`, and `pnpm build`
 6. optionally run `pnpm spec:live -- <project-dir> --tmp-root-dir "<path>" --prompt "<prompt>" [--label "<name>"]`
 7. run `pnpm validate` in a local terminal when LibreOffice-backed checks are required
-8. during migration only, allow `pnpm media` as a compatibility wrapper into the shared package until the operator-facing surface is simplified
+8. use `--no-media` only when a deterministic or debug loop must skip image generation explicitly
 
 Session rules that remain in scope:
 
@@ -104,10 +103,9 @@ The target runtime contract must be:
 
 Current open gaps:
 
-- deterministic local validation is green for the current spec-only shared black-box flow
+- deterministic local validation is green for the integrated spec-plus-media shared black-box flow
 - one successful provider-backed `pnpm spec:live` run is still required
-- media ownership is still split between the shared package and project-local `src/asset-pipeline/*`
-- current docs still describe `pnpm media` as a separate project-local phase because the new contract is not implemented yet
+- provider-backed acceptance is still exposed to network/model instability
 
 ## Progress
 
@@ -122,8 +120,10 @@ Current open gaps:
 - [x] 2026-03-15 15:57 PDT: expanded this execution plan to cover shared black-box media materialization, phase-aware publish semantics, unified run artifacts, and the requirement for a dedicated design note instead of a second `PLANS.md`.
 - [x] 2026-03-15 16:08 PDT: moved the black-box design note to `/Volumes/BiGROG/skills-test/ai-native-slides/DECK-SPEC-MODULE-MATERIALIZATION.md` so it is clearly maintainer-facing and no longer mixed into user-facing `references/`.
 - [x] 2026-03-15 16:12 PDT: clarified in `PLANS.md` that `DECK-SPEC-MODULE-MATERIALIZATION.md` is the maintainer-only companion design reference for black-box development and should not be surfaced through `SKILL.md`.
-- [ ] 2026-03-15 15:09 PDT: provider-backed acceptance is still open. Current `spec:live` attempts reached the provider path but failed with `planning_failed` (`fetch failed`) and `contract_validation_failed` after fallback repair.
-- [ ] 2026-03-15 15:57 PDT: the design and migration work for moving Gemini text-to-image into the shared black box has started, but the contract, wrappers, tests, and docs are not yet implemented.
+- [x] 2026-03-15 16:30 PDT: implemented the shared-media migration. The shared package now owns media materialization, project-local `asset-pipeline` is retired, `pnpm media` is removed, and `pnpm spec` owns the media phase by default with an explicit `--no-media` escape hatch.
+- [x] 2026-03-15 22:38 PDT: closed the remaining deterministic gaps. Added coverage for rerun-after-partial-media-failure recovery, live-smoke temp path isolation, and pre-publish canonical non-mutation, then refreshed the demo deck root and reran the shared package matrix successfully.
+- [x] 2026-03-15 22:38 PDT: fixed `validateDeckSpecFileFromPath(...)` so temp live-smoke canonical specs validate against the bundled schema and the document's own `project_slug`, instead of incorrectly assuming the temp run root is the project root.
+- [ ] 2026-03-15 22:41 PDT: provider-backed acceptance is still open. `pnpm spec:live` passed deterministic temp-path checks locally, but a sandboxed run failed with `planning_failed` / `fetch failed`, and an escalated rerun still failed before a successful end-to-end publish after producing a primary candidate artifact bundle.
 
 ## Plan of Work
 
@@ -147,7 +147,7 @@ Goal:
 
 - shared package owns provider-env lookup, prompt compilation, image generation, normalization, image writes, spec status updates, and media result artifacts
 - project wrappers stay responsible only for deck-root / project-root discovery and default path selection
-- the project-local `pnpm media` surface becomes a compatibility wrapper or is retired cleanly
+- the project-local `pnpm media` surface is retired cleanly
 
 Validation:
 
@@ -181,43 +181,41 @@ Validation:
 - [x] Add and document root-level `pnpm spec:live`.
 - [x] Keep deck authoring in the same session after planning succeeds: revise `src/buildDeck.ts`, `src/presentationModel.ts`, project tests, then run lint/typecheck/test/build.
 - [x] Add a dedicated maintainer-facing design note at `/Volumes/BiGROG/skills-test/ai-native-slides/DECK-SPEC-MODULE-MATERIALIZATION.md` for the revised `deck-spec-module` materialization contract.
-- [ ] Move project-local media generation orchestration into the shared package while reusing the existing provider and normalization code where practical.
-- [ ] Introduce explicit shared-module support for `mediaOutputDir` while preserving explicit caller-owned output selection.
-- [ ] Extend the shared API, CLI wiring, and artifact manifest so spec planning and media materialization are reported in one run.
-- [ ] Decide and implement the compatibility story for `pnpm media`:
-  - short term: wrapper that forwards into the shared package
-  - later: remove or de-emphasize the separate command after operator docs are updated
-- [ ] Preserve pre-publish non-mutation guarantees:
+- [x] Move project-local media generation orchestration into the shared package while reusing the existing provider and normalization code where practical.
+- [x] Introduce explicit shared-module support for `mediaOutputDir` while preserving explicit caller-owned output selection.
+- [x] Extend the shared API, CLI wiring, and artifact manifest so spec planning and media materialization are reported in one run.
+- [x] Retire `pnpm media` and make `pnpm spec` the only provider-backed project command:
+  - `pnpm spec` runs planning plus media by default
+  - `--no-media` is the only supported escape hatch
+- [x] Preserve pre-publish non-mutation guarantees:
   - planning, validation, and semantic-review failures must leave the canonical target untouched
-- [ ] Preserve recoverable post-publish media behavior:
+- [x] Preserve recoverable post-publish media behavior:
   - if media fails after canonical publish, keep the canonical spec at `reviewed`
   - successful image assets may already exist in the publish directory
   - retries must be safe and overwrite manifest-owned outputs deterministically
-- [ ] Add deterministic shared-package coverage for:
+- [x] Add deterministic shared-package coverage for:
   - no required images
   - all required images generated successfully
   - partial image-generation failure
   - provider-env resolution failure
   - rerun after partial media success
   - temp live-smoke path isolation
-- [ ] Update project templates and wrappers so media generation is no longer orchestrated from project-local business logic.
+- [x] Update project templates and wrappers so media generation is no longer orchestrated from project-local business logic.
 - [ ] Inspect repeated live-smoke artifact drift and decide whether prompt hardening alone is enough or a deterministic repair pass is required.
 - [ ] Rerun one successful provider-backed `pnpm spec:live` when provider/network conditions permit.
-- [ ] After the new contract lands, sync `README.md`, `SKILL.md`, and `references/project-workflow.md` to the updated surface.
+- [x] After the new contract lands, sync `README.md`, `SKILL.md`, and `references/project-workflow.md` to the updated surface.
 
 ## Validation and Acceptance
 
-Deterministic validation verified on 2026-03-15 for the current spec-only shared-runtime contract:
+Deterministic validation verified on 2026-03-15 for the integrated spec-plus-media shared-runtime contract:
 
-- `bash /Volumes/BiGROG/skills-test/ai-native-slides/scripts/ensure_deck_root.sh /Volumes/BiGROG/skills-test/ai-education-deck --json`
-- `bash /Volumes/BiGROG/skills-test/ai-native-slides/scripts/ensure_deck_project.sh /Volumes/BiGROG/skills-test/ai-education-deck/projects/ai-native-product-deck --json`
-- `cd /Volumes/BiGROG/skills-test/ai-education-deck/packages/deck-spec-module && ../../node_modules/.bin/tsc --noEmit -p tsconfig.json`
-- `cd /Volumes/BiGROG/skills-test/ai-education-deck/packages/deck-spec-module && ../../node_modules/.bin/vitest run tests/deckSpecCli.test.ts tests/deckSpecModule.test.ts tests/deckSpecContract.test.ts tests/deckSpecReviewing.test.ts`
-- `cd /Volumes/BiGROG/skills-test/ai-education-deck && node --import tsx -e 'import { runDeckSpecValidateModule } from "./packages/deck-spec-module/src/public-api.ts"; await runDeckSpecValidateModule({ canonicalSpecPath: "./projects/ai-native-product-deck/spec/deck-spec.json", reportPath: "./tmp/review-deck-spec-validate-report-20260315T1458.md" }); console.log("validate ok")'`
+- `bash /Volumes/BiGROG/skills-test/ai-native-slides/scripts/init_deck_root.sh /Volumes/BiGROG/skills-test/ai-education-deck`
+- `bash /Volumes/BiGROG/skills-test/ai-native-slides/scripts/init_deck_project.sh /Volumes/BiGROG/skills-test/ai-education-deck ai-native-product-deck`
+- `cd /Volumes/BiGROG/skills-test/ai-education-deck/packages/deck-spec-module && pnpm exec tsc --noEmit -p tsconfig.json`
+- `cd /Volumes/BiGROG/skills-test/ai-education-deck/packages/deck-spec-module && pnpm exec vitest run tests/deckSpecCli.test.ts tests/deckSpecLiveSmoke.test.ts tests/deckSpecModule.test.ts tests/deckSpecContract.test.ts tests/deckSpecReviewing.test.ts tests/deckSpecMedia.test.ts`
 - `cd /Volumes/BiGROG/skills-test/ai-education-deck/projects/ai-native-product-deck && pnpm lint`
 - `cd /Volumes/BiGROG/skills-test/ai-education-deck/projects/ai-native-product-deck && pnpm typecheck`
 - `cd /Volumes/BiGROG/skills-test/ai-education-deck/projects/ai-native-product-deck && pnpm test`
-- `cd /Volumes/BiGROG/skills-test/ai-education-deck/projects/ai-native-product-deck && pnpm test -- --run tests/promptSpecWorkflow.test.ts`
 - `cd /Volumes/BiGROG/skills-test/ai-education-deck/projects/ai-native-product-deck && pnpm build`
 - `cd /Volumes/BiGROG/skills-test/ai-education-deck/projects/ai-native-product-deck && pnpm spec:validate`
 - `cd /Volumes/BiGROG/skills-test/ai-education-deck/projects/ai-native-product-deck && pnpm validate`
@@ -228,9 +226,15 @@ Provider-backed acceptance status on 2026-03-15 for the current contract:
   - `cd /Volumes/BiGROG/skills-test/ai-education-deck && pnpm spec:live -- projects/ai-native-product-deck --tmp-root-dir "./tmp/deck-spec-module-live/ai-native-product-deck" --prompt "Create a six-slide deck about shared deck-spec black-box planning, validation, semantic review, and deterministic build delivery." --label "black-box-refactor-acceptance-escalated"`
 - simpler-prompt retry:
   - `cd /Volumes/BiGROG/skills-test/ai-education-deck && pnpm spec:live -- projects/ai-native-product-deck --tmp-root-dir "./tmp/deck-spec-module-live/ai-native-product-deck" --prompt "Create a simple six-slide deck about canonical deck-spec planning, structural validation, semantic review, media generation, and deterministic build delivery. Keep the slide structure concrete and simple." --label "black-box-refactor-acceptance-simple"`
+- sandboxed retry after validator/path fix:
+  - `cd /Volumes/BiGROG/skills-test/ai-education-deck && pnpm spec:live -- projects/ai-native-product-deck --tmp-root-dir "./tmp/deck-spec-module-live/ai-native-product-deck" --prompt "Create a simple six-slide deck about canonical deck-spec planning, structural validation, semantic review, media generation, and deterministic build delivery. Keep the slide structure concrete and simple." --label "media-phase-acceptance-20260315"`
+- escalated retry after validator/path fix:
+  - `cd /Volumes/BiGROG/skills-test/ai-education-deck && pnpm spec:live -- projects/ai-native-product-deck --tmp-root-dir "./tmp/deck-spec-module-live/ai-native-product-deck" --prompt "Create a simple six-slide deck about canonical deck-spec planning, structural validation, semantic review, media generation, and deterministic build delivery. Keep the slide structure concrete and simple." --label "media-phase-acceptance-20260315-escalated"`
 - observed outcomes:
   - one run reached the provider and failed with `contract_validation_failed`
   - multiple runs failed with `planning_failed` / `fetch failed`
+  - after the validator/path fix, the sandboxed run still failed with `planning_failed` / `fetch failed`
+  - after the validator/path fix, the escalated run emitted a primary candidate artifact bundle, but the overall live smoke still failed with `planning_failed` / `fetch failed` before a successful fallback/provider completion
   - temp artifacts were written under `/Volumes/BiGROG/skills-test/ai-education-deck/tmp/deck-spec-module-live/ai-native-product-deck/`
 
 Acceptance bar for the revised contract:
@@ -254,7 +258,6 @@ Acceptance bar for the revised contract:
   - reruns may overwrite manifest-owned generated files
   - reruns do not need destructive cleanup before regeneration
   - phase-1 migration does not delete historical extra files automatically
-- `pnpm media` remains safe to rerun during the compatibility window because it will forward into the same shared logic.
 - `pnpm spec:live` is safe to rerun. It writes into a timestamped directory under the caller-selected `--tmp-root-dir`.
 - If a provider-backed run fails, inspect the emitted artifact bundle first. Do not manually patch canonical project files as a workaround.
 - If media fails after canonical publish, recovery is a rerun of the shared module, not manual JSON patching or manual image-file bookkeeping.
@@ -270,6 +273,8 @@ Acceptance bar for the revised contract:
 - 2026-03-15: Gemini image generation will move into the shared black box, but canonical spec and generated media will keep distinct phase semantics for recovery and reporting.
 - 2026-03-15: phase 1 of the migration keeps project-facing publish paths stable and explicit (`spec/deck-spec.json` and `media/generated-images/`) instead of immediately collapsing everything into a single new run-root abstraction.
 - 2026-03-15: the black-box design note belongs at the skill repo root, not under `references/`, because `references/` is reserved for user-facing workflow and helper documents.
+- 2026-03-15: the legacy project-local `src/asset-pipeline/*` surface will be removed entirely instead of preserved as a compatibility shim.
+- 2026-03-15: `pnpm media` will be retired instead of preserved as a wrapper; `pnpm spec` becomes the default end-to-end provider-backed entrypoint, with `--no-media` retained only for explicit skip/debug cases.
 
 ## Surprises and Discoveries
 
@@ -277,6 +282,9 @@ Acceptance bar for the revised contract:
 - Repeated live-smoke artifacts showed concrete schema drift patterns:
   - `card` blocks emitted with `text_asset_id` instead of `title_asset_id` + `body_asset_id`
   - `metric` blocks emitted with `text_asset_id` instead of `value_asset_id` + `label_asset_id`
+- The original path-based validation helper was too project-layout-specific for live smoke:
+  - `runDeckSpecValidateModule()` assumed `canonicalSpecPath` always lived under a real project root with a sibling `spec/deck-spec.schema.json`
+  - temp live-smoke runs needed bundled-schema validation plus `project_slug`-aware context instead
 - Provider-backed failure modes already split into two different classes and must stay distinguished:
   - external failure: `planning_failed` / `fetch failed`
   - contract failure: `contract_validation_failed` after fallback repair
@@ -286,7 +294,7 @@ Acceptance bar for the revised contract:
 
 ## Outcomes and Retrospective
 
-- The shared `deck-spec-module` runtime is already the real stateless black-box planner/validator boundary for canonical spec generation.
+- The shared `deck-spec-module` runtime is already the real stateless black-box planner/validator/media boundary for canonical spec generation and media materialization.
 - The demo project is reduced to project content plus thin wrappers and still validates end to end in the deterministic path.
-- Root/project preflight, docs, and scaffold boundaries now match the current implemented spec-only contract.
-- The next step is broader than prompt hardening alone: absorb Gemini text-to-image into the shared black box without losing caller-owned path control, non-mutating pre-publish failure behavior, or recoverable post-publish media retries.
+- Root/project preflight, docs, and scaffold boundaries now match the current implemented spec-plus-media contract.
+- The next remaining step is provider-backed acceptance: prove one successful `pnpm spec:live` run without losing caller-owned path control, non-mutating pre-publish failure behavior, or recoverable post-publish media retries.

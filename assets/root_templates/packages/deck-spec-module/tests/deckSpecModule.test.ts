@@ -2,11 +2,13 @@ import { chmod, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import sharp from "sharp";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import deckSpecSchema from "../spec/deck-spec.schema.json" with {
 	type: "json",
 };
 import { generateDeckSpecCandidateWithGemini } from "../src/deck-spec-module/planning/geminiPlannerModel.js";
+import { generateImageWithGemini } from "../src/deck-spec-module/media/geminiImageProvider.js";
 import { buildInitialPlannerPrompt } from "../src/deck-spec-module/planning/plannerPrompt.js";
 import {
 	runDeckSpecModule,
@@ -14,6 +16,9 @@ import {
 import type { DeckSpec, DeckSpecCandidate } from "../src/spec/contract.js";
 import {
 	resolveModuleDiagnosticsPath,
+	resolveModuleGeneratedAssetsManifestPath,
+	resolveModuleMediaFailuresPath,
+	resolveModuleMediaResultPath,
 	resolveModulePrimaryCandidatePath,
 	resolveModuleReportPath,
 	resolveModuleResultPath,
@@ -28,10 +33,14 @@ import { createProjectTempDir } from "./testTempDir.js";
 vi.mock("../src/deck-spec-module/planning/geminiPlannerModel.js", () => ({
 	generateDeckSpecCandidateWithGemini: vi.fn(),
 }));
+vi.mock("../src/deck-spec-module/media/geminiImageProvider.js", () => ({
+	generateImageWithGemini: vi.fn(),
+}));
 
 const mockedGenerateDeckSpecCandidateWithGemini = vi.mocked(
 	generateDeckSpecCandidateWithGemini,
 );
+const mockedGenerateImageWithGemini = vi.mocked(generateImageWithGemini);
 const tempDirs: string[] = [];
 const packageRoot = path.resolve(
 	path.dirname(fileURLToPath(import.meta.url)),
@@ -63,6 +72,17 @@ function expectReviewedCanonicalShape(deckSpec: DeckSpec): void {
 	).toBe(true);
 }
 
+function expectMediaReadyCanonicalShape(deckSpec: DeckSpec): void {
+	expect(deckSpec.spec_version).toBe("1.0.0");
+	expect(deckSpec.status).toBe("media_ready");
+	expect(deckSpec.target_slide_count).toBe(deckSpec.slides.length);
+	expect(
+		validateDeckSpecDocument(deckSpec, deckSpecSchema as object, {
+			projectDir: "/virtual/test-project",
+		}).ok,
+	).toBe(true);
+}
+
 async function readJsonFile<T>(filePath: string): Promise<T> {
 	return JSON.parse(await readFile(filePath, "utf8")) as T;
 }
@@ -70,6 +90,7 @@ async function readJsonFile<T>(filePath: string): Promise<T> {
 async function createModulePaths(projectSlug = "test-project"): Promise<{
 	canonicalSpecPath: string;
 	artifactRootDir: string;
+	mediaOutputDir: string;
 }> {
 	const tempRoot = await createProjectTempDir(packageRoot, "deck-spec-module");
 	tempDirs.push(tempRoot);
@@ -82,7 +103,33 @@ async function createModulePaths(projectSlug = "test-project"): Promise<{
 			"deck-spec.json",
 		),
 		artifactRootDir: path.join(tempRoot, "artifacts"),
+		mediaOutputDir: path.join(
+			tempRoot,
+			projectSlug,
+			"media",
+			"generated-images",
+		),
 	};
+}
+
+async function createMockImageBuffer(background: {
+	r: number;
+	g: number;
+	b: number;
+}): Promise<Buffer> {
+	return sharp({
+		create: {
+			width: 96,
+			height: 96,
+			channels: 4,
+			background: {
+				...background,
+				alpha: 1,
+			},
+		},
+	})
+		.png()
+		.toBuffer();
 }
 
 function createAudienceFramingCandidate(plan: DeckSpec): DeckSpecCandidate {
@@ -213,6 +260,9 @@ describe("deck-spec-module public API", () => {
 			projectSlug: "test-project",
 			apiKey: "test-key",
 			paths,
+			media: {
+				enabled: false,
+			},
 		});
 		const deckSpec = await readJsonFile<DeckSpec>(paths.canonicalSpecPath);
 
@@ -233,6 +283,133 @@ describe("deck-spec-module public API", () => {
 		).toContain("Deck-Spec Module Run");
 	});
 
+	it("materializes generated media into caller-owned output paths during the default spec run", async () => {
+		const baselinePlan = await loadDeckSpecBaselinePlan();
+		const paths = await createModulePaths();
+		mockedGenerateDeckSpecCandidateWithGemini.mockResolvedValue(
+			createPlanCandidateFromScenarioPlan(baselinePlan),
+		);
+		mockedGenerateImageWithGemini.mockImplementation(async () => ({
+			imageBytes: await createMockImageBuffer({
+				r: 40,
+				g: 96,
+				b: 152,
+			}),
+			mimeType: "image/png",
+			model: "mock-gemini-image",
+		}));
+
+		await runDeckSpecModule({
+			prompt:
+				"Create a six-slide deck about canonical spec planning, semantic review, media generation, and deterministic build delivery.",
+			projectSlug: "test-project",
+			apiKey: "test-key",
+			paths,
+		});
+		const deckSpec = await readJsonFile<DeckSpec>(paths.canonicalSpecPath);
+
+		expect(mockedGenerateImageWithGemini).toHaveBeenCalledTimes(
+			baselinePlan.asset_manifest.image_assets.length +
+				baselinePlan.asset_manifest.shared_assets.length,
+		);
+		expectMediaReadyCanonicalShape(deckSpec);
+		expect(
+			deckSpec.asset_manifest.image_assets.every(
+				(asset) => asset.status === "generated",
+			),
+		).toBe(true);
+		expect(
+			deckSpec.asset_manifest.shared_assets.every(
+				(asset) => asset.status === "generated",
+			),
+		).toBe(true);
+		expect(
+			await readJsonFile<{ status: string }>(
+				resolveModuleMediaResultPath(paths.artifactRootDir),
+			),
+		).toMatchObject({
+			status: "passed",
+			final_spec_status: "media_ready",
+		});
+		expect(
+			await readJsonFile<Array<{ asset_id: string; exists: boolean }>>(
+				resolveModuleGeneratedAssetsManifestPath(paths.artifactRootDir),
+			),
+		).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					asset_id: baselinePlan.asset_manifest.image_assets[0]?.asset_id,
+					exists: true,
+				}),
+			]),
+		);
+	});
+
+	it("supports no-media runs without requiring a media output path", async () => {
+		const baselinePlan = await loadDeckSpecBaselinePlan();
+		mockedGenerateDeckSpecCandidateWithGemini.mockResolvedValue(
+			createPlanCandidateFromScenarioPlan(baselinePlan),
+		);
+
+		const tempPaths = await createModulePaths();
+		const { mediaOutputDir: _unusedMediaOutputDir, ...paths } = tempPaths;
+
+		await runDeckSpecModule({
+			prompt:
+				"Create a six-slide deck about canonical spec planning, semantic review, media generation, and deterministic build delivery.",
+			projectSlug: "test-project",
+			apiKey: "test-key",
+			paths,
+			media: {
+				enabled: false,
+			},
+		});
+		const deckSpec = await readJsonFile<DeckSpec>(paths.canonicalSpecPath);
+
+		expect(mockedGenerateImageWithGemini).not.toHaveBeenCalled();
+		expectReviewedCanonicalShape(deckSpec);
+		expect(
+			await readJsonFile<{ status: string; enabled: boolean }>(
+				resolveModuleMediaResultPath(paths.artifactRootDir),
+			),
+		).toMatchObject({
+			status: "skipped",
+			enabled: false,
+			final_spec_status: "reviewed",
+		});
+	});
+
+	it("promotes reviewed specs with no required images directly to media_ready", async () => {
+		const baselinePlan = await loadDeckSpecBaselinePlan();
+		const noRequiredMediaPlan = structuredClone(baselinePlan);
+		noRequiredMediaPlan.asset_manifest.image_assets =
+			noRequiredMediaPlan.asset_manifest.image_assets.map((asset) => ({
+				...asset,
+				required: false,
+			}));
+		noRequiredMediaPlan.asset_manifest.shared_assets =
+			noRequiredMediaPlan.asset_manifest.shared_assets.map((asset) => ({
+				...asset,
+				required: false,
+			}));
+		const paths = await createModulePaths();
+		mockedGenerateDeckSpecCandidateWithGemini.mockResolvedValue(
+			createPlanCandidateFromScenarioPlan(noRequiredMediaPlan),
+		);
+
+		await runDeckSpecModule({
+			prompt:
+				"Create a six-slide deck about canonical spec planning without required generated visuals.",
+			projectSlug: "test-project",
+			apiKey: "test-key",
+			paths,
+		});
+		const deckSpec = await readJsonFile<DeckSpec>(paths.canonicalSpecPath);
+
+		expect(mockedGenerateImageWithGemini).not.toHaveBeenCalled();
+		expectMediaReadyCanonicalShape(deckSpec);
+	});
+
 	it("uses one internal repair attempt when the first candidate fails semantic review", async () => {
 		const baselinePlan = await loadDeckSpecBaselinePlan();
 		const paths = await createModulePaths();
@@ -246,6 +423,9 @@ describe("deck-spec-module public API", () => {
 			projectSlug: "test-project",
 			apiKey: "test-key",
 			paths,
+			media: {
+				enabled: false,
+			},
 		});
 		const deckSpec = await readJsonFile<DeckSpec>(paths.canonicalSpecPath);
 
@@ -331,6 +511,193 @@ describe("deck-spec-module public API", () => {
 		});
 	});
 
+	it("keeps the canonical spec published at reviewed when later media generation fails", async () => {
+		const baselinePlan = await loadDeckSpecBaselinePlan();
+		const paths = await createModulePaths();
+		mockedGenerateDeckSpecCandidateWithGemini.mockResolvedValue(
+			createPlanCandidateFromScenarioPlan(baselinePlan),
+		);
+		mockedGenerateImageWithGemini.mockImplementation(async (request) => {
+			if (request.prompt.includes("Stable build visual")) {
+				throw new Error("mock Gemini failure");
+			}
+
+			return {
+				imageBytes: await createMockImageBuffer({
+					r: 64,
+					g: 96,
+					b: 144,
+				}),
+				mimeType: "image/png",
+				model: "mock-gemini-image",
+			};
+		});
+
+		await expect(
+			runDeckSpecModule({
+				prompt:
+					"Create a six-slide deck about canonical spec planning, semantic review, media generation, and deterministic build delivery.",
+				projectSlug: "test-project",
+				apiKey: "test-key",
+				paths,
+			}),
+		).rejects.toMatchObject({
+			code: "media_generation_failed",
+		});
+
+		const deckSpec = await readJsonFile<DeckSpec>(paths.canonicalSpecPath);
+		expect(deckSpec.status).toBe("reviewed");
+		expect(
+			deckSpec.asset_manifest.image_assets.some(
+				(asset) => asset.status === "generated",
+			),
+		).toBe(true);
+		expect(
+			await readJsonFile<{ ok: boolean; failure?: { code: string } }>(
+				resolveModuleResultPath(paths.artifactRootDir),
+			),
+		).toMatchObject({
+			ok: false,
+			failure: {
+				code: "media_generation_failed",
+			},
+		});
+		expect(
+			await readJsonFile<Array<{ asset_id: string; message: string }>>(
+				resolveModuleMediaFailuresPath(paths.artifactRootDir),
+			),
+		).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					asset_id: expect.any(String),
+					message: "mock Gemini failure",
+				}),
+			]),
+		);
+	});
+
+	it("recovers to media_ready when rerun after a partial media failure on the same publish paths", async () => {
+		const baselinePlan = await loadDeckSpecBaselinePlan();
+		const paths = await createModulePaths();
+		let shouldFailOneStableBuildVisual = true;
+		mockedGenerateDeckSpecCandidateWithGemini.mockResolvedValue(
+			createPlanCandidateFromScenarioPlan(baselinePlan),
+		);
+		mockedGenerateImageWithGemini.mockImplementation(async (request) => {
+			if (
+				shouldFailOneStableBuildVisual &&
+				request.prompt.includes("Stable build visual")
+			) {
+				shouldFailOneStableBuildVisual = false;
+				throw new Error("mock Gemini failure");
+			}
+
+			return {
+				imageBytes: await createMockImageBuffer({
+					r: 48,
+					g: 104,
+					b: 160,
+				}),
+				mimeType: "image/png",
+				model: "mock-gemini-image",
+			};
+		});
+
+		await expect(
+			runDeckSpecModule({
+				prompt:
+					"Create a six-slide deck about canonical spec planning, semantic review, media generation, and deterministic build delivery.",
+				projectSlug: "test-project",
+				apiKey: "test-key",
+				paths,
+			}),
+		).rejects.toMatchObject({
+			code: "media_generation_failed",
+		});
+
+		const reviewedDeckSpec = await readJsonFile<DeckSpec>(paths.canonicalSpecPath);
+		expectReviewedCanonicalShape(reviewedDeckSpec);
+		expect(
+			reviewedDeckSpec.asset_manifest.image_assets.some(
+				(asset) => asset.status === "generated",
+			),
+		).toBe(true);
+
+		await runDeckSpecModule({
+			prompt:
+				"Create a six-slide deck about canonical spec planning, semantic review, media generation, and deterministic build delivery.",
+			projectSlug: "test-project",
+			apiKey: "test-key",
+			paths,
+		});
+
+		const recoveredDeckSpec = await readJsonFile<DeckSpec>(paths.canonicalSpecPath);
+		expectMediaReadyCanonicalShape(recoveredDeckSpec);
+		expect(
+			recoveredDeckSpec.asset_manifest.image_assets.every(
+				(asset) => asset.status === "generated",
+			),
+		).toBe(true);
+		expect(
+			recoveredDeckSpec.asset_manifest.shared_assets.every(
+				(asset) => asset.status === "generated",
+			),
+		).toBe(true);
+		expect(
+			await readJsonFile<{ ok: boolean }>(
+				resolveModuleResultPath(paths.artifactRootDir),
+			),
+		).toMatchObject({
+			ok: true,
+		});
+		expect(
+			await readJsonFile<Array<{ required: boolean; exists: boolean }>>(
+				resolveModuleGeneratedAssetsManifestPath(paths.artifactRootDir),
+			),
+		).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					required: true,
+					exists: true,
+				}),
+			]),
+		);
+	});
+
+	it("rejects package-internal output paths before planning starts", async () => {
+		await expect(
+			runDeckSpecModule({
+				prompt:
+					"Create a six-slide deck about canonical spec planning, semantic review, media generation, and deterministic build delivery.",
+				projectSlug: "test-project",
+				apiKey: "test-key",
+				paths: {
+					canonicalSpecPath: path.join(
+						packageRoot,
+						"tmp",
+						"forbidden",
+						"deck-spec.json",
+					),
+					artifactRootDir: path.join(
+						packageRoot,
+						"tmp",
+						"forbidden-artifacts",
+					),
+					mediaOutputDir: path.join(
+						packageRoot,
+						"tmp",
+						"forbidden-media",
+					),
+				},
+			}),
+		).rejects.toMatchObject({
+			code: "planning_failed",
+			message:
+				"canonicalSpecPath must be outside the deck-spec-module package directory.",
+		});
+		expect(mockedGenerateDeckSpecCandidateWithGemini).not.toHaveBeenCalled();
+	});
+
 	it("does not overwrite an existing canonical spec when the final publish step cannot write atomically", async () => {
 		const baselinePlan = await loadDeckSpecBaselinePlan();
 		const paths = await createModulePaths();
@@ -361,6 +728,48 @@ describe("deck-spec-module public API", () => {
 		expect(await readFile(paths.canonicalSpecPath, "utf8")).toBe(
 			previousCanonicalSpec,
 		);
+	});
+
+	it("keeps an existing canonical spec untouched when semantic review fails before publish", async () => {
+		const baselinePlan = await loadDeckSpecBaselinePlan();
+		const paths = await createModulePaths();
+		const existingCanonicalSpec = '{"sentinel":"keep-existing-prepublish-canonical"}\n';
+		mockedGenerateDeckSpecCandidateWithGemini
+			.mockResolvedValueOnce(
+				cloneCandidate(createPlanCandidateFromScenarioPlan(baselinePlan)),
+			)
+			.mockResolvedValueOnce(
+				cloneCandidate(createPlanCandidateFromScenarioPlan(baselinePlan)),
+			);
+
+		await mkdir(path.dirname(paths.canonicalSpecPath), { recursive: true });
+		await writeFile(paths.canonicalSpecPath, existingCanonicalSpec, "utf8");
+
+		await expect(
+			runDeckSpecModule({
+				prompt:
+					"Create a six-slide deck for operators that explicitly includes two audience framing slides before the workflow detail.",
+				projectSlug: "test-project",
+				apiKey: "test-key",
+				paths,
+			}),
+		).rejects.toMatchObject({
+			code: "semantic_review_failed",
+		});
+
+		expect(await readFile(paths.canonicalSpecPath, "utf8")).toBe(
+			existingCanonicalSpec,
+		);
+		expect(
+			await readJsonFile<{ ok: boolean; failure?: { code: string } }>(
+				resolveModuleResultPath(paths.artifactRootDir),
+			),
+		).toMatchObject({
+			ok: false,
+			failure: {
+				code: "semantic_review_failed",
+			},
+		});
 	});
 
 	it("keeps failure diagnostics path-free in both the thrown error and diagnostics artifact", async () => {

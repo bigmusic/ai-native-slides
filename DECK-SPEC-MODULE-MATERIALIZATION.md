@@ -317,7 +317,8 @@ Suggested meanings:
 Phase-1 operator-facing direction:
 
 - `pnpm spec -- --prompt "<prompt>"` becomes the primary end-to-end entrypoint
-- `pnpm media` becomes a compatibility wrapper into the shared package or is deprecated after the migration is stable
+- `pnpm media` is retired
+- `--no-media` is the only supported escape hatch for skipping the image phase
 - `pnpm spec:validate` remains structural validation of the canonical spec
 - `pnpm spec:live` should exercise planning plus media generation in temp paths only
 
@@ -343,10 +344,10 @@ It must not mutate:
 - keep project-facing publish paths unchanged
 - keep wrappers responsible only for path selection
 
-### Step 2: Convert `pnpm media` Into a Thin Compatibility Wrapper
+### Step 2: Retire `pnpm media`
 
-- keep operator workflows working during the transition
-- remove project-local business logic
+- remove the project-local command surface
+- keep `pnpm spec` as the only provider-backed operator entrypoint
 
 ### Step 3: Extend Tests and Reports
 

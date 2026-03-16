@@ -62,7 +62,7 @@ const PptxGenJS = require("pptxgenjs") as {
 	new (): Presentation;
 };
 const helperApi =
-	require("../../../asset-pipeline/pptxgenjs_helpers/index.js") as HelperApi;
+	require("../../../assets/pptxgenjs_helpers/index.js") as HelperApi;
 const {
 	autoFontSize,
 	calcTextBox,

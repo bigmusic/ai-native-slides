@@ -2,7 +2,7 @@
 set -euo pipefail
 
 usage() {
-  echo "Usage: $0 <media|build|lint|format|spec|spec:validate|typecheck|test|test:watch> [args...]" >&2
+  echo "Usage: $0 <build|lint|format|spec|spec:validate|typecheck|test|test:watch> [args...]" >&2
 }
 
 if [[ "$#" -lt 1 ]]; then
@@ -18,6 +18,7 @@ if [[ "${1:-}" == "--" ]]; then
 fi
 BUILD_DECK_TS="$PROJECT_DIR/src/buildDeck.ts"
 PRESENTATION_MODEL_TS="$PROJECT_DIR/src/presentationModel.ts"
+PROJECT_SLUG="$(basename "$PROJECT_DIR")"
 
 find_deck_root() {
   local current_dir
@@ -40,6 +41,10 @@ if [[ -z "$DECK_ROOT" ]]; then
   exit 1
 fi
 
+CANONICAL_SPEC_PATH="$PROJECT_DIR/spec/deck-spec.json"
+ARTIFACT_ROOT_DIR="$DECK_ROOT/tmp/deck-spec-module/$PROJECT_SLUG"
+MEDIA_OUTPUT_DIR="$PROJECT_DIR/media/generated-images"
+
 BIN_DIR="$DECK_ROOT/node_modules/.bin"
 if [[ ! -d "$BIN_DIR" ]]; then
   echo "Missing shared node_modules at: $DECK_ROOT/node_modules" >&2
@@ -57,12 +62,6 @@ project_tests_present() {
 }
 
 case "$ACTION" in
-  media)
-    (
-      cd "$PROJECT_DIR"
-      DECK_ROOT="$DECK_ROOT" node --import tsx src/asset-pipeline/generateMedia.ts "$@"
-    )
-    ;;
   build)
     if ! project_content_present; then
       echo "Project scaffold is ready, but deck content has not been generated yet." >&2
@@ -83,7 +82,7 @@ case "$ACTION" in
   spec)
     (
       cd "$PROJECT_DIR"
-      DECK_ROOT="$DECK_ROOT" node --import tsx "$DECK_ROOT/packages/deck-spec-module/src/cli/runSpecCli.ts" "$PROJECT_DIR" "$@"
+      DECK_ROOT="$DECK_ROOT" node --import tsx "$DECK_ROOT/packages/deck-spec-module/src/cli/runSpecCli.ts" "$PROJECT_DIR" --canonical-spec-path "$CANONICAL_SPEC_PATH" --artifact-root-dir "$ARTIFACT_ROOT_DIR" --media-output-dir "$MEDIA_OUTPUT_DIR" "$@"
     )
     ;;
   lint)

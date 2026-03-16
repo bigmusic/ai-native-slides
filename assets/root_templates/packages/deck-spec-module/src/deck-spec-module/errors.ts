@@ -6,6 +6,7 @@ export const deckSpecPlanningErrorCodes = [
 	"planning_failed",
 	"semantic_review_failed",
 	"contract_validation_failed",
+	"media_generation_failed",
 ] as const;
 
 export type DeckSpecPlanningErrorCode =

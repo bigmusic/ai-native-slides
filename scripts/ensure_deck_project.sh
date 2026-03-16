@@ -57,18 +57,13 @@ PACKAGE_JSON="${PROJECT_DIR}/package.json"
 TSCONFIG_JSON="${PROJECT_DIR}/tsconfig.json"
 VITEST_CONFIG="${PROJECT_DIR}/vitest.config.ts"
 SRC_MAIN_TS="${PROJECT_DIR}/src/main.ts"
-MEDIA_PROVIDER_TS="${PROJECT_DIR}/src/deck-spec-module/media/geminiImageProvider.ts"
-MEDIA_PROVIDER_ENV_TS="${PROJECT_DIR}/src/deck-spec-module/media/providerEnv.ts"
-MEDIA_PROVIDER_PROMPT_TS="${PROJECT_DIR}/src/deck-spec-module/media/providerPrompt.ts"
+MEDIA_PATHS_TS="${PROJECT_DIR}/src/media/generatedImagePaths.ts"
 SPEC_CONTRACT_TS="${PROJECT_DIR}/src/spec/contract.ts"
 SPEC_DERIVE_TS="${PROJECT_DIR}/src/spec/deriveOutputFileName.ts"
 SPEC_NORMALIZE_TS="${PROJECT_DIR}/src/spec/normalizeSystemManagedFields.ts"
 SPEC_RUN_TS="${PROJECT_DIR}/src/spec/runDeckSpec.ts"
 SPEC_READ_TS="${PROJECT_DIR}/src/spec/readDeckSpec.ts"
 SPEC_RENDERER_CONTRACT_TS="${PROJECT_DIR}/src/spec/rendererContract.ts"
-MEDIA_GENERATE_TS="${PROJECT_DIR}/src/asset-pipeline/generateMedia.ts"
-MEDIA_POLICY_TS="${PROJECT_DIR}/src/asset-pipeline/imagePolicy.ts"
-MEDIA_PATHS_TS="${PROJECT_DIR}/src/asset-pipeline/paths.ts"
 SPEC_REVIEW_RENDER_TS="${PROJECT_DIR}/src/spec/renderSpecReview.ts"
 SPEC_REVIEW_CONTRACT_TS="${PROJECT_DIR}/src/spec/reviewContract.ts"
 SPEC_VALIDATE_TS="${PROJECT_DIR}/src/spec/validateDeckSpec.ts"
@@ -83,6 +78,8 @@ LEGACY_RENDERED_DIR="${PROJECT_DIR}/rendered"
 LEGACY_OUTPUT_RENDERED_DIR="${PROJECT_DIR}/output/rendered"
 LEGACY_VITE_CACHE_DIR="${PROJECT_DIR}/node_modules/.vite"
 LEGACY_VITE_TEMP_DIR="${PROJECT_DIR}/node_modules/.vite-temp"
+LEGACY_ASSET_PIPELINE_DIR="${PROJECT_DIR}/src/asset-pipeline"
+LEGACY_MEDIA_PROVIDER_DIR="${PROJECT_DIR}/src/deck-spec-module/media"
 LEGACY_PLANNER_AGENT_DIR="${PROJECT_DIR}/src/planner-agent"
 LEGACY_SPEC_COMPAT_DIR="${PROJECT_DIR}/src/spec/compat"
 PROJECT_NODE_MODULES_DIR="${PROJECT_DIR}/node_modules"
@@ -103,12 +100,7 @@ PROJECT_VITEST_CONFIG_TEMPLATE="${TEMPLATE_ROOT}/vitest.config.ts"
 RUN_PROJECT_TEMPLATE="${TEMPLATE_ROOT}/run-project.sh"
 VALIDATE_TEMPLATE="${TEMPLATE_ROOT}/validate-local.sh"
 MAIN_TEMPLATE="${TEMPLATE_ROOT}/src/main.ts"
-MEDIA_GENERATE_TEMPLATE="${TEMPLATE_ROOT}/src/asset-pipeline/generateMedia.ts"
-MEDIA_POLICY_TEMPLATE="${TEMPLATE_ROOT}/src/asset-pipeline/imagePolicy.ts"
-MEDIA_PATHS_TEMPLATE="${TEMPLATE_ROOT}/src/asset-pipeline/paths.ts"
-MEDIA_PROVIDER_TEMPLATE="${TEMPLATE_ROOT}/src/deck-spec-module/media/geminiImageProvider.ts"
-MEDIA_PROVIDER_ENV_TEMPLATE="${TEMPLATE_ROOT}/src/deck-spec-module/media/providerEnv.ts"
-MEDIA_PROVIDER_PROMPT_TEMPLATE="${TEMPLATE_ROOT}/src/deck-spec-module/media/providerPrompt.ts"
+MEDIA_PATHS_TEMPLATE="${TEMPLATE_ROOT}/src/media/generatedImagePaths.ts"
 SPEC_CONTRACT_TEMPLATE="${TEMPLATE_ROOT}/src/spec/contract.ts"
 SPEC_DERIVE_TEMPLATE="${TEMPLATE_ROOT}/src/spec/deriveOutputFileName.ts"
 SPEC_NORMALIZE_TEMPLATE="${TEMPLATE_ROOT}/src/spec/normalizeSystemManagedFields.ts"
@@ -264,11 +256,6 @@ if package_script_present "validate"; then VALIDATE_SCRIPT_PRESENT=true; else
   add_missing "project package.json does not define a validate script"
 fi
 
-MEDIA_SCRIPT_PRESENT=false
-if package_script_present "media"; then MEDIA_SCRIPT_PRESENT=true; else
-  add_missing "project package.json does not define a media script"
-fi
-
 SPEC_VALIDATE_SCRIPT_PRESENT=false
 if package_script_present "spec:validate"; then SPEC_VALIDATE_SCRIPT_PRESENT=true; else
   add_missing "project package.json does not define a spec:validate script"
@@ -298,34 +285,9 @@ if [[ -f "$SRC_MAIN_TS" ]]; then DECK_ENTRY_PRESENT=true; else
   add_missing "src/main.ts is missing"
 fi
 
-MEDIA_PROVIDER_PRESENT=false
-if [[ -f "$MEDIA_PROVIDER_TS" ]]; then MEDIA_PROVIDER_PRESENT=true; else
-  add_missing "src/deck-spec-module/media/geminiImageProvider.ts is missing"
-fi
-
-MEDIA_PROVIDER_ENV_PRESENT=false
-if [[ -f "$MEDIA_PROVIDER_ENV_TS" ]]; then MEDIA_PROVIDER_ENV_PRESENT=true; else
-  add_missing "src/deck-spec-module/media/providerEnv.ts is missing"
-fi
-
-MEDIA_PROVIDER_PROMPT_PRESENT=false
-if [[ -f "$MEDIA_PROVIDER_PROMPT_TS" ]]; then MEDIA_PROVIDER_PROMPT_PRESENT=true; else
-  add_missing "src/deck-spec-module/media/providerPrompt.ts is missing"
-fi
-
-MEDIA_GENERATE_PRESENT=false
-if [[ -f "$MEDIA_GENERATE_TS" ]]; then MEDIA_GENERATE_PRESENT=true; else
-  add_missing "src/asset-pipeline/generateMedia.ts is missing"
-fi
-
-MEDIA_POLICY_PRESENT=false
-if [[ -f "$MEDIA_POLICY_TS" ]]; then MEDIA_POLICY_PRESENT=true; else
-  add_missing "src/asset-pipeline/imagePolicy.ts is missing"
-fi
-
 MEDIA_PATHS_PRESENT=false
 if [[ -f "$MEDIA_PATHS_TS" ]]; then MEDIA_PATHS_PRESENT=true; else
-  add_missing "src/asset-pipeline/paths.ts is missing"
+  add_missing "src/media/generatedImagePaths.ts is missing"
 fi
 
 SPEC_CONTRACT_PRESENT=false
@@ -444,46 +406,11 @@ elif [[ "$DECK_ENTRY_PRESENT" == true ]]; then
   add_warning "src/main.ts differs from the template-managed version"
 fi
 
-MEDIA_PROVIDER_SYNCED=false
-if template_file_matches "$MEDIA_PROVIDER_TEMPLATE" "$MEDIA_PROVIDER_TS"; then
-  MEDIA_PROVIDER_SYNCED=true
-elif [[ "$MEDIA_PROVIDER_PRESENT" == true ]]; then
-  add_warning "src/deck-spec-module/media/geminiImageProvider.ts differs from the template-managed version"
-fi
-
-MEDIA_PROVIDER_ENV_SYNCED=false
-if template_file_matches "$MEDIA_PROVIDER_ENV_TEMPLATE" "$MEDIA_PROVIDER_ENV_TS"; then
-  MEDIA_PROVIDER_ENV_SYNCED=true
-elif [[ "$MEDIA_PROVIDER_ENV_PRESENT" == true ]]; then
-  add_warning "src/deck-spec-module/media/providerEnv.ts differs from the template-managed version"
-fi
-
-MEDIA_PROVIDER_PROMPT_SYNCED=false
-if template_file_matches "$MEDIA_PROVIDER_PROMPT_TEMPLATE" "$MEDIA_PROVIDER_PROMPT_TS"; then
-  MEDIA_PROVIDER_PROMPT_SYNCED=true
-elif [[ "$MEDIA_PROVIDER_PROMPT_PRESENT" == true ]]; then
-  add_warning "src/deck-spec-module/media/providerPrompt.ts differs from the template-managed version"
-fi
-
-MEDIA_GENERATE_SYNCED=false
-if template_file_matches "$MEDIA_GENERATE_TEMPLATE" "$MEDIA_GENERATE_TS"; then
-  MEDIA_GENERATE_SYNCED=true
-elif [[ "$MEDIA_GENERATE_PRESENT" == true ]]; then
-  add_warning "src/asset-pipeline/generateMedia.ts differs from the template-managed version"
-fi
-
-MEDIA_POLICY_SYNCED=false
-if template_file_matches "$MEDIA_POLICY_TEMPLATE" "$MEDIA_POLICY_TS"; then
-  MEDIA_POLICY_SYNCED=true
-elif [[ "$MEDIA_POLICY_PRESENT" == true ]]; then
-  add_warning "src/asset-pipeline/imagePolicy.ts differs from the template-managed version"
-fi
-
 MEDIA_PATHS_SYNCED=false
 if template_file_matches "$MEDIA_PATHS_TEMPLATE" "$MEDIA_PATHS_TS"; then
   MEDIA_PATHS_SYNCED=true
 elif [[ "$MEDIA_PATHS_PRESENT" == true ]]; then
-  add_warning "src/asset-pipeline/paths.ts differs from the template-managed version"
+  add_warning "src/media/generatedImagePaths.ts differs from the template-managed version"
 fi
 
 SPEC_CONTRACT_SYNCED=false
@@ -588,6 +515,8 @@ LEGACY_RENDERED_DIR_PRESENT=false
 LEGACY_OUTPUT_RENDERED_DIR_PRESENT=false
 LEGACY_VITE_CACHE_PRESENT=false
 LEGACY_VITE_TEMP_PRESENT=false
+LEGACY_ASSET_PIPELINE_PRESENT=false
+LEGACY_MEDIA_PROVIDER_PRESENT=false
 LEGACY_PLANNER_AGENT_PRESENT=false
 LEGACY_SPEC_COMPAT_PRESENT=false
 EMPTY_PROJECT_NODE_MODULES_PRESENT=false
@@ -621,6 +550,16 @@ if [[ -d "$LEGACY_VITE_TEMP_DIR" ]]; then
   add_warning "project-local node_modules/.vite-temp cache is present"
 fi
 
+if [[ -d "$LEGACY_ASSET_PIPELINE_DIR" ]]; then
+  LEGACY_ASSET_PIPELINE_PRESENT=true
+  add_warning "legacy src/asset-pipeline directory is present"
+fi
+
+if [[ -d "$LEGACY_MEDIA_PROVIDER_DIR" ]]; then
+  LEGACY_MEDIA_PROVIDER_PRESENT=true
+  add_warning "legacy src/deck-spec-module/media directory is present"
+fi
+
 if [[ -d "$LEGACY_PLANNER_AGENT_DIR" ]]; then
   LEGACY_PLANNER_AGENT_PRESENT=true
   add_warning "legacy src/planner-agent directory is present"
@@ -640,6 +579,8 @@ if [[ "$LEGACY_RENDERED_DIR_PRESENT" == true ]] || \
    [[ "$LEGACY_OUTPUT_RENDERED_DIR_PRESENT" == true ]] || \
    [[ "$LEGACY_VITE_CACHE_PRESENT" == true ]] || \
    [[ "$LEGACY_VITE_TEMP_PRESENT" == true ]] || \
+   [[ "$LEGACY_ASSET_PIPELINE_PRESENT" == true ]] || \
+   [[ "$LEGACY_MEDIA_PROVIDER_PRESENT" == true ]] || \
    [[ "$LEGACY_PLANNER_AGENT_PRESENT" == true ]] || \
    [[ "$LEGACY_SPEC_COMPAT_PRESENT" == true ]] || \
    [[ "$EMPTY_PROJECT_NODE_MODULES_PRESENT" == true ]]; then
@@ -659,7 +600,6 @@ if [[ "$ROOT_DETECTED" == true ]] && \
    [[ "$PACKAGE_JSON_SYNCED" == true ]] && \
    [[ "$BUILD_SCRIPT_PRESENT" == true ]] && \
    [[ "$LINT_SCRIPT_PRESENT" == true ]] && \
-   [[ "$MEDIA_SCRIPT_PRESENT" == true ]] && \
    [[ "$SPEC_SCRIPT_PRESENT" == true ]] && \
    [[ "$SPEC_VALIDATE_SCRIPT_PRESENT" == true ]] && \
    [[ "$TYPECHECK_SCRIPT_PRESENT" == true ]] && \
@@ -673,16 +613,6 @@ if [[ "$ROOT_DETECTED" == true ]] && \
    [[ "$VALIDATE_WRAPPER_SYNCED" == true ]] && \
    [[ "$DECK_ENTRY_PRESENT" == true ]] && \
    [[ "$DECK_ENTRY_SYNCED" == true ]] && \
-   [[ "$MEDIA_PROVIDER_PRESENT" == true ]] && \
-   [[ "$MEDIA_PROVIDER_SYNCED" == true ]] && \
-   [[ "$MEDIA_PROVIDER_ENV_PRESENT" == true ]] && \
-   [[ "$MEDIA_PROVIDER_ENV_SYNCED" == true ]] && \
-   [[ "$MEDIA_PROVIDER_PROMPT_PRESENT" == true ]] && \
-   [[ "$MEDIA_PROVIDER_PROMPT_SYNCED" == true ]] && \
-   [[ "$MEDIA_GENERATE_PRESENT" == true ]] && \
-   [[ "$MEDIA_GENERATE_SYNCED" == true ]] && \
-   [[ "$MEDIA_POLICY_PRESENT" == true ]] && \
-   [[ "$MEDIA_POLICY_SYNCED" == true ]] && \
    [[ "$MEDIA_PATHS_PRESENT" == true ]] && \
    [[ "$MEDIA_PATHS_SYNCED" == true ]] && \
    [[ "$SPEC_CONTRACT_PRESENT" == true ]] && \
@@ -709,6 +639,8 @@ if [[ "$ROOT_DETECTED" == true ]] && \
    [[ "$SPEC_WRITE_SYNCED" == true ]] && \
    [[ "$TSCONFIG_PRESENT" == true ]] && \
    [[ "$TSCONFIG_SYNCED" == true ]] && \
+   [[ "$LEGACY_ASSET_PIPELINE_PRESENT" == false ]] && \
+   [[ "$LEGACY_MEDIA_PROVIDER_PRESENT" == false ]] && \
    [[ "$LEGACY_PLANNER_AGENT_PRESENT" == false ]] && \
    [[ "$LEGACY_SPEC_COMPAT_PRESENT" == false ]]; then
   PROJECT_READY=true
@@ -731,10 +663,6 @@ if [[ "$PROJECT_GITIGNORE_PRESENT" == true ]] && \
    [[ "$VALIDATE_WRAPPER_SYNCED" == true ]] && \
    [[ "$DECK_ENTRY_PRESENT" == true ]] && \
    [[ "$DECK_ENTRY_SYNCED" == true ]] && \
-   [[ "$MEDIA_GENERATE_PRESENT" == true ]] && \
-   [[ "$MEDIA_GENERATE_SYNCED" == true ]] && \
-   [[ "$MEDIA_POLICY_PRESENT" == true ]] && \
-   [[ "$MEDIA_POLICY_SYNCED" == true ]] && \
    [[ "$MEDIA_PATHS_PRESENT" == true ]] && \
    [[ "$MEDIA_PATHS_SYNCED" == true ]] && \
    [[ "$SPEC_CONTRACT_PRESENT" == true ]] && \
@@ -805,7 +733,6 @@ fi
   echo "    \"package_json_synced\": ${PACKAGE_JSON_SYNCED},"
   echo "    \"build_script_present\": ${BUILD_SCRIPT_PRESENT},"
   echo "    \"lint_script_present\": ${LINT_SCRIPT_PRESENT},"
-  echo "    \"media_script_present\": ${MEDIA_SCRIPT_PRESENT},"
   echo "    \"spec_script_present\": ${SPEC_SCRIPT_PRESENT},"
   echo "    \"spec_validate_script_present\": ${SPEC_VALIDATE_SCRIPT_PRESENT},"
   echo "    \"typecheck_script_present\": ${TYPECHECK_SCRIPT_PRESENT},"
@@ -819,12 +746,8 @@ fi
   echo "    \"validate_wrapper_synced\": ${VALIDATE_WRAPPER_SYNCED},"
   echo "    \"deck_entry_present\": ${DECK_ENTRY_PRESENT},"
   echo "    \"deck_entry_synced\": ${DECK_ENTRY_SYNCED},"
-  echo "    \"media_generate_present\": ${MEDIA_GENERATE_PRESENT},"
-  echo "    \"media_generate_synced\": ${MEDIA_GENERATE_SYNCED},"
-  echo "    \"asset_pipeline_policy_present\": ${MEDIA_POLICY_PRESENT},"
-  echo "    \"asset_pipeline_policy_synced\": ${MEDIA_POLICY_SYNCED},"
-  echo "    \"asset_pipeline_paths_present\": ${MEDIA_PATHS_PRESENT},"
-  echo "    \"asset_pipeline_paths_synced\": ${MEDIA_PATHS_SYNCED},"
+  echo "    \"generated_image_paths_present\": ${MEDIA_PATHS_PRESENT},"
+  echo "    \"generated_image_paths_synced\": ${MEDIA_PATHS_SYNCED},"
   echo "    \"spec_contract_present\": ${SPEC_CONTRACT_PRESENT},"
   echo "    \"spec_contract_synced\": ${SPEC_CONTRACT_SYNCED},"
   echo "    \"spec_derive_present\": ${SPEC_DERIVE_PRESENT},"
@@ -862,6 +785,8 @@ fi
   echo "    \"legacy_output_rendered_dir_present\": ${LEGACY_OUTPUT_RENDERED_DIR_PRESENT},"
   echo "    \"legacy_vite_cache_present\": ${LEGACY_VITE_CACHE_PRESENT},"
   echo "    \"legacy_vite_temp_present\": ${LEGACY_VITE_TEMP_PRESENT},"
+  echo "    \"legacy_asset_pipeline_present\": ${LEGACY_ASSET_PIPELINE_PRESENT},"
+  echo "    \"legacy_media_provider_present\": ${LEGACY_MEDIA_PROVIDER_PRESENT},"
   echo "    \"legacy_planner_agent_present\": ${LEGACY_PLANNER_AGENT_PRESENT},"
   echo "    \"legacy_spec_compat_present\": ${LEGACY_SPEC_COMPAT_PRESENT},"
   echo "    \"empty_project_node_modules_present\": ${EMPTY_PROJECT_NODE_MODULES_PRESENT}"

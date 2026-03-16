@@ -168,12 +168,7 @@ vitest.config.ts
 run-project.sh
 validate-local.sh
 src/main.ts
-src/asset-pipeline/generateMedia.ts
-src/asset-pipeline/imagePolicy.ts
-src/asset-pipeline/paths.ts
-src/deck-spec-module/media/geminiImageProvider.ts
-src/deck-spec-module/media/providerEnv.ts
-src/deck-spec-module/media/providerPrompt.ts
+src/media/generatedImagePaths.ts
 src/spec/contract.ts
 src/spec/deriveOutputFileName.ts
 src/spec/normalizeSystemManagedFields.ts
@@ -221,6 +216,8 @@ rendered
 output/rendered
 node_modules/.vite
 node_modules/.vite-temp
+src/asset-pipeline
+src/deck-spec-module/media
 src/planner-agent
 src/spec/compat
 EOF

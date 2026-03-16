@@ -108,12 +108,7 @@ Template-managed files are copied from `assets/templates/` and can be refreshed 
 - `run-project.sh`
 - `validate-local.sh`
 - `src/main.ts`
-- `src/asset-pipeline/generateMedia.ts`
-- `src/asset-pipeline/imagePolicy.ts`
-- `src/asset-pipeline/paths.ts`
-- `src/deck-spec-module/media/providerEnv.ts`
-- `src/deck-spec-module/media/providerPrompt.ts`
-- `src/deck-spec-module/media/geminiImageProvider.ts`
+- `src/media/generatedImagePaths.ts`
 - `src/spec/contract.ts`
 - `src/spec/deriveOutputFileName.ts`
 - `src/spec/normalizeSystemManagedFields.ts`
@@ -172,7 +167,6 @@ pnpm install
 cd /Volumes/BiGROG/skills-test/ai-education-deck/projects/ai-native-product-deck
 pnpm spec -- --prompt "Summarize the requested deck"
 pnpm spec:validate
-pnpm media
 pnpm lint
 pnpm typecheck
 pnpm test
@@ -181,7 +175,7 @@ pnpm build
 
 Before running that loop, resolve whether the prompt is creating a new project or revising an existing one. For operator-facing prompt wording, prefer explicit phrasing such as `Create project <slug>` or `Revise project <slug>`.
 
-`pnpm spec -- --prompt "<prompt>"` is now the single happy-path planning command. The project wrapper forwards into the shared package at `<deck-root>/packages/deck-spec-module/` with explicit canonical-spec and artifact-root paths. The shared CLI fails fast if those output paths are omitted. Treat the shared module as a stateless black box: wrappers own project discovery and default path selection, while the module consumes explicit inputs, owns normalization, structural validation, semantic review, one internal repair retry, canonical publish, and artifact-bundle writes. On failure it leaves the canonical target untouched and reports a stable failure kind.
+`pnpm spec -- --prompt "<prompt>"` is now the single happy-path provider-backed command. The project wrapper forwards into the shared package at `<deck-root>/packages/deck-spec-module/` with explicit canonical-spec, artifact-root, and media-output paths. The shared CLI fails fast if those output paths are omitted. Treat the shared module as a stateless black box: wrappers own project discovery and default path selection, while the module consumes explicit inputs, owns normalization, structural validation, semantic review, one internal repair retry, canonical publish, media generation, and artifact-bundle writes. On pre-publish failure it leaves the canonical target untouched; on post-publish media failure it keeps the canonical spec at `reviewed` and reports a stable failure kind. Use `--no-media` only when you explicitly want to skip the image phase.
 
 `pnpm spec:validate` performs structural validation only. It checks the canonical `spec/deck-spec.json` against `spec/deck-spec.schema.json` plus local rule validation, and it does not mutate project files.
 
@@ -192,13 +186,14 @@ Every `pnpm spec -- --prompt "<prompt>"` run writes the same fixed artifact bund
 - `candidate.primary.json`
 - `candidate.fallback.json`
 - `review.final.json`
+- `generated-assets.manifest.json`
+- `media.result.json`
+- `media.failures.json`
 - `report.md`
 
-`pnpm spec:live -- <project-dir> --tmp-root-dir "<path>" --prompt "<prompt>" [--label "<name>"]` is the opt-in provider-backed smoke from the deck root. It writes only to the caller-selected temp root and does not mutate the project canonical spec.
+`pnpm spec:live -- <project-dir> --tmp-root-dir "<path>" --prompt "<prompt>" [--label "<name>"] [--no-media]` is the opt-in provider-backed smoke from the deck root. It writes only to the caller-selected temp root and does not mutate the project canonical spec.
 
-`pnpm media` is the only post-spec Gemini image-generation command in v1. It reads `GEMINI_API_KEY` from the current shell or from `<deck-root>/.env`, requires `spec/deck-spec.json.status` to be `reviewed` or `media_ready`, and writes canonical deck-ready files into `media/generated-images/`.
-
-`pnpm media` is still the only image-generation step. Spec generation now also uses Gemini, but only inside the stateless deck-spec module behind `pnpm spec -- --prompt "<prompt>"`.
+`pnpm spec` is now also the only image-generation step. It reads `GEMINI_API_KEY` from the current shell or from `<deck-root>/.env`, writes canonical deck-ready files into `media/generated-images/`, and supports `--no-media` when you need to skip that phase explicitly.
 
 The expected fast loop from `pnpm spec` through `pnpm build` runs without human intervention. Human review starts after those artifacts exist.
 

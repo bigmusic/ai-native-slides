@@ -474,7 +474,7 @@
         "asset_id": "timeline_step_3_body",
         "asset_label": "Timeline step 3 body",
         "text_kind": "plain_text",
-        "content": "Semantic review gates `pnpm media`, and image generation writes canonical files into the project workspace.",
+        "content": "Semantic review gates the default media phase inside `pnpm spec`, and image generation writes canonical files into the project workspace.",
         "required": true,
         "status": "validated"
       },
