@@ -107,6 +107,7 @@ Template-managed files are copied from `assets/templates/` and can be refreshed 
 - `vitest.config.ts`
 - `run-project.sh`
 - `validate-local.sh`
+- `tests/projectScaffoldMaintenance.test.ts`
 - `src/main.ts`
 - `src/media/generatedImagePaths.ts`
 - `src/spec/contract.ts`

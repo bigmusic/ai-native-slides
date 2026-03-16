@@ -39,6 +39,13 @@ fi
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/project_lib.sh"
 
+project_content_tests_present() {
+  local project_dir="$1"
+  local scaffold_test_path="${project_dir}/tests/projectScaffoldMaintenance.test.ts"
+  [[ -d "${project_dir}/tests" ]] && \
+    find "${project_dir}/tests" -type f \( -name '*.test.ts' -o -name '*.spec.ts' \) ! -path "$scaffold_test_path" | grep -q .
+}
+
 mkdir -p "$PROJECT_ROOT"
 PROJECT_ROOT="$(cd "$PROJECT_ROOT" && pwd)"
 
@@ -89,7 +96,7 @@ if [[ ! -f "${PROJECT_DIR}/src/presentationModel.ts" ]]; then
   missing_project_content+=("src/presentationModel.ts")
 fi
 
-if ! find "${PROJECT_DIR}/tests" -type f \( -name '*.test.ts' -o -name '*.spec.ts' \) | grep -q .; then
+if ! project_content_tests_present "${PROJECT_DIR}"; then
   missing_project_content+=("tests/buildDeck.test.ts")
 fi
 
@@ -103,6 +110,7 @@ Template-managed files:
 - vitest.config.ts
 - run-project.sh
 - validate-local.sh
+- tests/projectScaffoldMaintenance.test.ts
 - src/main.ts
 - src/media/generatedImagePaths.ts
 - src/spec/contract.ts

@@ -56,6 +56,7 @@ DECK_SPEC_SCHEMA="${PROJECT_DIR}/spec/deck-spec.schema.json"
 PACKAGE_JSON="${PROJECT_DIR}/package.json"
 TSCONFIG_JSON="${PROJECT_DIR}/tsconfig.json"
 VITEST_CONFIG="${PROJECT_DIR}/vitest.config.ts"
+PROJECT_SCAFFOLD_TEST_TS="${PROJECT_DIR}/tests/projectScaffoldMaintenance.test.ts"
 SRC_MAIN_TS="${PROJECT_DIR}/src/main.ts"
 MEDIA_PATHS_TS="${PROJECT_DIR}/src/media/generatedImagePaths.ts"
 SPEC_CONTRACT_TS="${PROJECT_DIR}/src/spec/contract.ts"
@@ -93,6 +94,7 @@ DECK_SPEC_SCHEMA_TEMPLATE="${TEMPLATE_ROOT}/spec/deck-spec.schema.json"
 PACKAGE_TEMPLATE="${TEMPLATE_ROOT}/package.json"
 PROJECT_TSCONFIG_TEMPLATE="${TEMPLATE_ROOT}/tsconfig.json"
 PROJECT_VITEST_CONFIG_TEMPLATE="${TEMPLATE_ROOT}/vitest.config.ts"
+PROJECT_SCAFFOLD_TEST_TEMPLATE="${TEMPLATE_ROOT}/tests/projectScaffoldMaintenance.test.ts"
 RUN_PROJECT_TEMPLATE="${TEMPLATE_ROOT}/run-project.sh"
 VALIDATE_TEMPLATE="${TEMPLATE_ROOT}/validate-local.sh"
 MAIN_TEMPLATE="${TEMPLATE_ROOT}/src/main.ts"
@@ -136,6 +138,11 @@ add_warning() {
 
 add_suggestion() {
   SUGGESTIONS+=("$1")
+}
+
+content_test_files_present() {
+  [[ -d "$TESTS_DIR" ]] && \
+    find "$TESTS_DIR" -type f \( -name '*.test.ts' -o -name '*.spec.ts' \) ! -path "$PROJECT_SCAFFOLD_TEST_TS" | grep -q .
 }
 
 package_script_present() {
@@ -266,6 +273,11 @@ if [[ -f "$VITEST_CONFIG" ]]; then VITEST_CONFIG_PRESENT=true; else
   add_missing "project vitest.config.ts is missing"
 fi
 
+PROJECT_SCAFFOLD_TEST_PRESENT=false
+if [[ -f "$PROJECT_SCAFFOLD_TEST_TS" ]]; then PROJECT_SCAFFOLD_TEST_PRESENT=true; else
+  add_missing "tests/projectScaffoldMaintenance.test.ts is missing"
+fi
+
 RUNNER_PRESENT=false
 if [[ -x "$RUN_PROJECT_SCRIPT" ]]; then RUNNER_PRESENT=true; else
   add_missing "run-project.sh is missing or not executable"
@@ -379,6 +391,13 @@ if template_file_matches "$PROJECT_VITEST_CONFIG_TEMPLATE" "$VITEST_CONFIG"; the
   VITEST_CONFIG_SYNCED=true
 elif [[ "$VITEST_CONFIG_PRESENT" == true ]]; then
   add_warning "project vitest.config.ts differs from the template-managed version"
+fi
+
+PROJECT_SCAFFOLD_TEST_SYNCED=false
+if template_file_matches "$PROJECT_SCAFFOLD_TEST_TEMPLATE" "$PROJECT_SCAFFOLD_TEST_TS"; then
+  PROJECT_SCAFFOLD_TEST_SYNCED=true
+elif [[ "$PROJECT_SCAFFOLD_TEST_PRESENT" == true ]]; then
+  add_warning "tests/projectScaffoldMaintenance.test.ts differs from the template-managed version"
 fi
 
 RUNNER_SYNCED=false
@@ -497,7 +516,7 @@ if [[ -f "$PRESENTATION_MODEL_TS" ]]; then
 fi
 
 CONTENT_TESTS_PRESENT=false
-if [[ -d "$TESTS_DIR" ]] && find "$TESTS_DIR" -type f \( -name '*.test.ts' -o -name '*.spec.ts' \) | grep -q .; then
+if content_test_files_present; then
   CONTENT_TESTS_PRESENT=true
 fi
 
@@ -575,6 +594,8 @@ if [[ "$ROOT_DETECTED" == true ]] && \
    [[ "$VALIDATE_SCRIPT_PRESENT" == true ]] && \
    [[ "$VITEST_CONFIG_PRESENT" == true ]] && \
    [[ "$VITEST_CONFIG_SYNCED" == true ]] && \
+   [[ "$PROJECT_SCAFFOLD_TEST_PRESENT" == true ]] && \
+   [[ "$PROJECT_SCAFFOLD_TEST_SYNCED" == true ]] && \
    [[ "$RUNNER_PRESENT" == true ]] && \
    [[ "$RUNNER_SYNCED" == true ]] && \
    [[ "$VALIDATE_WRAPPER_PRESENT" == true ]] && \
@@ -621,6 +642,8 @@ if [[ "$PROJECT_GITIGNORE_PRESENT" == true ]] && \
    [[ "$PACKAGE_JSON_SYNCED" == true ]] && \
    [[ "$VITEST_CONFIG_PRESENT" == true ]] && \
    [[ "$VITEST_CONFIG_SYNCED" == true ]] && \
+   [[ "$PROJECT_SCAFFOLD_TEST_PRESENT" == true ]] && \
+   [[ "$PROJECT_SCAFFOLD_TEST_SYNCED" == true ]] && \
    [[ "$RUNNER_PRESENT" == true ]] && \
    [[ "$RUNNER_SYNCED" == true ]] && \
    [[ "$VALIDATE_WRAPPER_PRESENT" == true ]] && \
@@ -701,10 +724,12 @@ fi
   echo "    \"spec_validate_script_present\": ${SPEC_VALIDATE_SCRIPT_PRESENT},"
   echo "    \"typecheck_script_present\": ${TYPECHECK_SCRIPT_PRESENT},"
   echo "    \"test_script_present\": ${TEST_SCRIPT_PRESENT},"
-  echo "    \"validate_script_present\": ${VALIDATE_SCRIPT_PRESENT},"
-  echo "    \"vitest_config_present\": ${VITEST_CONFIG_PRESENT},"
-  echo "    \"vitest_config_synced\": ${VITEST_CONFIG_SYNCED},"
-  echo "    \"runner_present\": ${RUNNER_PRESENT},"
+    echo "    \"validate_script_present\": ${VALIDATE_SCRIPT_PRESENT},"
+    echo "    \"vitest_config_present\": ${VITEST_CONFIG_PRESENT},"
+    echo "    \"vitest_config_synced\": ${VITEST_CONFIG_SYNCED},"
+    echo "    \"project_scaffold_test_present\": ${PROJECT_SCAFFOLD_TEST_PRESENT},"
+    echo "    \"project_scaffold_test_synced\": ${PROJECT_SCAFFOLD_TEST_SYNCED},"
+    echo "    \"runner_present\": ${RUNNER_PRESENT},"
   echo "    \"runner_synced\": ${RUNNER_SYNCED},"
   echo "    \"validate_wrapper_present\": ${VALIDATE_WRAPPER_PRESENT},"
   echo "    \"validate_wrapper_synced\": ${VALIDATE_WRAPPER_SYNCED},"

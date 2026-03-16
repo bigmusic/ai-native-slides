@@ -18,6 +18,7 @@ if [[ "${1:-}" == "--" ]]; then
 fi
 BUILD_DECK_TS="$PROJECT_DIR/src/buildDeck.ts"
 PRESENTATION_MODEL_TS="$PROJECT_DIR/src/presentationModel.ts"
+PROJECT_SCAFFOLD_TEST_TS="$PROJECT_DIR/tests/projectScaffoldMaintenance.test.ts"
 PROJECT_SLUG="$(basename "$PROJECT_DIR")"
 
 find_deck_root() {
@@ -56,9 +57,9 @@ project_content_present() {
   [[ -f "$BUILD_DECK_TS" ]] && [[ -f "$PRESENTATION_MODEL_TS" ]]
 }
 
-project_tests_present() {
+project_content_tests_present() {
   [[ -d "$PROJECT_DIR/tests" ]] && \
-    find "$PROJECT_DIR/tests" -type f \( -name '*.test.ts' -o -name '*.spec.ts' \) | grep -q .
+    find "$PROJECT_DIR/tests" -type f \( -name '*.test.ts' -o -name '*.spec.ts' \) ! -path "$PROJECT_SCAFFOLD_TEST_TS" | grep -q .
 }
 
 case "$ACTION" in
@@ -95,7 +96,7 @@ case "$ACTION" in
     "$BIN_DIR/tsc" --noEmit -p "$PROJECT_DIR/tsconfig.json"
     ;;
   test)
-    if ! project_tests_present; then
+    if ! project_content_tests_present; then
       echo "Project scaffold is ready, but no TypeScript tests exist yet." >&2
       echo "Generate tests under $PROJECT_DIR/tests before running 'pnpm test'." >&2
       exit 1
@@ -106,7 +107,7 @@ case "$ACTION" in
     )
     ;;
   test:watch)
-    if ! project_tests_present; then
+    if ! project_content_tests_present; then
       echo "Project scaffold is ready, but no TypeScript tests exist yet." >&2
       echo "Generate tests under $PROJECT_DIR/tests before running 'pnpm test:watch'." >&2
       exit 1

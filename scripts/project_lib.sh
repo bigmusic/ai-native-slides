@@ -167,6 +167,7 @@ tsconfig.json
 vitest.config.ts
 run-project.sh
 validate-local.sh
+tests/projectScaffoldMaintenance.test.ts
 src/main.ts
 src/media/generatedImagePaths.ts
 src/spec/contract.ts

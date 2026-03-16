@@ -126,6 +126,7 @@ Current open gaps:
 - [x] 2026-03-16 12:16 PDT: triaged the latest escalated live-smoke artifact and chose planner prompt hardening before any deterministic repair layer because the drift was systematic field-shape aliasing (`card` / `metric` / `timeline` blocks collapsing into `text_asset_id`).
 - [x] 2026-03-16 12:19 PDT: hardened the planner prompt with explicit block-field rules and canonical snippets for `bullet_list`, `card`, `metric`, and timeline step shapes, refreshed the demo deck root, reran the shared deterministic matrix, and then passed provider-backed `pnpm spec:live` with `used_fallback: false`.
 - [x] 2026-03-16 13:12 PDT: removed the last retired source-tree maintenance tails from skill scripts. `project.json` no longer emits `legacy_cleanup_targets`, `ensure_deck_project.sh` no longer exposes retired source-dir status flags, `bootstrap_deck_project.sh` no longer carries source-tree cleanup branches for removed layouts, and the single-workspace migration script dropped its `asset-pipeline` import rewrite. Added a demo regression test to lock that reduced maintenance surface.
+- [x] 2026-03-16 13:55 PDT: upstreamed the demo-only maintenance regression into the reusable project template as `tests/projectScaffoldMaintenance.test.ts`, updated bootstrap/init/ensure/run-project script contracts so the new scaffold test is template-managed but does not count as prompt-generated content coverage, refreshed the demo project scaffold, and reran the full deterministic demo matrix successfully.
 
 ## Plan of Work
 
@@ -287,6 +288,7 @@ Acceptance status:
 - 2026-03-15: the legacy project-local `src/asset-pipeline/*` surface will be removed entirely instead of preserved as a compatibility shim.
 - 2026-03-15: `pnpm media` will be retired instead of preserved as a wrapper; `pnpm spec` becomes the default end-to-end provider-backed entrypoint, with `--no-media` retained only for explicit skip/debug cases.
 - 2026-03-16: maintenance scripts should stop surfacing retired source-tree compatibility metadata once the shared-media migration is complete; only current scaffold/state and still-relevant generated-directory cleanup should remain operator-visible.
+- 2026-03-16: the reusable scaffold may ship a template-managed maintenance regression test, but operator/content readiness must continue to require at least one non-template project test generated from the prompt-owned deck content.
 
 ## Surprises and Discoveries
 
@@ -307,6 +309,7 @@ Acceptance status:
 - Some current docs mention `.ai-native-slides/project.json`, but the demo deck root currently exposes only `.ai-native-slides/state.json`; that discrepancy should be treated as doc/workflow drift and not as hidden runtime behavior.
 - Moving Gemini image generation into the same black box increases the scope of one module run and therefore requires explicit phase-aware reporting instead of a single undifferentiated success/failure bit.
 - After the media migration landed, the only remaining `asset-pipeline` traces were no longer runtime code; they were maintenance metadata, retired-path cleanup branches, and one migration rewrite in shell scripts.
+- Once the scaffold maintenance regression was promoted from demo into the reusable template, `run-project.sh`, `init_deck_project.sh`, and `ensure_deck_project.sh` all needed the same exclusion rule so that the template-managed test would not accidentally satisfy prompt-generated content-test gates.
 
 ## Outcomes and Retrospective
 
