@@ -83,7 +83,7 @@ case "$ACTION" in
   spec)
     (
       cd "$PROJECT_DIR"
-      DECK_ROOT="$DECK_ROOT" node --import tsx "$DECK_ROOT/packages/deck-spec-module/src/cli/runSpecCli.ts" "$PROJECT_DIR" --canonical-spec-path "$CANONICAL_SPEC_PATH" --artifact-root-dir "$ARTIFACT_ROOT_DIR" --media-output-dir "$MEDIA_OUTPUT_DIR" "$@"
+      pnpm --dir "$DECK_ROOT/packages/deck-spec-module" spec "$PROJECT_DIR" --canonical-spec-path "$CANONICAL_SPEC_PATH" --artifact-root-dir "$ARTIFACT_ROOT_DIR" --media-output-dir "$MEDIA_OUTPUT_DIR" "$@"
     )
     ;;
   lint)

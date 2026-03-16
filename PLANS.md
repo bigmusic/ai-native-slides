@@ -129,6 +129,7 @@ Current open gaps:
 - [x] 2026-03-16 13:55 PDT: upstreamed the demo-only maintenance regression into the reusable project template as `tests/projectScaffoldMaintenance.test.ts`, updated bootstrap/init/ensure/run-project script contracts so the new scaffold test is template-managed but does not count as prompt-generated content coverage, refreshed the demo project scaffold, and reran the full deterministic demo matrix successfully.
 - [x] 2026-03-16 14:33 PDT: hardened validate boundary and freshness semantics. `spec:validate` now routes through the shared package's `pnpm` CLI instead of direct internal `src/cli/*` paths, `validate-local.sh` now requires a fresh build artifact from the current run, added direct `runDeckSpecValidateModule(...)` coverage plus validate-wrapper regression coverage, refreshed the demo deck root/project, and reran the targeted deterministic validation set successfully.
 - [x] 2026-03-16 14:39 PDT: clarified the operator-facing docs so they now say explicitly that the stable shared validate entrypoint is the package `pnpm` CLI, while also recording that `deck-spec-module` is not yet fully integration-isolated overall because non-validate wrapper surfaces still deep-import `packages/deck-spec-module/src/*`.
+- [x] 2026-03-16 15:20 PDT: completed the minimal operator CLI boundary convergence. Added package-local `spec` and `spec:live` scripts, rewired deck-root and project shell entrypoints to call `pnpm --dir` package CLIs instead of internal `src/cli/*` file paths, added manifest/scaffold regressions, refreshed the demo deck root/project, and reran the targeted deterministic validation set successfully.
 
 ## Plan of Work
 
@@ -228,6 +229,13 @@ Deterministic validation verified on 2026-03-15 for the integrated spec-plus-med
 - `cd /Volumes/BiGROG/skills-test/ai-education-deck/projects/ai-native-product-deck && pnpm validate`
 - `cd /Volumes/BiGROG/skills-test/ai-education-deck/projects/ai-native-product-deck && pnpm exec vitest run tests/projectScaffoldMaintenance.test.ts`
 
+Operator CLI boundary deterministic validation verified on 2026-03-16:
+
+- `bash /Volumes/BiGROG/skills-test/ai-native-slides/scripts/init_deck_root.sh /Volumes/BiGROG/skills-test/ai-education-deck`
+- `bash /Volumes/BiGROG/skills-test/ai-native-slides/scripts/init_deck_project.sh /Volumes/BiGROG/skills-test/ai-education-deck ai-native-product-deck`
+- `cd /Volumes/BiGROG/skills-test/ai-education-deck/packages/deck-spec-module && pnpm exec vitest run tests/deckSpecCli.test.ts tests/deckSpecLiveSmoke.test.ts`
+- `cd /Volumes/BiGROG/skills-test/ai-education-deck/projects/ai-native-product-deck && pnpm exec vitest run tests/projectScaffoldMaintenance.test.ts`
+
 Provider-backed acceptance status for the current contract:
 
 - guarded live-smoke command:
@@ -293,6 +301,7 @@ Acceptance status:
 - 2026-03-16: maintenance scripts should stop surfacing retired source-tree compatibility metadata once the shared-media migration is complete; only current scaffold/state and still-relevant generated-directory cleanup should remain operator-visible.
 - 2026-03-16: the reusable scaffold may ship a template-managed maintenance regression test, but operator/content readiness must continue to require at least one non-template project test generated from the prompt-owned deck content.
 - 2026-03-16: the stable operator entrypoint for shared validation is the package `pnpm spec:validate` CLI, while TypeScript consumers should stay on `src/public-api.ts`; project wrappers should not call internal `src/cli/*` validate files directly.
+- 2026-03-16: the minimal operator CLI convergence should use package-local `pnpm` scripts for `spec`, `spec:validate`, and `spec:live`; do not add `bin` or `exports` until the later TypeScript/public-surface isolation slice.
 - 2026-03-16: `pnpm validate` must validate only the `.pptx` produced by the current build run; if build fails or does not report a fresh artifact path, downstream artifact checks must stop immediately.
 - 2026-03-16: `deck-spec-module` should not yet be described as fully independent at the integration boundary; validate is now on the intended CLI/public-API boundary, but other wrapper surfaces still depend on `packages/deck-spec-module/src/*`.
 
@@ -317,11 +326,13 @@ Acceptance status:
 - After the media migration landed, the only remaining `asset-pipeline` traces were no longer runtime code; they were maintenance metadata, retired-path cleanup branches, and one migration rewrite in shell scripts.
 - Once the scaffold maintenance regression was promoted from demo into the reusable template, `run-project.sh`, `init_deck_project.sh`, and `ensure_deck_project.sh` all needed the same exclusion rule so that the template-managed test would not accidentally satisfy prompt-generated content-test gates.
 - Routing project `spec:validate` through the package `pnpm` CLI exposed a real argument-passing footgun: a redundant `--` caused the shared validate CLI to receive `"--"` as its first argument and mis-resolve the project path into the package directory.
+- The operator CLI boundary slice did not need package-surface redesign: package-local `pnpm` scripts plus template-managed regressions were sufficient to remove internal CLI file-path dependence from root/project shell workflows.
 - The old `validate-local.sh` flow did not just prefer stale outputs when multiple `.pptx` files existed; it could also continue into Open XML / render / font checks after a failed build because the artifact path was chosen before the build ran.
 
 ## Outcomes and Retrospective
 
 - The shared `deck-spec-module` runtime is already the real stateless black-box planner/validator/media boundary for canonical spec generation and media materialization.
 - The demo project is reduced to project content plus thin wrappers and still validates end to end in the deterministic path.
-- Root/project preflight, docs, and scaffold boundaries now match the current implemented spec-plus-media contract.
+- Root/project preflight, docs, and scaffold boundaries now match the current implemented spec-plus-media contract at the operator CLI layer.
+- The remaining integration debt is now explicitly TypeScript/test deep-import coupling rather than operator CLI file-path coupling.
 - Provider-backed acceptance is already satisfied; the remaining cleanup in this slice was maintenance-surface reduction, and that now has a demo regression test plus a slimmer script contract.

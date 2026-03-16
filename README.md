@@ -165,8 +165,8 @@ The current workflow hard-cuts planning and contract validation into the shared 
 
 Current independence status:
 
-- validate is now isolated at the operator boundary through the package `pnpm spec:validate` CLI and the public `runDeckSpecValidateModule(...)` API.
-- `deck-spec-module` is not yet fully integration-isolated as a package because project wrappers still deep-import several `packages/deck-spec-module/src/*` modules outside the validate path, and `pnpm spec` still shells into an internal CLI file.
+- the operator-facing CLI boundary is now isolated through the package `pnpm spec`, `pnpm spec:validate`, and `pnpm spec:live` scripts.
+- `deck-spec-module` is not yet fully integration-isolated as a package because project wrappers and tests still deep-import several `packages/deck-spec-module/src/*` modules outside the operator CLI path.
 
 Human review is intentionally late in the loop: inspect the final `.pptx`, the source, the generated media, and the validation outputs after the skill finishes, then send revision feedback as a new `Revise project <slug>` prompt if another run is needed.
 

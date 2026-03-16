@@ -4,7 +4,7 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"spec:live": "node --import tsx packages/deck-spec-module/src/cli/runLiveSmokeCli.ts"
+		"spec:live": "pnpm --dir packages/deck-spec-module spec:live"
 	},
 	"workspaces": [
 		"packages/*"

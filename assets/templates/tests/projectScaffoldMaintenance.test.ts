@@ -275,6 +275,29 @@ describe("project scaffold maintenance surfaces", () => {
 		});
 	});
 
+	it("routes operator CLI entrypoints through package pnpm scripts", async () => {
+		const projectDir = await createBootstrappedTempProject();
+		const runProjectSource = await readFile(
+			path.join(projectDir, "run-project.sh"),
+			"utf8",
+		);
+		const deckRootPackage = JSON.parse(
+			await readFile(path.join(deckRoot, "package.json"), "utf8"),
+		) as {
+			scripts?: Record<string, unknown>;
+		};
+
+		expect(runProjectSource).toContain(
+			'pnpm --dir "$DECK_ROOT/packages/deck-spec-module" spec "$PROJECT_DIR"',
+		);
+		expect(runProjectSource).not.toContain(
+			'packages/deck-spec-module/src/cli/runSpecCli.ts',
+		);
+		expect(deckRootPackage.scripts).toMatchObject({
+			"spec:live": "pnpm --dir packages/deck-spec-module spec:live",
+		});
+	});
+
 	it(
 		"stops validation before artifact checks when build fails",
 		async () => {

@@ -4,6 +4,8 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
+		"spec": "node --import tsx src/cli/runSpecCli.ts",
+		"spec:live": "node --import tsx src/cli/runLiveSmokeCli.ts",
 		"spec:validate": "node --import tsx src/cli/runValidateCli.ts"
 	}
 }

@@ -1,9 +1,25 @@
+import { readFile } from "node:fs/promises";
+
 import { describe, expect, it } from "vitest";
 
 import { runLiveSmokeCli } from "../src/cli/runLiveSmokeCli.js";
 import { runSpecCli } from "../src/cli/runSpecCli.js";
 
 describe("deck-spec-module CLI guardrails", () => {
+	it("defines the stable operator-facing package scripts", async () => {
+		const packageJson = JSON.parse(
+			await readFile(new URL("../package.json", import.meta.url), "utf8"),
+		) as {
+			scripts?: Record<string, unknown>;
+		};
+
+		expect(packageJson.scripts).toMatchObject({
+			spec: "node --import tsx src/cli/runSpecCli.ts",
+			"spec:live": "node --import tsx src/cli/runLiveSmokeCli.ts",
+			"spec:validate": "node --import tsx src/cli/runValidateCli.ts",
+		});
+	});
+
 	it("requires explicit output paths for the shared spec CLI", async () => {
 		const stdout: string[] = [];
 		const stderr: string[] = [];

@@ -180,7 +180,7 @@ Before running that loop, resolve whether the prompt is creating a new project o
 
 `pnpm spec:validate` performs structural validation only. The project wrapper routes it through the shared package's `pnpm spec:validate` CLI, which checks the canonical `spec/deck-spec.json` against `spec/deck-spec.schema.json` plus local rule validation without mutating project files.
 
-For operator usage, the supported shared-module entrypoints are the `pnpm` CLIs. Do not wire workflows to `packages/deck-spec-module/src/cli/*` paths directly. This validate hardening does not mean the entire package is fully decoupled yet; other wrapper surfaces still use `packages/deck-spec-module/src/*` imports.
+For operator usage, the supported shared-module entrypoints are the package `pnpm` CLIs (`spec`, `spec:validate`, and `spec:live`). Do not wire workflows to `packages/deck-spec-module/src/cli/*` paths directly. This CLI hardening does not mean the entire package is fully decoupled yet; other wrapper surfaces still use `packages/deck-spec-module/src/*` imports.
 
 Every `pnpm spec -- --prompt "<prompt>"` run writes the same fixed artifact bundle under `<deck-root>/tmp/deck-spec-module/<project-slug>/` by default:
 
