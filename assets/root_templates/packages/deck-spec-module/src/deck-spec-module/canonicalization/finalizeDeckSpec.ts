@@ -29,6 +29,13 @@ export type PlanDeckSpecRunOptions = {
 	seed?: number;
 };
 
+export type PlanDeckSpecRunDependencies = {
+	generateDeckSpecCandidate?: typeof generateDeckSpecCandidateWithGemini;
+	buildInitialPlannerPrompt?: typeof buildInitialPlannerPrompt;
+	buildRepairPlannerPrompt?: typeof buildRepairPlannerPrompt;
+	createSemanticReview?: typeof createDeterministicSemanticReview;
+};
+
 export type PlanningAttemptArtifact = {
 	strategy: PlanningAttemptStrategy;
 	candidateDeckSpec?: DeckSpec;
@@ -214,6 +221,7 @@ async function runPlanningAttempt(
 	sourcePrompt: string,
 	options: PlanDeckSpecRunOptions,
 	apiKey: string,
+	deps: PlanDeckSpecRunDependencies,
 	repairInput?: {
 		previousCandidate: DeckSpecCandidate;
 		diagnostics: DeckSpecPlanningDiagnostics;
@@ -224,17 +232,23 @@ async function runPlanningAttempt(
 	review?: SpecReviewResult;
 	attemptDiagnostics: PlanningAttemptDiagnostics;
 }> {
+	const generateDeckSpecCandidate =
+		deps.generateDeckSpecCandidate ?? generateDeckSpecCandidateWithGemini;
+	const createSemanticReview =
+		deps.createSemanticReview ?? createDeterministicSemanticReview;
 	const plannerPrompt =
 		strategy === "primary"
-			? buildInitialPlannerPrompt(sourcePrompt)
-			: buildRepairPlannerPrompt({
+			? (deps.buildInitialPlannerPrompt ?? buildInitialPlannerPrompt)(
+					sourcePrompt,
+				)
+			: (deps.buildRepairPlannerPrompt ?? buildRepairPlannerPrompt)({
 					sourcePrompt,
 					previousCandidate:
 						repairInput?.previousCandidate ?? ({} as DeckSpecCandidate),
 					diagnostics:
 						repairInput?.diagnostics ?? createPlanningDiagnostics([]),
 				});
-	const candidateDocument = (await generateDeckSpecCandidateWithGemini({
+	const candidateDocument = (await generateDeckSpecCandidate({
 		apiKey,
 		prompt: plannerPrompt,
 		model: options.model,
@@ -262,10 +276,10 @@ async function runPlanningAttempt(
 					"Candidate deck-spec failed canonical validation before semantic review.",
 				validationErrors: validationResult.errors,
 			}),
-		};
-	}
+			};
+		}
 
-	const review = createDeterministicSemanticReview(candidateDeckSpec);
+	const review = createSemanticReview(candidateDeckSpec);
 	validateSemanticReview(review, candidateDeckSpec);
 
 	return {
@@ -296,6 +310,7 @@ function createAttemptArtifact(
 export async function planDeckSpecRun(
 	prompt: string,
 	options: PlanDeckSpecRunOptions,
+	deps: PlanDeckSpecRunDependencies = {},
 ): Promise<PlanDeckSpecRunResult> {
 	const trimmedPrompt = prompt.trim();
 	if (trimmedPrompt.length < 16) {
@@ -328,6 +343,8 @@ export async function planDeckSpecRun(
 
 	const attemptDiagnostics: PlanningAttemptDiagnostics[] = [];
 	const attempts: PlanningAttemptArtifact[] = [];
+	const createSemanticReview =
+		deps.createSemanticReview ?? createDeterministicSemanticReview;
 
 	try {
 		const primary = await runPlanningAttempt(
@@ -335,45 +352,44 @@ export async function planDeckSpecRun(
 			trimmedPrompt,
 			options,
 			apiKey,
+			deps,
 		);
 		attemptDiagnostics.push(primary.attemptDiagnostics);
 		attempts.push(createAttemptArtifact("primary", primary));
 
 		if (primary.attemptDiagnostics.status === "passed") {
-			return {
-				ok: true,
-				deckSpec: createReviewedDeckSpec(primary.candidateDeckSpec),
-				review:
-					primary.review ??
-					createDeterministicSemanticReview(primary.candidateDeckSpec),
-				diagnostics: createPlanningDiagnostics(attemptDiagnostics),
-				attempts,
-			};
-		}
+				return {
+					ok: true,
+					deckSpec: createReviewedDeckSpec(primary.candidateDeckSpec),
+					review: primary.review ?? createSemanticReview(primary.candidateDeckSpec),
+					diagnostics: createPlanningDiagnostics(attemptDiagnostics),
+					attempts,
+				};
+			}
 
 		const fallback = await runPlanningAttempt(
-			"fallback",
-			trimmedPrompt,
-			options,
-			apiKey,
-			{
-				previousCandidate: primary.candidateDocument,
-				diagnostics: createPlanningDiagnostics(attemptDiagnostics),
+				"fallback",
+				trimmedPrompt,
+				options,
+				apiKey,
+				deps,
+				{
+					previousCandidate: primary.candidateDocument,
+					diagnostics: createPlanningDiagnostics(attemptDiagnostics),
 			},
 		);
 		attemptDiagnostics.push(fallback.attemptDiagnostics);
 		attempts.push(createAttemptArtifact("fallback", fallback));
 
 		if (fallback.attemptDiagnostics.status === "passed") {
-			return {
-				ok: true,
-				deckSpec: createReviewedDeckSpec(fallback.candidateDeckSpec),
-				review:
-					fallback.review ??
-					createDeterministicSemanticReview(fallback.candidateDeckSpec),
-				diagnostics: createPlanningDiagnostics(attemptDiagnostics),
-				attempts,
-			};
+				return {
+					ok: true,
+					deckSpec: createReviewedDeckSpec(fallback.candidateDeckSpec),
+					review:
+						fallback.review ?? createSemanticReview(fallback.candidateDeckSpec),
+					diagnostics: createPlanningDiagnostics(attemptDiagnostics),
+					attempts,
+				};
 		}
 
 		const diagnostics = createPlanningDiagnostics(attemptDiagnostics);

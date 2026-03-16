@@ -16,6 +16,11 @@ type CliIo = {
 	stderr: (message: string) => void;
 };
 
+type RunLiveSmokeCliDependencies = {
+	runDeckSpecModule?: typeof runDeckSpecModule;
+	runDeckSpecValidateModule?: typeof runDeckSpecValidateModule;
+};
+
 type ParsedArgs = {
 	projectDir: string;
 	prompt?: string;
@@ -123,6 +128,7 @@ function getErrorMessage(error: unknown): string {
 export async function runLiveSmokeCli(
 	args: string[],
 	io: CliIo = defaultCliIo,
+	deps: RunLiveSmokeCliDependencies = {},
 ): Promise<number> {
 	const parsedArgs = parseLiveSmokeArgs(args);
 	if ("error" in parsedArgs) {
@@ -157,10 +163,13 @@ export async function runLiveSmokeCli(
 	const artifactRootDir = path.join(runRootDir, "artifacts");
 	const mediaOutputDir = path.join(runRootDir, "media", "generated-images");
 	const reportPath = path.join(runRootDir, "validate.report.md");
+	const executeRunDeckSpecModule = deps.runDeckSpecModule ?? runDeckSpecModule;
+	const executeRunDeckSpecValidateModule =
+		deps.runDeckSpecValidateModule ?? runDeckSpecValidateModule;
 
 	try {
 		const apiKey = await resolveGeminiApiKey(projectDir);
-		const result = await runDeckSpecModule({
+		const result = await executeRunDeckSpecModule({
 			prompt: parsedArgs.prompt,
 			apiKey: apiKey.apiKey,
 			projectSlug,
@@ -174,7 +183,7 @@ export async function runLiveSmokeCli(
 			},
 		});
 
-		await runDeckSpecValidateModule({
+		await executeRunDeckSpecValidateModule({
 			canonicalSpecPath: result.canonicalSpecPath,
 			reportPath,
 		});

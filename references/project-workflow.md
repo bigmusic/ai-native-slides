@@ -181,7 +181,7 @@ Before running that loop, resolve whether the prompt is creating a new project o
 
 `pnpm spec:validate` performs structural validation only. The project wrapper routes it through the shared package's `pnpm spec:validate` CLI, which checks the canonical `spec/deck-spec.json` against `spec/deck-spec.schema.json` plus local rule validation without mutating project files.
 
-For operator usage, the supported shared-module entrypoints are the package `pnpm` CLIs (`spec`, `spec:validate`, and `spec:live`). Do not wire workflows to `packages/deck-spec-module/src/cli/*` paths directly. For TypeScript usage, keep project wrappers on the curated package exports `@ai-native-slides/deck-spec-module`, `@ai-native-slides/deck-spec-module/spec`, and `@ai-native-slides/deck-spec-module/review`. The remaining coupling is test-only deep imports of planner/media/reviewing internals, not wrapper-path dependence.
+For operator usage, the supported shared-module entrypoints are the package `pnpm` CLIs (`spec`, `spec:validate`, and `spec:live`). Do not wire workflows to `packages/deck-spec-module/src/cli/*` paths directly. For TypeScript usage, keep project wrappers on the curated package exports `@ai-native-slides/deck-spec-module`, `@ai-native-slides/deck-spec-module/spec`, and `@ai-native-slides/deck-spec-module/review`. For package-maintainer deterministic tests, use the curated `@ai-native-slides/deck-spec-module/testing` seam instead of deep-importing planner/media/reviewing implementation files from `src/*`.
 
 Every `pnpm spec -- --prompt "<prompt>"` run writes the same fixed artifact bundle under `<deck-root>/tmp/deck-spec-module/<project-slug>/` by default:
 

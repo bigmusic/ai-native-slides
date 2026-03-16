@@ -168,7 +168,7 @@ Current independence status:
 
 - the operator-facing CLI boundary is now isolated through the package `pnpm spec`, `pnpm spec:validate`, and `pnpm spec:live` scripts.
 - the project-wrapper TypeScript boundary is now isolated through the package exports `@ai-native-slides/deck-spec-module`, `@ai-native-slides/deck-spec-module/spec`, and `@ai-native-slides/deck-spec-module/review`.
-- `deck-spec-module` is not yet fully integration-isolated as a package because some tests still deep-import planner/media/reviewing internals from `packages/deck-spec-module/src/*`.
+- package-maintainer deterministic tests now use the curated `@ai-native-slides/deck-spec-module/testing` seam instead of deep-importing planner/media/reviewing implementation files under `packages/deck-spec-module/src/*`.
 
 Human review is intentionally late in the loop: inspect the final `.pptx`, the source, the generated media, and the validation outputs after the skill finishes, then send revision feedback as a new `Revise project <slug>` prompt if another run is needed.
 

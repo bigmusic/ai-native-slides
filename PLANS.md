@@ -128,10 +128,11 @@ Current open gaps:
 - [x] 2026-03-16 13:12 PDT: removed the last retired source-tree maintenance tails from skill scripts. `project.json` no longer emits `legacy_cleanup_targets`, `ensure_deck_project.sh` no longer exposes retired source-dir status flags, `bootstrap_deck_project.sh` no longer carries source-tree cleanup branches for removed layouts, and the single-workspace migration script dropped its `asset-pipeline` import rewrite. Added a demo regression test to lock that reduced maintenance surface.
 - [x] 2026-03-16 13:55 PDT: upstreamed the demo-only maintenance regression into the reusable project template as `tests/projectScaffoldMaintenance.test.ts`, updated bootstrap/init/ensure/run-project script contracts so the new scaffold test is template-managed but does not count as prompt-generated content coverage, refreshed the demo project scaffold, and reran the full deterministic demo matrix successfully.
 - [x] 2026-03-16 14:33 PDT: hardened validate boundary and freshness semantics. `spec:validate` now routes through the shared package's `pnpm` CLI instead of direct internal `src/cli/*` paths, `validate-local.sh` now requires a fresh build artifact from the current run, added direct `runDeckSpecValidateModule(...)` coverage plus validate-wrapper regression coverage, refreshed the demo deck root/project, and reran the targeted deterministic validation set successfully.
-- [x] 2026-03-16 14:39 PDT: clarified the operator-facing docs so they now say explicitly that the stable shared validate entrypoint is the package `pnpm` CLI, while also recording that `deck-spec-module` is not yet fully integration-isolated overall because non-validate wrapper surfaces still deep-import `packages/deck-spec-module/src/*`.
+- [x] 2026-03-16 14:39 PDT: clarified the operator-facing docs so they now say explicitly that the stable shared validate entrypoint is the package `pnpm` CLI, while also recording the then-open test-boundary debt that was later closed by the curated `./testing` seam.
 - [x] 2026-03-16 15:20 PDT: completed the minimal operator CLI boundary convergence. Added package-local `spec` and `spec:live` scripts, rewired deck-root and project shell entrypoints to call `pnpm --dir` package CLIs instead of internal `src/cli/*` file paths, added manifest/scaffold regressions, refreshed the demo deck root/project, and reran the targeted deterministic validation set successfully.
 - [x] 2026-03-16 15:42 PDT: completed the TypeScript public-boundary isolation slice. Added root-linked deck-root dependency wiring for `@ai-native-slides/deck-spec-module`, introduced curated package exports for `"."`, `"./spec"`, and `"./review"`, rewired template wrappers onto those exports, refreshed the demo deck root/project, and kept planner/media/reviewing test deep imports explicitly deferred to the later seam-injection slice.
 - [x] 2026-03-16 16:06 PDT: completed the deck-root black-box test seam slice. Added a test-only `runSpecCli(..., io?, deps?)` runner override at the package CLI boundary, added a package regression that injects a fake black-box module runner, converted the demo project's prompt-driven workflow test to inject a fake `runDeckSpecModule(...)` and assert only prompt/artifact behavior, removed the demo project's leftover reviewing deep-import fixture code, refreshed the demo deck root/project, and reran the targeted deterministic validation set successfully.
+- [x] 2026-03-16 16:55 PDT: completed the package-internal test boundary isolation slice. Added the curated `"./testing"` maintainer export plus injected planning/module/live-smoke seams, rewrote package tests off `src/deck-spec-module/*` deep imports, refreshed the demo deck root, confirmed the package test tree has zero remaining `src/deck-spec-module/` imports, and reran the affected deterministic package/project validation set successfully.
 
 ## Plan of Work
 
@@ -214,6 +215,7 @@ Validation:
   - current outcome: one provider-backed success landed after prompt hardening, so deterministic repair is not required for this phase
 - [x] Rerun one successful provider-backed `pnpm spec:live` when provider/network conditions permit.
 - [x] After the new contract lands, sync `README.md`, `SKILL.md`, and `references/project-workflow.md` to the updated surface.
+- [x] Add a curated maintainer/test boundary at `@ai-native-slides/deck-spec-module/testing` so deterministic package tests stop deep-importing planner/media/reviewing implementation files.
 
 ## Validation and Acceptance
 
@@ -254,6 +256,15 @@ Deck-root black-box seam deterministic validation verified on 2026-03-16:
 - `cd /Volumes/BiGROG/skills-test/ai-education-deck/packages/deck-spec-module && pnpm exec tsc --noEmit -p tsconfig.json`
 - `cd /Volumes/BiGROG/skills-test/ai-education-deck/projects/ai-native-product-deck && pnpm exec vitest run tests/promptSpecWorkflow.test.ts`
 - `cd /Volumes/BiGROG/skills-test/ai-education-deck/projects/ai-native-product-deck && pnpm typecheck`
+
+Package test-support boundary deterministic validation verified on 2026-03-16:
+
+- `bash /Volumes/BiGROG/skills-test/ai-native-slides/scripts/init_deck_root.sh /Volumes/BiGROG/skills-test/ai-education-deck`
+- `rg -n "src/deck-spec-module/" /Volumes/BiGROG/skills-test/ai-native-slides/assets/root_templates/packages/deck-spec-module/tests -g '*.ts'`
+- `cd /Volumes/BiGROG/skills-test/ai-education-deck/packages/deck-spec-module && pnpm exec tsc --noEmit -p tsconfig.json`
+- `cd /Volumes/BiGROG/skills-test/ai-education-deck/packages/deck-spec-module && pnpm exec vitest run tests/deckSpecCli.test.ts tests/deckSpecPlanning.test.ts tests/deckSpecModule.test.ts tests/deckSpecMedia.test.ts tests/deckSpecReviewing.test.ts tests/deckSpecLiveSmoke.test.ts tests/deckSpecContract.test.ts`
+- `cd /Volumes/BiGROG/skills-test/ai-education-deck/projects/ai-native-product-deck && pnpm typecheck`
+- `cd /Volumes/BiGROG/skills-test/ai-education-deck/projects/ai-native-product-deck && pnpm exec vitest run tests/promptSpecWorkflow.test.ts tests/projectScaffoldMaintenance.test.ts tests/deckSpecContract.test.ts`
 
 Provider-backed acceptance status for the current contract:
 
@@ -324,8 +335,8 @@ Acceptance status:
 - 2026-03-16: the TypeScript public-boundary isolation slice will use a root-linked package strategy rather than adding `projects/*` to the workspace; deck-root `node_modules` must expose `@ai-native-slides/deck-spec-module` so project wrappers can resolve curated package subpaths through the parent install.
 - 2026-03-16: `deck-spec-module` exports for TypeScript consumers should stay curated and minimal: `"."` for runtime/module entrypoints, `"./spec"` for deck-spec contract/path/helper utilities, and `"./review"` for review contract/render/validation helpers. Do not expose `./src/*` or planner/media/reviewing internals.
 - 2026-03-16: `pnpm validate` must validate only the `.pptx` produced by the current build run; if build fails or does not report a fresh artifact path, downstream artifact checks must stop immediately.
-- 2026-03-16: after the TypeScript public-boundary isolation slice, project wrappers should be described as package-export consumers rather than `packages/deck-spec-module/src/*` deep-import clients; the remaining non-isolated boundary is limited to tests that still target planner/media/reviewing internals directly.
-- 2026-03-16: `deck-spec-module` internal tests may keep direct planner/media/reviewing coverage, but deck-root/project tests should treat the shared package as a black box and inject only a fake `runDeckSpecModule(...)` at the `runSpecCli(...)` boundary when deterministic control is needed.
+- 2026-03-16: after the TypeScript public-boundary isolation slice, project wrappers should be described as package-export consumers rather than `packages/deck-spec-module/src/*` deep-import clients; deterministic package tests should move to a curated `./testing` export instead of targeting implementation files directly.
+- 2026-03-16: `deck-spec-module` runtime exports must stay limited to `"."`, `"./spec"`, and `"./review"`; `"./testing"` is an explicit maintainer/test seam only and must not become a dumping ground for raw planner/media/reviewing provider modules.
 
 ## Surprises and Discoveries
 
@@ -352,11 +363,12 @@ Acceptance status:
 - The TypeScript public-boundary slice did not require adding `projects/*` to the workspace: linking `@ai-native-slides/deck-spec-module` from the deck-root package was sufficient for both `tsc` and `tsx` resolution through the parent `node_modules` tree.
 - The old `validate-local.sh` flow did not just prefer stale outputs when multiple `.pptx` files existed; it could also continue into Open XML / render / font checks after a failed build because the artifact path was chosen before the build ran.
 - The remaining deck-root testing debt was narrower than the earlier wording implied: the real issue was not package-internal tests, it was that the demo project's black-box workflow test still mocked Gemini planner/media internals instead of stubbing the public module runner boundary.
+- Closing the last package-test coupling did not require exposing Gemini or reviewing implementation files as public API; dependency injection plus a narrow `./testing` seam was sufficient.
 
 ## Outcomes and Retrospective
 
 - The shared `deck-spec-module` runtime is already the real stateless black-box planner/validator/media boundary for canonical spec generation and media materialization.
 - The demo project is reduced to project content plus thin wrappers and still validates end to end in the deterministic path.
 - Root/project preflight, docs, and scaffold boundaries now match the current implemented spec-plus-media contract at both the operator CLI layer and the project-wrapper TypeScript package boundary.
-- The remaining integration debt is now intentionally limited to package-internal tests; deck-root/project workflow tests no longer deep-import planner/media/reviewing internals.
-- Provider-backed acceptance is already satisfied; the remaining cleanup in this slice was maintenance-surface reduction, and that now has a demo regression test plus a slimmer script contract.
+- `deck-spec-module` is now integration-isolated across operator CLIs, project-wrapper TypeScript imports, deck-root workflow tests, and package-maintainer deterministic tests; the only intentional extra surface is the curated `@ai-native-slides/deck-spec-module/testing` seam.
+- Provider-backed acceptance is already satisfied, and this slice now closes with both maintenance-surface reduction and package-test boundary isolation complete.

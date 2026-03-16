@@ -19,6 +19,11 @@
 			"types": "./src/public-review.ts",
 			"import": "./src/public-review.ts",
 			"default": "./src/public-review.ts"
+		},
+		"./testing": {
+			"types": "./src/public-testing.ts",
+			"import": "./src/public-testing.ts",
+			"default": "./src/public-testing.ts"
 		}
 	},
 	"scripts": {

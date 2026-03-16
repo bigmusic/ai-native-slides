@@ -1,14 +1,46 @@
-import { readFile } from "node:fs/promises";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { runLiveSmokeCli } from "../src/cli/runLiveSmokeCli.js";
 import { runSpecCli } from "../src/cli/runSpecCli.js";
+import { createProjectTempDir } from "./testTempDir.js";
 
 const originalGeminiApiKey = process.env.GEMINI_API_KEY;
+const tempDirs: string[] = [];
+const packageRoot = path.resolve(
+	path.dirname(fileURLToPath(import.meta.url)),
+	"..",
+);
 
-afterEach(() => {
+async function createLiveSmokeProject(): Promise<{
+	projectDir: string;
+	tmpRootDir: string;
+}> {
+	const tempRoot = await createProjectTempDir(packageRoot, "deck-spec-cli");
+	const deckRoot = path.join(tempRoot, "deck-root");
+	const projectDir = path.join(deckRoot, "projects", "test-project");
+	const tmpRootDir = path.join(deckRoot, "tmp", "deck-spec-module-live");
+	tempDirs.push(tempRoot);
+
+	await mkdir(path.join(deckRoot, ".ai-native-slides"), { recursive: true });
+	await mkdir(projectDir, { recursive: true });
+	await writeFile(path.join(deckRoot, ".ai-native-slides", "root.json"), "{}\n", "utf8");
+
+	return {
+		projectDir,
+		tmpRootDir,
+	};
+}
+
+afterEach(async () => {
 	process.env.GEMINI_API_KEY = originalGeminiApiKey;
+	for (const tempDir of tempDirs) {
+		await rm(tempDir, { recursive: true, force: true });
+	}
+	tempDirs.length = 0;
 });
 
 describe("deck-spec-module CLI guardrails", () => {
@@ -40,6 +72,11 @@ describe("deck-spec-module CLI guardrails", () => {
 				types: "./src/public-review.ts",
 				import: "./src/public-review.ts",
 				default: "./src/public-review.ts",
+			},
+			"./testing": {
+				types: "./src/public-testing.ts",
+				import: "./src/public-testing.ts",
+				default: "./src/public-testing.ts",
 			},
 		});
 	});
@@ -200,5 +237,70 @@ describe("deck-spec-module CLI guardrails", () => {
 			"Artifact bundle written: /virtual/project/tmp/deck-spec-module",
 			"Generated media dir: /virtual/project/media/generated-images",
 		]);
+	});
+
+	it("allows tests to inject live-smoke module and validation runners without touching internal planner or media modules", async () => {
+		const stdout: string[] = [];
+		const stderr: string[] = [];
+		process.env.GEMINI_API_KEY = "test-key";
+		const tempProject = await createLiveSmokeProject();
+		const fakeRunDeckSpecModule = vi.fn(async (input) => ({
+			canonicalSpecPath: input.paths.canonicalSpecPath,
+			artifactRootDir: input.paths.artifactRootDir,
+			usedFallback: false,
+		}));
+		const fakeRunDeckSpecValidateModule = vi.fn(async () => ({ ok: true as const }));
+
+		const exitCode = await runLiveSmokeCli(
+			[
+				tempProject.projectDir,
+				"--tmp-root-dir",
+				tempProject.tmpRootDir,
+				"--prompt",
+				"Create a six-slide deck about canonical spec planning and artifact delivery.",
+				"--label",
+				"cli-seam",
+			],
+			{
+				stdout: (message) => stdout.push(message),
+				stderr: (message) => stderr.push(message),
+			},
+			{
+				runDeckSpecModule: fakeRunDeckSpecModule,
+				runDeckSpecValidateModule: fakeRunDeckSpecValidateModule,
+			},
+		);
+
+		expect(exitCode).toBe(0);
+		expect(stderr).toEqual([]);
+		expect(fakeRunDeckSpecModule).toHaveBeenCalledWith({
+			prompt:
+				"Create a six-slide deck about canonical spec planning and artifact delivery.",
+			apiKey: "test-key",
+			projectSlug: "test-project",
+			paths: {
+				canonicalSpecPath: expect.stringContaining(
+					path.join("cli-seam", "spec", "deck-spec.json"),
+				),
+				artifactRootDir: expect.stringContaining(
+					path.join("cli-seam", "artifacts"),
+				),
+				mediaOutputDir: expect.stringContaining(
+					path.join("cli-seam", "media", "generated-images"),
+				),
+			},
+			media: {
+				enabled: true,
+			},
+		});
+		expect(fakeRunDeckSpecValidateModule).toHaveBeenCalledWith({
+			canonicalSpecPath: expect.stringContaining(
+				path.join("cli-seam", "spec", "deck-spec.json"),
+			),
+			reportPath: expect.stringContaining(
+				path.join("cli-seam", "validate.report.md"),
+			),
+		});
+		expect(stdout[0]).toBe("Live smoke passed for project: test-project");
 	});
 });

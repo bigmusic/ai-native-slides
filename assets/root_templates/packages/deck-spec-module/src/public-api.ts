@@ -11,6 +11,7 @@ import {
 } from "./deck-spec-module/errors.js";
 import {
 	planDeckSpecRun,
+	type PlanDeckSpecRunDependencies,
 	type PlanDeckSpecRunOptions,
 	type PlanningAttemptArtifact,
 } from "./deck-spec-module/canonicalization/finalizeDeckSpec.js";
@@ -75,6 +76,17 @@ export type RunDeckSpecModuleInput = PlanDeckSpecRunOptions & {
 	media?: {
 		enabled?: boolean;
 	};
+};
+
+type RunDeckSpecModuleDependencies = {
+	planDeckSpecRun?: (
+		prompt: string,
+		options: PlanDeckSpecRunOptions,
+		deps?: PlanDeckSpecRunDependencies,
+	) => ReturnType<typeof planDeckSpecRun>;
+	materializeDeckSpecMedia?: (
+		input: Parameters<typeof materializeDeckSpecMedia>[0],
+	) => Promise<Awaited<ReturnType<typeof materializeDeckSpecMedia>>>;
 };
 
 export type RunDeckSpecModuleResult = {
@@ -352,9 +364,13 @@ function createMediaFailureMessage(media: DeckSpecMediaPhaseArtifacts): string {
 
 export async function runDeckSpecModule(
 	input: RunDeckSpecModuleInput,
+	deps: RunDeckSpecModuleDependencies = {},
 ): Promise<RunDeckSpecModuleResult> {
 	assertModuleOutputPaths(input);
-	const run = await planDeckSpecRun(input.prompt, {
+	const executePlanDeckSpecRun = deps.planDeckSpecRun ?? planDeckSpecRun;
+	const executeMaterializeDeckSpecMedia =
+		deps.materializeDeckSpecMedia ?? materializeDeckSpecMedia;
+	const run = await executePlanDeckSpecRun(input.prompt, {
 		projectSlug: input.projectSlug,
 		generatedAt: input.generatedAt,
 		specVersion: input.specVersion,
@@ -376,7 +392,7 @@ export async function runDeckSpecModule(
 
 		if (mediaEnabled) {
 			try {
-				const mediaResult = await materializeDeckSpecMedia({
+				const mediaResult = await executeMaterializeDeckSpecMedia({
 					deckSpec: finalDeckSpec,
 					mediaOutputDir: input.paths.mediaOutputDir ?? "",
 					apiKey: input.apiKey,

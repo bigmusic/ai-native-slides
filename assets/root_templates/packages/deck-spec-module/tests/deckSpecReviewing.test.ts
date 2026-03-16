@@ -1,22 +1,18 @@
 import { describe, expect, it } from "vitest";
 
-import { createDeterministicSemanticReview } from "../src/deck-spec-module/review-bridge/createSemanticReview.js";
 import {
+	createDeterministicSemanticReview,
 	collectMaterialQualitySignals,
 	collectPlaceholderTextAssetIds,
 	collectUnderdevelopedTextAssetIds,
 	hasPlaceholderText,
-} from "../src/deck-spec-module/reviewing/materialQuality.js";
-import {
 	classifyPromptQualitySignals,
 	collectPromptQualitySignals,
 	createReviewVisualPromptSummaries,
-} from "../src/deck-spec-module/reviewing/promptQuality.js";
-import {
 	calculateOverallAverage,
 	calculateSectionAverage,
 	roundScoreAverage,
-} from "../src/deck-spec-module/reviewing/scorecard.js";
+} from "../src/public-testing.js";
 import { validateSpecReviewDocument } from "../src/spec/validateSpecReview.js";
 import {
 	createDeckSpecScenario,

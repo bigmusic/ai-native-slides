@@ -1,14 +1,14 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import type { MaterialQualitySignal } from "../src/deck-spec-module/reviewing/materialQuality.js";
-import type { PromptQualitySignal } from "../src/deck-spec-module/reviewing/promptQuality.js";
 import {
+	type MaterialQualitySignal,
+	type PromptQualitySignal,
 	calculateOverallAverage,
 	calculateSectionAverage,
 	deckMaterialScoreDimensionSpecs,
 	imagePromptScoreDimensionSpecs,
-} from "../src/deck-spec-module/reviewing/scorecard.js";
+} from "../src/public-testing.js";
 import type { DeckSpec, DeckSpecCandidate } from "../src/spec/contract.js";
 import type {
 	DeckMaterialScorecard,

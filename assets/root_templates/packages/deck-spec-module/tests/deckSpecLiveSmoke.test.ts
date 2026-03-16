@@ -3,51 +3,30 @@ import { mkdir, readdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import sharp from "sharp";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { generateImageWithGemini } from "../src/deck-spec-module/media/geminiImageProvider.js";
-import { generateDeckSpecCandidateWithGemini } from "../src/deck-spec-module/planning/geminiPlannerModel.js";
 import { runLiveSmokeCli } from "../src/cli/runLiveSmokeCli.js";
+import { normalizeSystemManagedFields } from "../src/spec/normalizeSystemManagedFields.js";
 import {
 	createPlanCandidateFromScenarioPlan,
 	loadDeckSpecBaselinePlan,
 } from "./deckSpecScenarioFixtures.js";
 import { createProjectTempDir } from "./testTempDir.js";
 
-vi.mock("../src/deck-spec-module/planning/geminiPlannerModel.js", () => ({
-	generateDeckSpecCandidateWithGemini: vi.fn(),
-}));
-vi.mock("../src/deck-spec-module/media/geminiImageProvider.js", () => ({
-	generateImageWithGemini: vi.fn(),
-}));
-
-const mockedGenerateDeckSpecCandidateWithGemini = vi.mocked(
-	generateDeckSpecCandidateWithGemini,
-);
-const mockedGenerateImageWithGemini = vi.mocked(generateImageWithGemini);
 const tempDirs: string[] = [];
 const packageRoot = path.resolve(
 	path.dirname(fileURLToPath(import.meta.url)),
 	"..",
 );
 
-async function createMockImageBuffer(): Promise<Buffer> {
-	return sharp({
-		create: {
-			width: 96,
-			height: 64,
-			channels: 4,
-			background: {
-				r: 32,
-				g: 96,
-				b: 152,
-				alpha: 1,
-			},
-		},
-	})
-		.png()
-		.toBuffer();
+async function writeJsonFile(filePath: string, value: unknown): Promise<void> {
+	await mkdir(path.dirname(filePath), { recursive: true });
+	await writeFile(filePath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
+}
+
+async function writeTextFile(filePath: string, content: string): Promise<void> {
+	await mkdir(path.dirname(filePath), { recursive: true });
+	await writeFile(filePath, `${content}\n`, "utf8");
 }
 
 async function createTempProject(): Promise<{
@@ -74,7 +53,6 @@ async function createTempProject(): Promise<{
 }
 
 afterEach(async () => {
-	vi.resetAllMocks();
 	for (const tempDir of tempDirs) {
 		await rm(tempDir, { recursive: true, force: true });
 	}
@@ -87,15 +65,66 @@ describe("deck-spec live smoke", () => {
 		const tempProject = await createTempProject();
 		const stdout: string[] = [];
 		const stderr: string[] = [];
+		const fakeRunDeckSpecModule = vi.fn(
+			async ({
+				prompt,
+				projectSlug,
+				paths,
+				media,
+			}: {
+				prompt: string;
+				projectSlug: string;
+				paths: {
+					canonicalSpecPath: string;
+					artifactRootDir: string;
+					mediaOutputDir?: string;
+				};
+				media?: {
+					enabled?: boolean;
+				};
+			}) => {
+				const deckSpec = normalizeSystemManagedFields(
+					createPlanCandidateFromScenarioPlan(baselinePlan),
+					{
+						projectSlug,
+						sourcePrompt: prompt,
+						specStatus: media?.enabled === false ? "reviewed" : "media_ready",
+						imageAssetStatus: media?.enabled === false ? "planned" : "generated",
+					},
+				);
+				await writeJsonFile(paths.canonicalSpecPath, deckSpec);
+				await writeJsonFile(path.join(paths.artifactRootDir, "result.json"), {
+					ok: true,
+				});
+				await writeTextFile(
+					path.join(paths.artifactRootDir, "report.md"),
+					"# Deck-Spec Module Run",
+				);
+				if (typeof paths.mediaOutputDir === "string" && media?.enabled !== false) {
+					await mkdir(paths.mediaOutputDir, { recursive: true });
+				}
 
-		mockedGenerateDeckSpecCandidateWithGemini.mockResolvedValue(
-			createPlanCandidateFromScenarioPlan(baselinePlan),
+				return {
+					canonicalSpecPath: paths.canonicalSpecPath,
+					artifactRootDir: paths.artifactRootDir,
+					usedFallback: false,
+				};
+			},
 		);
-		mockedGenerateImageWithGemini.mockImplementation(async () => ({
-			imageBytes: await createMockImageBuffer(),
-			mimeType: "image/png",
-			model: "mock-gemini-image",
-		}));
+		const fakeRunDeckSpecValidateModule = vi.fn(
+			async ({
+				reportPath,
+			}: {
+				canonicalSpecPath: string;
+				reportPath?: string;
+			}) => {
+				if (typeof reportPath === "string") {
+					await writeTextFile(reportPath, "# Deck-Spec Validation");
+				}
+
+				return { ok: true as const };
+			},
+		);
 
 		const exitCode = await runLiveSmokeCli(
 			[
@@ -111,11 +140,17 @@ describe("deck-spec live smoke", () => {
 				stdout: (message) => stdout.push(message),
 				stderr: (message) => stderr.push(message),
 			},
+			{
+				runDeckSpecModule: fakeRunDeckSpecModule,
+				runDeckSpecValidateModule: fakeRunDeckSpecValidateModule,
+			},
 		);
 
 		expect(exitCode).toBe(0);
 		expect(stderr).toEqual([]);
 		expect(stdout[0]).toContain("Live smoke passed for project: test-project");
+		expect(fakeRunDeckSpecModule).toHaveBeenCalledTimes(1);
+		expect(fakeRunDeckSpecValidateModule).toHaveBeenCalledTimes(1);
 
 		const runDirs = await readdir(tempProject.tmpRootDir);
 		expect(runDirs).toHaveLength(1);
