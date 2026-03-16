@@ -242,9 +242,15 @@ describe("deck-spec-module public API", () => {
 		expect(prompt).toContain("## Canonical JSON Shape Example");
 		expect(prompt).toContain('"block_type": "badge"');
 		expect(prompt).toContain('"text_kind": "plain_text"');
+		expect(prompt).toContain('"text_kind": "bullet_list"');
 		expect(prompt).toContain('"image_prompt_spec"');
 		expect(prompt).toContain('"shared_assets": []');
 		expect(prompt).toContain("Do not use generic aliases");
+		expect(prompt).toContain("Do not collapse `card`, `metric`, or timeline step blocks");
+		expect(prompt).toContain('"title_asset_id"');
+		expect(prompt).toContain('"body_asset_id"');
+		expect(prompt).toContain('"value_asset_id"');
+		expect(prompt).toContain('"label_asset_id"');
 	});
 
 	it("writes a reviewed canonical deck spec plus artifacts when the planner model yields a valid candidate", async () => {

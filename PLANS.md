@@ -103,9 +103,8 @@ The target runtime contract must be:
 
 Current open gaps:
 
-- deterministic local validation is green for the integrated spec-plus-media shared black-box flow
-- one successful provider-backed `pnpm spec:live` run is still required
-- provider-backed acceptance is still exposed to network/model instability
+- acceptance for this migration slice is now green
+- residual provider/network instability remains a background operational risk, but it is no longer a blocker for this refactor
 
 ## Progress
 
@@ -123,7 +122,9 @@ Current open gaps:
 - [x] 2026-03-15 16:30 PDT: implemented the shared-media migration. The shared package now owns media materialization, project-local `asset-pipeline` is retired, `pnpm media` is removed, and `pnpm spec` owns the media phase by default with an explicit `--no-media` escape hatch.
 - [x] 2026-03-15 22:38 PDT: closed the remaining deterministic gaps. Added coverage for rerun-after-partial-media-failure recovery, live-smoke temp path isolation, and pre-publish canonical non-mutation, then refreshed the demo deck root and reran the shared package matrix successfully.
 - [x] 2026-03-15 22:38 PDT: fixed `validateDeckSpecFileFromPath(...)` so temp live-smoke canonical specs validate against the bundled schema and the document's own `project_slug`, instead of incorrectly assuming the temp run root is the project root.
-- [ ] 2026-03-15 22:41 PDT: provider-backed acceptance is still open. `pnpm spec:live` passed deterministic temp-path checks locally, but a sandboxed run failed with `planning_failed` / `fetch failed`, and an escalated rerun still failed before a successful end-to-end publish after producing a primary candidate artifact bundle.
+- [x] 2026-03-15 22:41 PDT: provider-backed acceptance was temporarily blocked by mixed `fetch failed` and contract-drift failures, and the emitted temp artifacts were preserved for follow-up triage.
+- [x] 2026-03-16 12:16 PDT: triaged the latest escalated live-smoke artifact and chose planner prompt hardening before any deterministic repair layer because the drift was systematic field-shape aliasing (`card` / `metric` / `timeline` blocks collapsing into `text_asset_id`).
+- [x] 2026-03-16 12:19 PDT: hardened the planner prompt with explicit block-field rules and canonical snippets for `bullet_list`, `card`, `metric`, and timeline step shapes, refreshed the demo deck root, reran the shared deterministic matrix, and then passed provider-backed `pnpm spec:live` with `used_fallback: false`.
 
 ## Plan of Work
 
@@ -201,8 +202,10 @@ Validation:
   - rerun after partial media success
   - temp live-smoke path isolation
 - [x] Update project templates and wrappers so media generation is no longer orchestrated from project-local business logic.
-- [ ] Inspect repeated live-smoke artifact drift and decide whether prompt hardening alone is enough or a deterministic repair pass is required.
-- [ ] Rerun one successful provider-backed `pnpm spec:live` when provider/network conditions permit.
+- [x] Inspect repeated live-smoke artifact drift and decide whether prompt hardening alone is enough or a deterministic repair pass is required.
+  - decision taken: prompt hardening was the right first move because the observed drift was systematic field-shape aliasing, not random semantic confusion
+  - current outcome: one provider-backed success landed after prompt hardening, so deterministic repair is not required for this phase
+- [x] Rerun one successful provider-backed `pnpm spec:live` when provider/network conditions permit.
 - [x] After the new contract lands, sync `README.md`, `SKILL.md`, and `references/project-workflow.md` to the updated surface.
 
 ## Validation and Acceptance
@@ -220,7 +223,7 @@ Deterministic validation verified on 2026-03-15 for the integrated spec-plus-med
 - `cd /Volumes/BiGROG/skills-test/ai-education-deck/projects/ai-native-product-deck && pnpm spec:validate`
 - `cd /Volumes/BiGROG/skills-test/ai-education-deck/projects/ai-native-product-deck && pnpm validate`
 
-Provider-backed acceptance status on 2026-03-15 for the current contract:
+Provider-backed acceptance status for the current contract:
 
 - guarded live-smoke command:
   - `cd /Volumes/BiGROG/skills-test/ai-education-deck && pnpm spec:live -- projects/ai-native-product-deck --tmp-root-dir "./tmp/deck-spec-module-live/ai-native-product-deck" --prompt "Create a six-slide deck about shared deck-spec black-box planning, validation, semantic review, and deterministic build delivery." --label "black-box-refactor-acceptance-escalated"`
@@ -230,11 +233,14 @@ Provider-backed acceptance status on 2026-03-15 for the current contract:
   - `cd /Volumes/BiGROG/skills-test/ai-education-deck && pnpm spec:live -- projects/ai-native-product-deck --tmp-root-dir "./tmp/deck-spec-module-live/ai-native-product-deck" --prompt "Create a simple six-slide deck about canonical deck-spec planning, structural validation, semantic review, media generation, and deterministic build delivery. Keep the slide structure concrete and simple." --label "media-phase-acceptance-20260315"`
 - escalated retry after validator/path fix:
   - `cd /Volumes/BiGROG/skills-test/ai-education-deck && pnpm spec:live -- projects/ai-native-product-deck --tmp-root-dir "./tmp/deck-spec-module-live/ai-native-product-deck" --prompt "Create a simple six-slide deck about canonical deck-spec planning, structural validation, semantic review, media generation, and deterministic build delivery. Keep the slide structure concrete and simple." --label "media-phase-acceptance-20260315-escalated"`
+- successful prompt-hardening acceptance run:
+  - `cd /Volumes/BiGROG/skills-test/ai-education-deck && pnpm spec:live -- projects/ai-native-product-deck --tmp-root-dir "./tmp/deck-spec-module-live/ai-native-product-deck" --prompt "Create a simple six-slide deck about canonical deck-spec planning, structural validation, semantic review, media generation, and deterministic build delivery. Keep the slide structure concrete and simple." --label "prompt-hardening-acceptance-20260316"`
 - observed outcomes:
   - one run reached the provider and failed with `contract_validation_failed`
   - multiple runs failed with `planning_failed` / `fetch failed`
   - after the validator/path fix, the sandboxed run still failed with `planning_failed` / `fetch failed`
   - after the validator/path fix, the escalated run emitted a primary candidate artifact bundle, but the overall live smoke still failed with `planning_failed` / `fetch failed` before a successful fallback/provider completion
+  - after planner prompt hardening on 2026-03-16, the live smoke succeeded at `/Volumes/BiGROG/skills-test/ai-education-deck/tmp/deck-spec-module-live/ai-native-product-deck/20260316T191802Z-prompt-hardening-acceptance-20260316/` with `used_fallback: false`, a validated temp canonical spec, generated temp media, a complete artifact bundle, and no project canonical output mutation
   - temp artifacts were written under `/Volumes/BiGROG/skills-test/ai-education-deck/tmp/deck-spec-module-live/ai-native-product-deck/`
 
 Acceptance bar for the revised contract:
@@ -246,6 +252,10 @@ Acceptance bar for the revised contract:
   - temp generated media in the caller-owned temp publish directory
   - the full unified artifact bundle
 - the project canonical spec and project canonical media outputs remain untouched during live smoke
+
+Acceptance status:
+
+- satisfied on 2026-03-16 by the `prompt-hardening-acceptance-20260316` run
 
 ## Idempotence and Recovery
 
@@ -282,6 +292,9 @@ Acceptance bar for the revised contract:
 - Repeated live-smoke artifacts showed concrete schema drift patterns:
   - `card` blocks emitted with `text_asset_id` instead of `title_asset_id` + `body_asset_id`
   - `metric` blocks emitted with `text_asset_id` instead of `value_asset_id` + `label_asset_id`
+- The prompt hardening fix closed the current drift class without adding a deterministic repair layer:
+  - the successful 2026-03-16 provider-backed run passed validation and semantic review on the primary attempt
+  - `used_fallback: false` is the strongest signal that the planner prompt, not a downstream repair path, fixed the failure mode we were seeing
 - The original path-based validation helper was too project-layout-specific for live smoke:
   - `runDeckSpecValidateModule()` assumed `canonicalSpecPath` always lived under a real project root with a sibling `spec/deck-spec.schema.json`
   - temp live-smoke runs needed bundled-schema validation plus `project_slug`-aware context instead

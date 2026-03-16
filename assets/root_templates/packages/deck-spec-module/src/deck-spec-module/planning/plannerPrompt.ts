@@ -114,6 +114,47 @@ const canonicalCandidateExample: DeckSpecCandidate = {
 	],
 };
 
+const canonicalBlockShapeExamples = {
+	bullet_list_asset: {
+		asset_id: "semantic_bullets",
+		asset_label: "Semantic review bullets",
+		text_kind: "bullet_list",
+		content: [
+			"Audience alignment audit",
+			"Cross-slide narrative continuity",
+			"Logical flow verification",
+		],
+		required: true,
+	},
+	bullet_list_block: {
+		block_id: "semantic_bullets_block",
+		block_type: "bullet_list",
+		layout_slot: "supporting_bullets",
+		text_asset_id: "semantic_bullets",
+	},
+	card_block: {
+		block_id: "semantic_card_primary",
+		block_type: "card",
+		layout_slot: "primary_card",
+		title_asset_id: "semantic_card_title",
+		body_asset_id: "semantic_card_body",
+	},
+	metric_block: {
+		block_id: "media_metric_left",
+		block_type: "metric",
+		layout_slot: "left_metric",
+		value_asset_id: "media_metric_value",
+		label_asset_id: "media_metric_label",
+	},
+	timeline_card_block: {
+		block_id: "delivery_step_1",
+		block_type: "card",
+		layout_slot: "timeline_step_1",
+		title_asset_id: "delivery_step_1_title",
+		body_asset_id: "delivery_step_1_body",
+	},
+} as const;
+
 export function buildInitialPlannerPrompt(sourcePrompt: string): string {
 	return buildPlannerPrompt({
 		sourcePrompt,
@@ -185,6 +226,16 @@ function buildPlannerPrompt(input: {
 		"- Asset ids must be unique across text, image, and shared assets.",
 		"- Use exact contract keys. Do not rename keys such as `block_type`, `text_kind`, `image_prompt_spec`, `text_asset_id`, `image_asset_id`, or `shared_asset_id`.",
 		"- Do not use generic aliases such as `type`, `asset_id`, `text_content`, or `image_prompt` inside nested objects.",
+		"- Do not collapse `card`, `metric`, or timeline step blocks into a single `text_asset_id` field.",
+		"",
+		"## Block Field Contract",
+		"",
+		"- `text`, `badge`, and `callout` blocks use exactly one `text_asset_id` that points to a `plain_text` asset.",
+		"- `bullet_list` blocks use exactly one `text_asset_id` that points to a `bullet_list` asset whose `content` is a JSON array of strings, not one newline-delimited string.",
+		"- `card` blocks never use `text_asset_id`; they require `title_asset_id` and `body_asset_id`.",
+		"- `metric` blocks never use `text_asset_id`; they require `value_asset_id` and `label_asset_id`.",
+		"- `image` blocks use exactly one of `image_asset_id` or `shared_asset_id`.",
+		"- `timeline` layout step slots still use `card` block shape, so each step must carry `title_asset_id` plus `body_asset_id`.",
 		"",
 		"## Allowed Enums",
 		"",
@@ -199,6 +250,12 @@ function buildPlannerPrompt(input: {
 		"This example shows the exact field names and nested object shapes to follow. Match this structure even when your content differs.",
 		"",
 		renderJson(canonicalCandidateExample),
+		"",
+		"## Canonical Block Shape Snippets",
+		"",
+		"These snippets show the non-hero block shapes that frequently drift. Reuse these exact field names when you emit the same block types.",
+		"",
+		renderJson(canonicalBlockShapeExamples),
 		"",
 		"## Renderer Contract",
 		"",
