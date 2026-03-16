@@ -78,10 +78,6 @@ LEGACY_RENDERED_DIR="${PROJECT_DIR}/rendered"
 LEGACY_OUTPUT_RENDERED_DIR="${PROJECT_DIR}/output/rendered"
 LEGACY_VITE_CACHE_DIR="${PROJECT_DIR}/node_modules/.vite"
 LEGACY_VITE_TEMP_DIR="${PROJECT_DIR}/node_modules/.vite-temp"
-LEGACY_ASSET_PIPELINE_DIR="${PROJECT_DIR}/src/asset-pipeline"
-LEGACY_MEDIA_PROVIDER_DIR="${PROJECT_DIR}/src/deck-spec-module/media"
-LEGACY_PLANNER_AGENT_DIR="${PROJECT_DIR}/src/planner-agent"
-LEGACY_SPEC_COMPAT_DIR="${PROJECT_DIR}/src/spec/compat"
 PROJECT_NODE_MODULES_DIR="${PROJECT_DIR}/node_modules"
 ROOT_STATE_FILE="${DECK_ROOT}/.ai-native-slides/state.json"
 ROOT_PACKAGE_JSON="${DECK_ROOT}/package.json"
@@ -515,10 +511,6 @@ LEGACY_RENDERED_DIR_PRESENT=false
 LEGACY_OUTPUT_RENDERED_DIR_PRESENT=false
 LEGACY_VITE_CACHE_PRESENT=false
 LEGACY_VITE_TEMP_PRESENT=false
-LEGACY_ASSET_PIPELINE_PRESENT=false
-LEGACY_MEDIA_PROVIDER_PRESENT=false
-LEGACY_PLANNER_AGENT_PRESENT=false
-LEGACY_SPEC_COMPAT_PRESENT=false
 EMPTY_PROJECT_NODE_MODULES_PRESENT=false
 
 if [[ "$ROOT_DETECTED" == true ]]; then
@@ -550,26 +542,6 @@ if [[ -d "$LEGACY_VITE_TEMP_DIR" ]]; then
   add_warning "project-local node_modules/.vite-temp cache is present"
 fi
 
-if [[ -d "$LEGACY_ASSET_PIPELINE_DIR" ]]; then
-  LEGACY_ASSET_PIPELINE_PRESENT=true
-  add_warning "legacy src/asset-pipeline directory is present"
-fi
-
-if [[ -d "$LEGACY_MEDIA_PROVIDER_DIR" ]]; then
-  LEGACY_MEDIA_PROVIDER_PRESENT=true
-  add_warning "legacy src/deck-spec-module/media directory is present"
-fi
-
-if [[ -d "$LEGACY_PLANNER_AGENT_DIR" ]]; then
-  LEGACY_PLANNER_AGENT_PRESENT=true
-  add_warning "legacy src/planner-agent directory is present"
-fi
-
-if [[ -d "$LEGACY_SPEC_COMPAT_DIR" ]]; then
-  LEGACY_SPEC_COMPAT_PRESENT=true
-  add_warning "legacy src/spec/compat directory is present"
-fi
-
 if [[ -d "$PROJECT_NODE_MODULES_DIR" ]] && [[ -z "$(find "$PROJECT_NODE_MODULES_DIR" -mindepth 1 -print -quit)" ]]; then
   EMPTY_PROJECT_NODE_MODULES_PRESENT=true
   add_warning "empty project-local node_modules directory is present"
@@ -579,10 +551,6 @@ if [[ "$LEGACY_RENDERED_DIR_PRESENT" == true ]] || \
    [[ "$LEGACY_OUTPUT_RENDERED_DIR_PRESENT" == true ]] || \
    [[ "$LEGACY_VITE_CACHE_PRESENT" == true ]] || \
    [[ "$LEGACY_VITE_TEMP_PRESENT" == true ]] || \
-   [[ "$LEGACY_ASSET_PIPELINE_PRESENT" == true ]] || \
-   [[ "$LEGACY_MEDIA_PROVIDER_PRESENT" == true ]] || \
-   [[ "$LEGACY_PLANNER_AGENT_PRESENT" == true ]] || \
-   [[ "$LEGACY_SPEC_COMPAT_PRESENT" == true ]] || \
    [[ "$EMPTY_PROJECT_NODE_MODULES_PRESENT" == true ]]; then
   add_suggestion "Legacy generated directories from an older layout are present. If you are maintaining or migrating this project, see \`$SKILL_ROOT/scripts/maintenance/maintenance-workflow.md\`."
 fi
@@ -638,11 +606,7 @@ if [[ "$ROOT_DETECTED" == true ]] && \
    [[ "$SPEC_WRITE_PRESENT" == true ]] && \
    [[ "$SPEC_WRITE_SYNCED" == true ]] && \
    [[ "$TSCONFIG_PRESENT" == true ]] && \
-   [[ "$TSCONFIG_SYNCED" == true ]] && \
-   [[ "$LEGACY_ASSET_PIPELINE_PRESENT" == false ]] && \
-   [[ "$LEGACY_MEDIA_PROVIDER_PRESENT" == false ]] && \
-   [[ "$LEGACY_PLANNER_AGENT_PRESENT" == false ]] && \
-   [[ "$LEGACY_SPEC_COMPAT_PRESENT" == false ]]; then
+   [[ "$TSCONFIG_SYNCED" == true ]]; then
   PROJECT_READY=true
 fi
 
@@ -780,16 +744,12 @@ fi
   echo "    \"root_tsconfig_base_present\": ${ROOT_TSCONFIG_BASE_PRESENT},"
   echo "    \"root_helpers_present\": ${ROOT_HELPERS_PRESENT},"
   echo "    \"root_node_dependencies_installed\": ${ROOT_NODE_DEPS_PRESENT},"
-  echo "    \"root_venv_python_present\": ${ROOT_VENV_PRESENT},"
-  echo "    \"legacy_rendered_dir_present\": ${LEGACY_RENDERED_DIR_PRESENT},"
-  echo "    \"legacy_output_rendered_dir_present\": ${LEGACY_OUTPUT_RENDERED_DIR_PRESENT},"
-  echo "    \"legacy_vite_cache_present\": ${LEGACY_VITE_CACHE_PRESENT},"
-  echo "    \"legacy_vite_temp_present\": ${LEGACY_VITE_TEMP_PRESENT},"
-  echo "    \"legacy_asset_pipeline_present\": ${LEGACY_ASSET_PIPELINE_PRESENT},"
-  echo "    \"legacy_media_provider_present\": ${LEGACY_MEDIA_PROVIDER_PRESENT},"
-  echo "    \"legacy_planner_agent_present\": ${LEGACY_PLANNER_AGENT_PRESENT},"
-  echo "    \"legacy_spec_compat_present\": ${LEGACY_SPEC_COMPAT_PRESENT},"
-  echo "    \"empty_project_node_modules_present\": ${EMPTY_PROJECT_NODE_MODULES_PRESENT}"
+    echo "    \"root_venv_python_present\": ${ROOT_VENV_PRESENT},"
+    echo "    \"legacy_rendered_dir_present\": ${LEGACY_RENDERED_DIR_PRESENT},"
+    echo "    \"legacy_output_rendered_dir_present\": ${LEGACY_OUTPUT_RENDERED_DIR_PRESENT},"
+    echo "    \"legacy_vite_cache_present\": ${LEGACY_VITE_CACHE_PRESENT},"
+    echo "    \"legacy_vite_temp_present\": ${LEGACY_VITE_TEMP_PRESENT},"
+    echo "    \"empty_project_node_modules_present\": ${EMPTY_PROJECT_NODE_MODULES_PRESENT}"
   echo "  },"
   echo "  \"missing\": ["
   if [[ "${#MISSING_ITEMS[@]}" -gt 0 ]]; then

@@ -182,29 +182,6 @@ chmod +x "${RUN_PROJECT_DEST}"
 sync_managed_file "${VALIDATE_TEMPLATE}" "${VALIDATE_DEST}"
 chmod +x "${VALIDATE_DEST}"
 
-remove_retired_path() {
-  local target_path="$1"
-
-  if [[ -e "$target_path" ]]; then
-    rm -rf "$target_path"
-    echo "Removed retired ${target_path}"
-  fi
-}
-
-remove_retired_path "${DECK_DIR}/src/deck-spec-module/asset-planning"
-remove_retired_path "${DECK_DIR}/src/deck-spec-module/canonicalization"
-remove_retired_path "${DECK_DIR}/src/deck-spec-module/errors.ts"
-remove_retired_path "${DECK_DIR}/src/deck-spec-module/planning"
-remove_retired_path "${DECK_DIR}/src/deck-spec-module/prompt-interpreter"
-remove_retired_path "${DECK_DIR}/src/deck-spec-module/public-api.ts"
-remove_retired_path "${DECK_DIR}/src/deck-spec-module/media"
-remove_retired_path "${DECK_DIR}/src/deck-spec-module/review-bridge"
-remove_retired_path "${DECK_DIR}/src/deck-spec-module/reviewing"
-remove_retired_path "${DECK_DIR}/src/asset-pipeline"
-remove_retired_path "${DECK_DIR}/src/planner-agent"
-remove_retired_path "${DECK_DIR}/src/spec/compat"
-remove_retired_path "${DECK_DIR}/src/spec/promoteDeckSpecCandidate.ts"
-
 write_project_metadata "$DECK_ROOT" "$DECK_DIR" "$(basename "$DECK_DIR")" "$(basename "$DECK_DIR")"
 
 bash "${SCRIPT_DIR}/ensure_deck_project.sh" "${DECK_DIR}"

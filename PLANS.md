@@ -125,6 +125,7 @@ Current open gaps:
 - [x] 2026-03-15 22:41 PDT: provider-backed acceptance was temporarily blocked by mixed `fetch failed` and contract-drift failures, and the emitted temp artifacts were preserved for follow-up triage.
 - [x] 2026-03-16 12:16 PDT: triaged the latest escalated live-smoke artifact and chose planner prompt hardening before any deterministic repair layer because the drift was systematic field-shape aliasing (`card` / `metric` / `timeline` blocks collapsing into `text_asset_id`).
 - [x] 2026-03-16 12:19 PDT: hardened the planner prompt with explicit block-field rules and canonical snippets for `bullet_list`, `card`, `metric`, and timeline step shapes, refreshed the demo deck root, reran the shared deterministic matrix, and then passed provider-backed `pnpm spec:live` with `used_fallback: false`.
+- [x] 2026-03-16 13:12 PDT: removed the last retired source-tree maintenance tails from skill scripts. `project.json` no longer emits `legacy_cleanup_targets`, `ensure_deck_project.sh` no longer exposes retired source-dir status flags, `bootstrap_deck_project.sh` no longer carries source-tree cleanup branches for removed layouts, and the single-workspace migration script dropped its `asset-pipeline` import rewrite. Added a demo regression test to lock that reduced maintenance surface.
 
 ## Plan of Work
 
@@ -285,6 +286,7 @@ Acceptance status:
 - 2026-03-15: the black-box design note belongs at the skill repo root, not under `references/`, because `references/` is reserved for user-facing workflow and helper documents.
 - 2026-03-15: the legacy project-local `src/asset-pipeline/*` surface will be removed entirely instead of preserved as a compatibility shim.
 - 2026-03-15: `pnpm media` will be retired instead of preserved as a wrapper; `pnpm spec` becomes the default end-to-end provider-backed entrypoint, with `--no-media` retained only for explicit skip/debug cases.
+- 2026-03-16: maintenance scripts should stop surfacing retired source-tree compatibility metadata once the shared-media migration is complete; only current scaffold/state and still-relevant generated-directory cleanup should remain operator-visible.
 
 ## Surprises and Discoveries
 
@@ -304,10 +306,11 @@ Acceptance status:
 - Actual live-smoke output layout is timestamped run directories with nested `artifacts/`, not a flat label-only directory.
 - Some current docs mention `.ai-native-slides/project.json`, but the demo deck root currently exposes only `.ai-native-slides/state.json`; that discrepancy should be treated as doc/workflow drift and not as hidden runtime behavior.
 - Moving Gemini image generation into the same black box increases the scope of one module run and therefore requires explicit phase-aware reporting instead of a single undifferentiated success/failure bit.
+- After the media migration landed, the only remaining `asset-pipeline` traces were no longer runtime code; they were maintenance metadata, retired-path cleanup branches, and one migration rewrite in shell scripts.
 
 ## Outcomes and Retrospective
 
 - The shared `deck-spec-module` runtime is already the real stateless black-box planner/validator/media boundary for canonical spec generation and media materialization.
 - The demo project is reduced to project content plus thin wrappers and still validates end to end in the deterministic path.
 - Root/project preflight, docs, and scaffold boundaries now match the current implemented spec-plus-media contract.
-- The next remaining step is provider-backed acceptance: prove one successful `pnpm spec:live` run without losing caller-owned path control, non-mutating pre-publish failure behavior, or recoverable post-publish media retries.
+- Provider-backed acceptance is already satisfied; the remaining cleanup in this slice was maintenance-surface reduction, and that now has a demo regression test plus a slimmer script contract.

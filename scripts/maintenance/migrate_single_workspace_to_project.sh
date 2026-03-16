@@ -80,10 +80,6 @@ set -e
 
 write_project_metadata "$DECK_ROOT" "$PROJECT_DIR" "$PROJECT_NAME" "$PROJECT_SLUG"
 
-find "${PROJECT_DIR}/src" -type f -name '*.ts' -print0 2>/dev/null | while IFS= read -r -d '' file; do
-  perl -0pi -e 's#\.\./asset-pipeline/pptxgenjs_helpers/#../../../assets/pptxgenjs_helpers/#g' "$file"
-done
-
 if [[ "$root_bootstrap_exit" -ne 0 ]]; then
   echo "Shared root initialization completed with follow-up suggestions." >&2
 fi

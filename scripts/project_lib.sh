@@ -210,19 +210,6 @@ rendered
 EOF
 }
 
-project_legacy_cleanup_targets() {
-  cat <<'EOF'
-rendered
-output/rendered
-node_modules/.vite
-node_modules/.vite-temp
-src/asset-pipeline
-src/deck-spec-module/media
-src/planner-agent
-src/spec/compat
-EOF
-}
-
 write_root_metadata() {
   local deck_root="$1"
   local metadata_path
@@ -262,7 +249,6 @@ render_project_metadata_file() {
   local -a prompt_generated_files=()
   local -a content_dirs=()
   local -a ignored_generated_dirs=()
-  local -a legacy_cleanup_targets=()
 
   if [[ -z "$created_at" ]]; then
     created_at="$(date '+%Y-%m-%dT%H:%M:%S%z')"
@@ -283,10 +269,6 @@ render_project_metadata_file() {
   while IFS= read -r item; do
     ignored_generated_dirs+=("$item")
   done < <(project_ignored_generated_dirs)
-
-  while IFS= read -r item; do
-    legacy_cleanup_targets+=("$item")
-  done < <(project_legacy_cleanup_targets)
 
   mkdir -p "$(dirname "$metadata_path")"
 
@@ -309,9 +291,6 @@ render_project_metadata_file() {
     echo "  ],"
     echo "  \"ignored_generated_dirs\": ["
     json_write_string_array_items "    " "${ignored_generated_dirs[@]}"
-    echo "  ],"
-    echo "  \"legacy_cleanup_targets\": ["
-    json_write_string_array_items "    " "${legacy_cleanup_targets[@]}"
     echo "  ],"
     echo "  \"created_at\": \"$(json_escape "$created_at")\""
     echo "}"
