@@ -18,6 +18,10 @@ type CliIo = {
 	stderr: (message: string) => void;
 };
 
+type RunSpecCliDependencies = {
+	runDeckSpecModule?: typeof runDeckSpecModule;
+};
+
 type ParsedSpecCliArgs = {
 	projectDir: string;
 	prompt?: string;
@@ -142,6 +146,7 @@ async function resolvePromptPlanningApiKey(
 export async function runSpecCli(
 	args: string[],
 	io: CliIo = defaultCliIo,
+	deps: RunSpecCliDependencies = {},
 ): Promise<number> {
 	const parsedArgs = parseSpecCliArgs(args);
 	if ("error" in parsedArgs) {
@@ -188,10 +193,12 @@ export async function runSpecCli(
 	const specPath = parsedArgs.canonicalSpecPath;
 	const artifactRootDir = parsedArgs.artifactRootDir;
 	const mediaOutputDir = parsedArgs.mediaOutputDir;
+	const executeRunDeckSpecModule =
+		deps.runDeckSpecModule ?? runDeckSpecModule;
 
 	try {
 		const apiKey = await resolvePromptPlanningApiKey(projectDir);
-		const result = await runDeckSpecModule({
+		const result = await executeRunDeckSpecModule({
 			prompt: parsedArgs.prompt,
 			apiKey,
 			projectSlug: path.basename(projectDir),
