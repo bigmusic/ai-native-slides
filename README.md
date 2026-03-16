@@ -140,6 +140,7 @@ The current workflow hard-cuts planning and contract validation into the shared 
 - The shared module is writer-first and stateless. It owns planning, canonicalization, structural validation, semantic review, one repair retry, canonical spec publish, media materialization, and artifact-bundle writes.
 - The shared module does not discover the active project, infer runtime output locations, or depend on project-local mutable state.
 - The project wrapper owns deck-root / project-root discovery and default path selection for `canonicalSpecPath`, `artifactRootDir`, and `mediaOutputDir`.
+- The deck root links `@ai-native-slides/deck-spec-module` from the workspace package, and project-local `src/spec/*` wrappers consume only the curated package exports (`"."`, `"./spec"`, and `"./review"`).
 - The shared module and CLI do not infer runtime output locations anymore. If the caller does not pass explicit output paths, the CLI fails fast.
 - The shared module rejects runtime output paths that point back into its own package directory.
 - Every prompt-driven run writes the same fixed bundle under the caller-provided artifact root:
@@ -166,7 +167,8 @@ The current workflow hard-cuts planning and contract validation into the shared 
 Current independence status:
 
 - the operator-facing CLI boundary is now isolated through the package `pnpm spec`, `pnpm spec:validate`, and `pnpm spec:live` scripts.
-- `deck-spec-module` is not yet fully integration-isolated as a package because project wrappers and tests still deep-import several `packages/deck-spec-module/src/*` modules outside the operator CLI path.
+- the project-wrapper TypeScript boundary is now isolated through the package exports `@ai-native-slides/deck-spec-module`, `@ai-native-slides/deck-spec-module/spec`, and `@ai-native-slides/deck-spec-module/review`.
+- `deck-spec-module` is not yet fully integration-isolated as a package because some tests still deep-import planner/media/reviewing internals from `packages/deck-spec-module/src/*`.
 
 Human review is intentionally late in the loop: inspect the final `.pptx`, the source, the generated media, and the validation outputs after the skill finishes, then send revision feedback as a new `Revise project <slug>` prompt if another run is needed.
 

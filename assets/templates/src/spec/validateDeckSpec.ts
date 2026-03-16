@@ -8,15 +8,13 @@ export {
 	validateDeckSpecDocument,
 	validateDeckSpecFile,
 	validateDeckSpecFileFromPath,
-} from "../../../../packages/deck-spec-module/src/public-api.ts";
+} from "@ai-native-slides/deck-spec-module";
 
 if (
 	typeof process.argv[1] === "string" &&
 	import.meta.url === pathToFileURL(process.argv[1]).href
 ) {
-	const { runSpecValidateCli } = await import(
-		"../../../../packages/deck-spec-module/src/public-api.ts"
-	);
+	const { runSpecValidateCli } = await import("@ai-native-slides/deck-spec-module");
 	const exitCode = await runSpecValidateCli(process.argv.slice(2));
 	process.exit(exitCode);
 }

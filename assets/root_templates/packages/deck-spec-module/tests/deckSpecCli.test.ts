@@ -10,6 +10,7 @@ describe("deck-spec-module CLI guardrails", () => {
 		const packageJson = JSON.parse(
 			await readFile(new URL("../package.json", import.meta.url), "utf8"),
 		) as {
+			exports?: Record<string, unknown>;
 			scripts?: Record<string, unknown>;
 		};
 
@@ -17,6 +18,23 @@ describe("deck-spec-module CLI guardrails", () => {
 			spec: "node --import tsx src/cli/runSpecCli.ts",
 			"spec:live": "node --import tsx src/cli/runLiveSmokeCli.ts",
 			"spec:validate": "node --import tsx src/cli/runValidateCli.ts",
+		});
+		expect(packageJson.exports).toEqual({
+			".": {
+				types: "./src/public-root.ts",
+				import: "./src/public-root.ts",
+				default: "./src/public-root.ts",
+			},
+			"./spec": {
+				types: "./src/public-spec.ts",
+				import: "./src/public-spec.ts",
+				default: "./src/public-spec.ts",
+			},
+			"./review": {
+				types: "./src/public-review.ts",
+				import: "./src/public-review.ts",
+				default: "./src/public-review.ts",
+			},
 		});
 	});
 

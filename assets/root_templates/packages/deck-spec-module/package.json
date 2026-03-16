@@ -3,6 +3,24 @@
 	"version": "1.0.0",
 	"private": true,
 	"type": "module",
+	"types": "./src/public-root.ts",
+	"exports": {
+		".": {
+			"types": "./src/public-root.ts",
+			"import": "./src/public-root.ts",
+			"default": "./src/public-root.ts"
+		},
+		"./spec": {
+			"types": "./src/public-spec.ts",
+			"import": "./src/public-spec.ts",
+			"default": "./src/public-spec.ts"
+		},
+		"./review": {
+			"types": "./src/public-review.ts",
+			"import": "./src/public-review.ts",
+			"default": "./src/public-review.ts"
+		}
+	},
 	"scripts": {
 		"spec": "node --import tsx src/cli/runSpecCli.ts",
 		"spec:live": "node --import tsx src/cli/runLiveSmokeCli.ts",

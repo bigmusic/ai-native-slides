@@ -87,6 +87,7 @@ Use one shared deck root and one project directory per deck:
 
 The root owns the runtime. Each project owns only its content, thin wrappers, metadata, and outputs.
 The deck root `.npmrc` pins `store-dir=.pnpm-store`, so shared `pnpm install` traffic stays inside that deck root instead of writing to a host-global store. Shared `uv` commands should likewise use `UV_CACHE_DIR=.uv-cache`, and `init_deck_root.sh` now does that automatically.
+The deck-root `package.json` also links `@ai-native-slides/deck-spec-module` from the workspace package, so project-local wrappers resolve the shared TypeScript entrypoints through the parent `node_modules` tree without adding `projects/*` to the workspace.
 
 ## Script Roles
 
@@ -180,7 +181,7 @@ Before running that loop, resolve whether the prompt is creating a new project o
 
 `pnpm spec:validate` performs structural validation only. The project wrapper routes it through the shared package's `pnpm spec:validate` CLI, which checks the canonical `spec/deck-spec.json` against `spec/deck-spec.schema.json` plus local rule validation without mutating project files.
 
-For operator usage, the supported shared-module entrypoints are the package `pnpm` CLIs (`spec`, `spec:validate`, and `spec:live`). Do not wire workflows to `packages/deck-spec-module/src/cli/*` paths directly. This CLI hardening does not mean the entire package is fully decoupled yet; other wrapper surfaces still use `packages/deck-spec-module/src/*` imports.
+For operator usage, the supported shared-module entrypoints are the package `pnpm` CLIs (`spec`, `spec:validate`, and `spec:live`). Do not wire workflows to `packages/deck-spec-module/src/cli/*` paths directly. For TypeScript usage, keep project wrappers on the curated package exports `@ai-native-slides/deck-spec-module`, `@ai-native-slides/deck-spec-module/spec`, and `@ai-native-slides/deck-spec-module/review`. The remaining coupling is test-only deep imports of planner/media/reviewing internals, not wrapper-path dependence.
 
 Every `pnpm spec -- --prompt "<prompt>"` run writes the same fixed artifact bundle under `<deck-root>/tmp/deck-spec-module/<project-slug>/` by default:
 

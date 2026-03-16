@@ -281,9 +281,18 @@ describe("project scaffold maintenance surfaces", () => {
 			path.join(projectDir, "run-project.sh"),
 			"utf8",
 		);
+		const runDeckSpecSource = await readFile(
+			path.join(projectDir, "src", "spec", "runDeckSpec.ts"),
+			"utf8",
+		);
+		const contractWrapperSource = await readFile(
+			path.join(projectDir, "src", "spec", "contract.ts"),
+			"utf8",
+		);
 		const deckRootPackage = JSON.parse(
 			await readFile(path.join(deckRoot, "package.json"), "utf8"),
 		) as {
+			dependencies?: Record<string, unknown>;
 			scripts?: Record<string, unknown>;
 		};
 
@@ -293,6 +302,19 @@ describe("project scaffold maintenance surfaces", () => {
 		expect(runProjectSource).not.toContain(
 			'packages/deck-spec-module/src/cli/runSpecCli.ts',
 		);
+		expect(runDeckSpecSource).toContain("@ai-native-slides/deck-spec-module");
+		expect(runDeckSpecSource).not.toContain(
+			"packages/deck-spec-module/src/cli/runSpecCli.ts",
+		);
+		expect(contractWrapperSource).toContain(
+			"@ai-native-slides/deck-spec-module/spec",
+		);
+		expect(contractWrapperSource).not.toContain(
+			"packages/deck-spec-module/src/spec/contract.ts",
+		);
+		expect(deckRootPackage.dependencies).toMatchObject({
+			"@ai-native-slides/deck-spec-module": "workspace:*",
+		});
 		expect(deckRootPackage.scripts).toMatchObject({
 			"spec:live": "pnpm --dir packages/deck-spec-module spec:live",
 		});

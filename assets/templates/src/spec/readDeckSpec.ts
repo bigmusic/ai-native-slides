@@ -1,1 +1,1 @@
-export * from "../../../../packages/deck-spec-module/src/spec/readDeckSpec.ts";
+export * from "@ai-native-slides/deck-spec-module/spec";

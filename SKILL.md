@@ -78,7 +78,7 @@ For operator workflows, treat those `pnpm` commands as the stable shared-module 
   - project-local mutable state
   - hidden package-local output directories
 - Current caveat:
-  - the operator CLI boundary now routes through the package `pnpm` scripts, but the package is not yet fully integration-isolated overall because other wrapper surfaces still import `packages/deck-spec-module/src/*`
+  - the operator CLI boundary and project wrapper TypeScript boundary now route through curated package scripts and exports, but the package is not yet fully integration-isolated overall because some tests still deep-import planner/media/reviewing internals under `packages/deck-spec-module/src/*`
 - Project wrapper owns:
   - deck-root / project-root discovery
   - default path selection for `canonicalSpecPath`, `artifactRootDir`, and `mediaOutputDir`

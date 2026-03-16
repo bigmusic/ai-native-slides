@@ -52,6 +52,8 @@ require_command() {
 }
 
 node_dependencies_installed() {
+  [[ -d "$NODE_MODULES_DIR/@ai-native-slides" ]] && \
+  [[ -d "$NODE_MODULES_DIR/@ai-native-slides/deck-spec-module" ]] && \
   [[ -d "$NODE_MODULES_DIR/@google" ]] && \
   [[ -d "$NODE_MODULES_DIR/@google/genai" ]] && \
   [[ -d "$NODE_MODULES_DIR/ajv" ]] && \

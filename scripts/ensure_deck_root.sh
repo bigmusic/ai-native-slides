@@ -296,7 +296,9 @@ else
 fi
 
 NODE_DEPS_PRESENT=false
-if [[ -d "$NODE_MODULES_DIR/@google" ]] && \
+if [[ -d "$NODE_MODULES_DIR/@ai-native-slides" ]] && \
+   [[ -d "$NODE_MODULES_DIR/@ai-native-slides/deck-spec-module" ]] && \
+   [[ -d "$NODE_MODULES_DIR/@google" ]] && \
    [[ -d "$NODE_MODULES_DIR/@google/genai" ]] && \
    [[ -d "$NODE_MODULES_DIR/ajv" ]] && \
    [[ -d "$NODE_MODULES_DIR/pptxgenjs" ]] && \
@@ -314,7 +316,7 @@ if [[ -d "$NODE_MODULES_DIR/@google" ]] && \
   NODE_DEPS_PRESENT=true
 else
   add_missing "shared Node dependencies are not fully installed in root node_modules"
-  add_suggestion "Run \`cd \"$DECK_ROOT\" && pnpm install\` so shared Node dependencies use the deck-root \`.pnpm-store/\` configured in \`.npmrc\`."
+  add_suggestion "Run \`cd \"$DECK_ROOT\" && pnpm install\` so shared Node dependencies, including the root-linked \`@ai-native-slides/deck-spec-module\` package, use the deck-root \`.pnpm-store/\` configured in \`.npmrc\`."
 fi
 
 VENV_PYTHON_PRESENT=false
