@@ -178,7 +178,7 @@ Before running that loop, resolve whether the prompt is creating a new project o
 
 `pnpm spec -- --prompt "<prompt>"` is now the single happy-path provider-backed command. The project wrapper forwards into the shared package at `<deck-root>/packages/deck-spec-module/` with explicit canonical-spec, artifact-root, and media-output paths. The shared CLI fails fast if those output paths are omitted. Treat the shared module as a stateless black box: wrappers own project discovery and default path selection, while the module consumes explicit inputs, owns normalization, structural validation, semantic review, one internal repair retry, canonical publish, media generation, and artifact-bundle writes. On pre-publish failure it leaves the canonical target untouched; on post-publish media failure it keeps the canonical spec at `reviewed` and reports a stable failure kind. Use `--no-media` only when you explicitly want to skip the image phase.
 
-`pnpm spec:validate` performs structural validation only. It checks the canonical `spec/deck-spec.json` against `spec/deck-spec.schema.json` plus local rule validation, and it does not mutate project files.
+`pnpm spec:validate` performs structural validation only. The project wrapper routes it through the shared package's `pnpm spec:validate` CLI, which checks the canonical `spec/deck-spec.json` against `spec/deck-spec.schema.json` plus local rule validation without mutating project files.
 
 Every `pnpm spec -- --prompt "<prompt>"` run writes the same fixed artifact bundle under `<deck-root>/tmp/deck-spec-module/<project-slug>/` by default:
 
@@ -204,7 +204,7 @@ cd /Volumes/BiGROG/skills-test/ai-education-deck/projects/ai-native-product-deck
 pnpm validate
 ```
 
-Inside Codex, `pnpm validate` still writes an `INCOMPLETE (human-in-the-loop required)` report, but it exits successfully when the only blocked steps are the expected LibreOffice-backed ones. Terminal output should also print the local rerun command and the raw `soffice` command blocks so the user can finish the human-in-the-loop step without opening the markdown report first. The markdown report now always ends with a `Summary` section, including the fully passed case. Real lint/typecheck/test/build failures still exit non-zero.
+`pnpm validate` now always starts from a fresh `pnpm build` and aborts artifact checks if that build does not produce a new `.pptx` for the current run. It no longer accepts or falls back to older `output/*.pptx` files. Inside Codex, `pnpm validate` still writes an `INCOMPLETE (human-in-the-loop required)` report and exits successfully when the only blocked steps are the expected LibreOffice-backed ones. Terminal output should also print the local rerun command and the raw `soffice` command blocks so the user can finish the human-in-the-loop step without opening the markdown report first. The markdown report now always ends with a `Summary` section, including the fully passed case. Real lint/typecheck/test/build failures still exit non-zero.
 
 ## PNPM INSTALL and UV
 

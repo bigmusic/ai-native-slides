@@ -118,7 +118,7 @@ The skill exists to keep orchestration and deck authoring outside the planning m
 - Project wrapper responsibilities:
   - discover deck-root and project-root context
   - choose default `canonicalSpecPath`, `artifactRootDir`, and `mediaOutputDir`
-  - forward `spec` and `spec:validate` into the shared package
+  - forward `spec` and `spec:validate` into the shared package through the operator-facing CLIs
   - keep deterministic build separate from planning and media
 - Gemini responsibilities:
   - spec generation inside the shared `deck-spec-module`
@@ -135,6 +135,7 @@ The current workflow hard-cuts planning and contract validation into the shared 
 
 - `pnpm spec -- --prompt "<prompt>"` is the main path. The project wrapper forwards into the shared CLI with explicit `--canonical-spec-path`, `--artifact-root-dir`, and `--media-output-dir` values, and that CLI forwards into `runDeckSpecModule({ prompt, projectSlug, apiKey, model?, seed?, paths: { canonicalSpecPath, artifactRootDir, mediaOutputDir }, media?: { enabled?: boolean } })`.
 - The official validate entrypoint is `runDeckSpecValidateModule({ canonicalSpecPath, reportPath? })`.
+- The project-facing `pnpm spec:validate` path shells into the shared package's `pnpm spec:validate` CLI instead of calling internal `src/cli/*` file paths directly.
 - The shared module is writer-first and stateless. It owns planning, canonicalization, structural validation, semantic review, one repair retry, canonical spec publish, media materialization, and artifact-bundle writes.
 - The shared module does not discover the active project, infer runtime output locations, or depend on project-local mutable state.
 - The project wrapper owns deck-root / project-root discovery and default path selection for `canonicalSpecPath`, `artifactRootDir`, and `mediaOutputDir`.
@@ -156,7 +157,8 @@ The current workflow hard-cuts planning and contract validation into the shared 
   - `src/media/generatedImagePaths.ts`
 - There is no supported `--debug` mode and no supported value-only planner API.
 - `pnpm spec` runs planning plus media by default. `--no-media` is the explicit escape hatch when you need canonical spec publish without image generation.
-- `pnpm spec:validate` remains structural validation only. It validates the canonical `spec/deck-spec.json` and does not generate media or revise project content.
+- `pnpm spec:validate` remains structural validation only. It validates the canonical `spec/deck-spec.json` through the shared package CLI and does not generate media or revise project content.
+- `pnpm validate` always starts from a fresh `pnpm build` and only validates the `.pptx` emitted by that build run. It does not accept or fall back to older `output/*.pptx` artifacts.
 - `pnpm spec:live -- <project-dir> --tmp-root-dir "<path>" --prompt "<prompt>" [--label "<name>"] [--no-media]` is the opt-in provider-backed acceptance command from the deck root. It writes only to the caller-selected temp root and does not mutate the project canonical spec.
 - Validation/eval, not exact byte-for-byte determinism, is the success bar for model-generated spec content.
 

@@ -52,6 +52,16 @@ export {
 	DeckSpecPlanningError,
 	isDeckSpecPlanningError,
 } from "./deck-spec-module/errors.js";
+export type {
+	DeckSpecValidationError,
+	DeckSpecValidationResult,
+} from "./spec/validateDeckSpec.js";
+export {
+	runSpecValidateCli,
+	validateDeckSpecDocument,
+	validateDeckSpecFile,
+	validateDeckSpecFileFromPath,
+} from "./spec/validateDeckSpec.js";
 
 export type DeckSpecModulePaths = {
 	canonicalSpecPath: string;
@@ -508,5 +518,3 @@ export async function runDeckSpecValidateModule(
 
 	return { ok: true };
 }
-
-export { runSpecValidateCli };

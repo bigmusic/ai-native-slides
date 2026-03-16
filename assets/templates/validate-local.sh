@@ -2,10 +2,18 @@
 set -euo pipefail
 
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_SLUG="$(basename "$PROJECT_DIR")"
 TMP_DIR="$PROJECT_DIR/tmp"
 OUTPUT_DIR="$PROJECT_DIR/output"
 RUN_PROJECT_SCRIPT="$PROJECT_DIR/run-project.sh"
 PROJECT_STATE_FILE="$PROJECT_DIR/.ai-native-slides/state.json"
+PPTX_PATH=""
+PPTX_BASENAME=""
+PPTX_STEM="$PROJECT_SLUG"
+RENDERED_DIR="$OUTPUT_DIR/${PROJECT_SLUG}-rendered"
+REPORT_PATH="$OUTPUT_DIR/${PROJECT_SLUG}-validation.md"
+FONT_JSON_PATH="$OUTPUT_DIR/${PROJECT_SLUG}-font-report.json"
+MONTAGE_PATH="$OUTPUT_DIR/${PROJECT_SLUG}-montage.png"
 
 find_deck_root() {
   local current_dir
@@ -34,43 +42,11 @@ LOCAL_SKILL_DIR="$(cd "$DECK_ROOT/.." && pwd)/ai-native-slides"
 INSTALLED_SKILL_DIR="$HOME/.codex/skills/ai-native-slides"
 SOFFICE_BIN="$(command -v soffice || command -v libreoffice || printf 'soffice')"
 
-pick_default_pptx() {
-  local candidates=()
-
-  if [[ ! -d "$OUTPUT_DIR" ]]; then
-    printf '%s\n' "$OUTPUT_DIR/deck.pptx"
-    return
-  fi
-
-  shopt -s nullglob
-  candidates=("$OUTPUT_DIR"/*.pptx)
-  shopt -u nullglob
-
-  if [[ ${#candidates[@]} -eq 0 ]]; then
-    printf '%s\n' "$OUTPUT_DIR/deck.pptx"
-    return
-  fi
-
-  if [[ ${#candidates[@]} -eq 1 ]]; then
-    printf '%s\n' "${candidates[0]}"
-    return
-  fi
-
-  /bin/ls -t "${candidates[@]}" | head -n 1
-}
-
-if [[ $# -ge 1 ]]; then
-  PPTX_PATH="$1"
-else
-  PPTX_PATH="$(pick_default_pptx)"
+if [[ "$#" -ne 0 ]]; then
+  echo "validate-local.sh validates only the artifact produced by the current build." >&2
+  echo "Run 'pnpm validate' without arguments." >&2
+  exit 1
 fi
-
-PPTX_BASENAME="$(basename "$PPTX_PATH")"
-PPTX_STEM="${PPTX_BASENAME%.pptx}"
-RENDERED_DIR="$OUTPUT_DIR/${PPTX_STEM}-rendered"
-REPORT_PATH="$OUTPUT_DIR/${PPTX_STEM}-validation.md"
-FONT_JSON_PATH="$OUTPUT_DIR/${PPTX_STEM}-font-report.json"
-MONTAGE_PATH="$OUTPUT_DIR/${PPTX_STEM}-montage.png"
 
 if [[ -n "${AI_NATIVE_SLIDES_SKILL_DIR:-}" ]]; then
   SKILL_DIR="$AI_NATIVE_SLIDES_SKILL_DIR"
@@ -116,12 +92,6 @@ if [[ ! -x "$VENV_PYTHON" ]]; then
   exit 1
 fi
 
-if [[ ! -f "$PPTX_PATH" ]]; then
-  echo "Missing deck artifact: $PPTX_PATH" >&2
-  echo "Run 'pnpm build' in the project first, or pass an explicit .pptx path to validate-local.sh." >&2
-  exit 1
-fi
-
 if [[ ! -d "$SKILL_SCRIPTS_DIR" ]]; then
   echo "Missing skill scripts: $SKILL_SCRIPTS_DIR" >&2
   echo "Set AI_NATIVE_SLIDES_SKILL_DIR or ensure a local skill repo exists at $LOCAL_SKILL_DIR." >&2
@@ -129,16 +99,6 @@ if [[ ! -d "$SKILL_SCRIPTS_DIR" ]]; then
 fi
 
 LOCAL_VALIDATE_CMD="cd \"$PROJECT_DIR\" && TMPDIR=\"$TMP_DIR\" TMP=\"$TMP_DIR\" TEMP=\"$TMP_DIR\" SAL_USE_VCLPLUGIN=svp pnpm validate"
-RAW_RENDER_CMD_1="PROFILE_DIR=\"\$(mktemp -d \"$TMP_DIR/soffice_profile.render.XXXXXX\")\""
-RAW_RENDER_CMD_2="OUT_DIR=\"\$(mktemp -d \"$TMP_DIR/soffice_convert.render.XXXXXX\")\""
-RAW_RENDER_CMD_3="TMPDIR=\"$TMP_DIR\" TMP=\"$TMP_DIR\" TEMP=\"$TMP_DIR\" SAL_USE_VCLPLUGIN=svp \"$SOFFICE_BIN\" \"-env:UserInstallation=file://\$PROFILE_DIR\" --invisible --headless --norestore --convert-to pdf --outdir \"\$OUT_DIR\" \"$PPTX_PATH\""
-RAW_FONT_CMD_1="PROFILE_DIR=\"\$(mktemp -d \"$TMP_DIR/soffice_profile.font.XXXXXX\")\""
-RAW_FONT_CMD_2="OUT_DIR=\"\$(mktemp -d \"$TMP_DIR/soffice_convert.font.XXXXXX\")\""
-RAW_FONT_CMD_3="TMPDIR=\"$TMP_DIR\" TMP=\"$TMP_DIR\" TEMP=\"$TMP_DIR\" SAL_USE_VCLPLUGIN=svp \"$SOFFICE_BIN\" \"-env:UserInstallation=file://\$PROFILE_DIR\" --invisible --headless --norestore --convert-to odp --outdir \"\$OUT_DIR\" \"$PPTX_PATH\""
-MANUAL_RENDER_STEP="unset CODEX_THREAD_ID CODEX_SHELL && TMPDIR=\"$TMP_DIR\" TMP=\"$TMP_DIR\" TEMP=\"$TMP_DIR\" SAL_USE_VCLPLUGIN=svp \"$VENV_PYTHON\" \"$SKILL_SCRIPTS_DIR/render_slides.py\" \"$PPTX_PATH\" --output_dir \"$RENDERED_DIR\""
-MANUAL_OVERFLOW_STEP="unset CODEX_THREAD_ID CODEX_SHELL && TMPDIR=\"$TMP_DIR\" TMP=\"$TMP_DIR\" TEMP=\"$TMP_DIR\" SAL_USE_VCLPLUGIN=svp \"$VENV_PYTHON\" \"$SKILL_SCRIPTS_DIR/slides_test.py\" \"$PPTX_PATH\""
-MANUAL_MONTAGE_STEP="unset CODEX_THREAD_ID CODEX_SHELL && TMPDIR=\"$TMP_DIR\" TMP=\"$TMP_DIR\" TEMP=\"$TMP_DIR\" SAL_USE_VCLPLUGIN=svp \"$VENV_PYTHON\" \"$SKILL_SCRIPTS_DIR/create_montage.py\" --input_dir \"$RENDERED_DIR\" --output_file \"$MONTAGE_PATH\""
-MANUAL_FONT_STEP="unset CODEX_THREAD_ID CODEX_SHELL && TMPDIR=\"$TMP_DIR\" TMP=\"$TMP_DIR\" TEMP=\"$TMP_DIR\" SAL_USE_VCLPLUGIN=svp /bin/bash -lc 'set -o pipefail; \"$VENV_PYTHON\" \"$SKILL_SCRIPTS_DIR/detect_font.py\" \"$PPTX_PATH\" --json | tee \"$FONT_JSON_PATH\"'"
 
 if ! bash "$SKILL_SCRIPTS_DIR/ensure_deck_root.sh" "$DECK_ROOT" --quiet; then
   echo "Deck root preflight failed. See $ROOT_STATE_FILE." >&2
@@ -168,7 +128,7 @@ cat <<REPORT > "$REPORT_PATH"
 - Project dir: $PROJECT_DIR
 - TMPDIR: $TMPDIR
 - Skill dir: $SKILL_DIR
-- PPTX: $PPTX_PATH
+- PPTX: pending fresh build output
 - Root state: $ROOT_STATE_FILE
 - Project state: $PROJECT_STATE_FILE
 - Human-in-the-loop note: LibreOffice-backed steps are intentionally blocked inside Codex and must be rerun from a local terminal.
@@ -218,6 +178,19 @@ append_blocked_section() {
     echo "## $title"
     echo
     echo "- Status: HUMAN-IN-THE-LOOP"
+    echo "- Reason: $reason"
+    echo
+  } >> "$REPORT_PATH"
+}
+
+append_failure_section() {
+  local title="$1"
+  local reason="$2"
+
+  {
+    echo "## $title"
+    echo
+    echo "- Status: FAILED"
     echo "- Reason: $reason"
     echo
   } >> "$REPORT_PATH"
@@ -279,6 +252,79 @@ print_local_terminal_commands() {
   echo "$RAW_FONT_CMD_1"
   echo "$RAW_FONT_CMD_2"
   echo "$RAW_FONT_CMD_3"
+}
+
+configure_validation_artifact() {
+  local next_pptx_path="$1"
+  PPTX_PATH="$next_pptx_path"
+  PPTX_BASENAME="$(basename "$PPTX_PATH")"
+  PPTX_STEM="${PPTX_BASENAME%.pptx}"
+  RAW_RENDER_CMD_1="PROFILE_DIR=\"\$(mktemp -d \"$TMP_DIR/soffice_profile.render.XXXXXX\")\""
+  RAW_RENDER_CMD_2="OUT_DIR=\"\$(mktemp -d \"$TMP_DIR/soffice_convert.render.XXXXXX\")\""
+  RAW_RENDER_CMD_3="TMPDIR=\"$TMP_DIR\" TMP=\"$TMP_DIR\" TEMP=\"$TMP_DIR\" SAL_USE_VCLPLUGIN=svp \"$SOFFICE_BIN\" \"-env:UserInstallation=file://\$PROFILE_DIR\" --invisible --headless --norestore --convert-to pdf --outdir \"\$OUT_DIR\" \"$PPTX_PATH\""
+  RAW_FONT_CMD_1="PROFILE_DIR=\"\$(mktemp -d \"$TMP_DIR/soffice_profile.font.XXXXXX\")\""
+  RAW_FONT_CMD_2="OUT_DIR=\"\$(mktemp -d \"$TMP_DIR/soffice_convert.font.XXXXXX\")\""
+  RAW_FONT_CMD_3="TMPDIR=\"$TMP_DIR\" TMP=\"$TMP_DIR\" TEMP=\"$TMP_DIR\" SAL_USE_VCLPLUGIN=svp \"$SOFFICE_BIN\" \"-env:UserInstallation=file://\$PROFILE_DIR\" --invisible --headless --norestore --convert-to odp --outdir \"\$OUT_DIR\" \"$PPTX_PATH\""
+  MANUAL_RENDER_STEP="unset CODEX_THREAD_ID CODEX_SHELL && TMPDIR=\"$TMP_DIR\" TMP=\"$TMP_DIR\" TEMP=\"$TMP_DIR\" SAL_USE_VCLPLUGIN=svp \"$VENV_PYTHON\" \"$SKILL_SCRIPTS_DIR/render_slides.py\" \"$PPTX_PATH\" --output_dir \"$RENDERED_DIR\""
+  MANUAL_OVERFLOW_STEP="unset CODEX_THREAD_ID CODEX_SHELL && TMPDIR=\"$TMP_DIR\" TMP=\"$TMP_DIR\" TEMP=\"$TMP_DIR\" SAL_USE_VCLPLUGIN=svp \"$VENV_PYTHON\" \"$SKILL_SCRIPTS_DIR/slides_test.py\" \"$PPTX_PATH\""
+  MANUAL_MONTAGE_STEP="unset CODEX_THREAD_ID CODEX_SHELL && TMPDIR=\"$TMP_DIR\" TMP=\"$TMP_DIR\" TEMP=\"$TMP_DIR\" SAL_USE_VCLPLUGIN=svp \"$VENV_PYTHON\" \"$SKILL_SCRIPTS_DIR/create_montage.py\" --input_dir \"$RENDERED_DIR\" --output_file \"$MONTAGE_PATH\""
+  MANUAL_FONT_STEP="unset CODEX_THREAD_ID CODEX_SHELL && TMPDIR=\"$TMP_DIR\" TMP=\"$TMP_DIR\" TEMP=\"$TMP_DIR\" SAL_USE_VCLPLUGIN=svp /bin/bash -lc 'set -o pipefail; \"$VENV_PYTHON\" \"$SKILL_SCRIPTS_DIR/detect_font.py\" \"$PPTX_PATH\" --json | tee \"$FONT_JSON_PATH\"'"
+
+  {
+    echo "## Fresh Build Artifact"
+    echo
+    echo "- PPTX: $PPTX_PATH"
+    echo
+  } >> "$REPORT_PATH"
+}
+
+resolve_built_pptx_path() {
+  local build_output="$1"
+  local reported_path
+
+  reported_path="$(
+    printf '%s\n' "$build_output" | \
+      sed -n 's/^Wrote \(.*\.pptx\) ([0-9][0-9]* slides)$/\1/p' | \
+      tail -n 1
+  )"
+
+  if [[ -z "$reported_path" ]]; then
+    return 1
+  fi
+
+  if [[ "$reported_path" == /* ]]; then
+    printf '%s\n' "$reported_path"
+    return 0
+  fi
+
+  printf '%s\n' "$PROJECT_DIR/$reported_path"
+}
+
+mark_missing_fresh_artifact_skips() {
+  append_skipped_section \
+    "Open XML Sanity" \
+    "Skipped because Build Deck did not produce a fresh PPTX to validate."
+  record_skipped "Open XML Sanity"
+
+  append_skipped_section \
+    "Render Slides" \
+    "Skipped because Build Deck did not produce a fresh PPTX to validate."
+  record_skipped "Render Slides"
+
+  append_skipped_section \
+    "Overflow Check" \
+    "Skipped because no fresh rendered PPTX was available."
+  record_skipped "Overflow Check"
+
+  append_skipped_section \
+    "Build Montage" \
+    "Skipped because no fresh rendered slides were produced."
+  record_skipped "Build Montage"
+
+  append_skipped_section \
+    "Detect Font" \
+    "Skipped because Build Deck did not produce a fresh PPTX to validate."
+  record_skipped "Detect Font"
 }
 
 record_failure() {
@@ -347,9 +393,92 @@ run_step_with_classification() {
   return 1
 }
 
+finish_validation() {
+  {
+    echo "## Artifacts"
+    echo
+    if [[ -n "$PPTX_PATH" ]]; then
+      echo "- PPTX: $PPTX_PATH"
+    else
+      echo "- PPTX: not available because the current build did not produce a fresh artifact"
+    fi
+    echo "- Report: $REPORT_PATH"
+    echo "- Font JSON: $FONT_JSON_PATH"
+    echo "- Montage: $MONTAGE_PATH"
+    echo "- Rendered slides: $RENDERED_DIR"
+    echo
+  } >> "$REPORT_PATH"
+
+  if [[ "$BLOCKED_STEPS" -ne 0 ]]; then
+    append_local_terminal_commands
+  fi
+
+  {
+    echo "## Summary"
+    echo
+    if [[ "$FAILED_STEPS" -ne 0 ]]; then
+      echo "- Result: FAILED"
+    elif [[ "$BLOCKED_STEPS" -ne 0 ]]; then
+      echo "- Result: INCOMPLETE (human-in-the-loop required)"
+    elif [[ "$SKIPPED_STEPS" -ne 0 ]]; then
+      echo "- Result: PASSED WITH SKIPS"
+    else
+      echo "- Result: PASSED"
+    fi
+    if [[ "$FAILED_STEPS" -ne 0 ]]; then
+      echo "- Failed sections: $FAILED_STEPS"
+      for title in "${FAILED_TITLES[@]}"; do
+        echo "- ${title}"
+      done
+    fi
+    if [[ "$BLOCKED_STEPS" -ne 0 ]]; then
+      echo "- Human-in-the-loop sections: $BLOCKED_STEPS"
+      for title in "${BLOCKED_TITLES[@]}"; do
+        echo "- ${title}"
+      done
+      echo "- Next action: Re-run \`pnpm validate\` from a local terminal to complete LibreOffice-dependent validation."
+    fi
+    if [[ "$SKIPPED_STEPS" -ne 0 ]]; then
+      echo "- Skipped sections: $SKIPPED_STEPS"
+      for title in "${SKIPPED_TITLES[@]}"; do
+        echo "- ${title}"
+      done
+    fi
+    echo
+  } >> "$REPORT_PATH"
+
+  if [[ "$FAILED_STEPS" -ne 0 ]]; then
+    echo "Validation completed with failures." >&2
+    echo "Markdown report: $REPORT_PATH" >&2
+    exit 1
+  fi
+
+  if [[ "$BLOCKED_STEPS" -ne 0 ]]; then
+    if running_in_codex_shell; then
+      echo "Validation incomplete. Human-in-the-loop steps remain."
+      echo "Markdown report: $REPORT_PATH"
+      print_local_terminal_commands
+      exit 0
+    fi
+
+    echo "Validation incomplete. Human-in-the-loop steps remain." >&2
+    echo "Markdown report: $REPORT_PATH" >&2
+    exit 1
+  fi
+
+  echo "Validation complete."
+  echo "Markdown report: $REPORT_PATH"
+}
+
 openxml_geometry_sanity_check() {
   local unpack_dir
   local negative_geometry_log
+
+  if [[ -z "$PPTX_PATH" ]]; then
+    echo "Missing fresh PPTX path for Open XML sanity check." >&2
+    return 1
+  fi
+
   unpack_dir="$(mktemp -d "$TMPDIR/openxml_sanity.XXXXXX")"
   negative_geometry_log="$TMPDIR/openxml_negative_geometry.log"
 
@@ -392,7 +521,28 @@ fi
 
 if ! run_step_with_classification "Build Deck" \
   /bin/bash -lc "cd '$PROJECT_DIR' && pnpm build"; then
-  :
+  mark_missing_fresh_artifact_skips
+  finish_validation
+fi
+
+BUILT_PPTX_PATH="$(resolve_built_pptx_path "$LAST_OUTPUT_TEXT" || true)"
+if [[ -z "$BUILT_PPTX_PATH" ]]; then
+  append_failure_section \
+    "Resolve Fresh Build Artifact" \
+    "Build succeeded, but the current run did not report a fresh .pptx output path."
+  record_failure "Resolve Fresh Build Artifact"
+  mark_missing_fresh_artifact_skips
+  finish_validation
+fi
+
+configure_validation_artifact "$BUILT_PPTX_PATH"
+if [[ ! -f "$PPTX_PATH" ]]; then
+  append_failure_section \
+    "Resolve Fresh Build Artifact" \
+    "Build reported a fresh .pptx path, but the file is missing: $PPTX_PATH"
+  record_failure "Resolve Fresh Build Artifact"
+  mark_missing_fresh_artifact_skips
+  finish_validation
 fi
 
 if ! run_step_with_classification "Open XML Sanity" \
@@ -465,73 +615,4 @@ else
   fi
 fi
 
-{
-  echo "## Artifacts"
-  echo
-  echo "- PPTX: $PPTX_PATH"
-  echo "- Report: $REPORT_PATH"
-  echo "- Font JSON: $FONT_JSON_PATH"
-  echo "- Montage: $MONTAGE_PATH"
-  echo "- Rendered slides: $RENDERED_DIR"
-  echo
-} >> "$REPORT_PATH"
-
-if [[ "$BLOCKED_STEPS" -ne 0 ]]; then
-  append_local_terminal_commands
-fi
-
-{
-  echo "## Summary"
-  echo
-  if [[ "$FAILED_STEPS" -ne 0 ]]; then
-    echo "- Result: FAILED"
-  elif [[ "$BLOCKED_STEPS" -ne 0 ]]; then
-    echo "- Result: INCOMPLETE (human-in-the-loop required)"
-  elif [[ "$SKIPPED_STEPS" -ne 0 ]]; then
-    echo "- Result: PASSED WITH SKIPS"
-  else
-    echo "- Result: PASSED"
-  fi
-  if [[ "$FAILED_STEPS" -ne 0 ]]; then
-    echo "- Failed sections: $FAILED_STEPS"
-    for title in "${FAILED_TITLES[@]}"; do
-      echo "- ${title}"
-    done
-  fi
-  if [[ "$BLOCKED_STEPS" -ne 0 ]]; then
-    echo "- Human-in-the-loop sections: $BLOCKED_STEPS"
-    for title in "${BLOCKED_TITLES[@]}"; do
-      echo "- ${title}"
-    done
-    echo "- Next action: Re-run \`pnpm validate\` from a local terminal to complete LibreOffice-dependent validation."
-  fi
-  if [[ "$SKIPPED_STEPS" -ne 0 ]]; then
-    echo "- Skipped sections: $SKIPPED_STEPS"
-    for title in "${SKIPPED_TITLES[@]}"; do
-      echo "- ${title}"
-    done
-  fi
-  echo
-} >> "$REPORT_PATH"
-
-if [[ "$FAILED_STEPS" -ne 0 ]]; then
-  echo "Validation completed with failures." >&2
-  echo "Markdown report: $REPORT_PATH" >&2
-  exit 1
-fi
-
-if [[ "$BLOCKED_STEPS" -ne 0 ]]; then
-  if running_in_codex_shell; then
-    echo "Validation incomplete. Human-in-the-loop steps remain."
-    echo "Markdown report: $REPORT_PATH"
-    print_local_terminal_commands
-    exit 0
-  fi
-
-  echo "Validation incomplete. Human-in-the-loop steps remain." >&2
-  echo "Markdown report: $REPORT_PATH" >&2
-  exit 1
-fi
-
-echo "Validation complete."
-echo "Markdown report: $REPORT_PATH"
+finish_validation

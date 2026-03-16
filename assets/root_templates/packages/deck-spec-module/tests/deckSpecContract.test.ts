@@ -8,9 +8,10 @@ import type { DeckSpec } from "../src/spec/contract.js";
 import { deriveOutputFileName } from "../src/spec/deriveOutputFileName.js";
 import { normalizeSystemManagedFields } from "../src/spec/normalizeSystemManagedFields.js";
 import {
+	runDeckSpecValidateModule,
 	runSpecValidateCli,
 	validateDeckSpecDocument,
-} from "../src/spec/validateDeckSpec.js";
+} from "../src/public-api.js";
 import { createProjectTempDir } from "./testTempDir.js";
 
 const tempDirs: string[] = [];
@@ -70,6 +71,10 @@ async function createTempProject(plan?: DeckSpec): Promise<string> {
 
 function clonePlan(plan: DeckSpec): DeckSpec {
 	return structuredClone(plan);
+}
+
+function resolveCanonicalSpecPath(projectDir: string): string {
+	return path.join(projectDir, "spec", "deck-spec.json");
 }
 
 async function validatePlan(
@@ -445,5 +450,56 @@ describe("spec:validate CLI", () => {
 		expect(exitCode).toBe(1);
 		expect(stdout).toEqual([]);
 		expect(stderr[0]).toContain("deck-spec.json is missing");
+	});
+});
+
+describe("runDeckSpecValidateModule", () => {
+	it("accepts a valid canonical spec path", async () => {
+		const tempProjectDir = await createTempProject(await loadFixturePlan());
+
+		await expect(
+			runDeckSpecValidateModule({
+				canonicalSpecPath: resolveCanonicalSpecPath(tempProjectDir),
+			}),
+		).resolves.toEqual({ ok: true });
+	});
+
+	it("rejects invalid canonical spec documents", async () => {
+		const plan = clonePlan(await loadFixturePlan());
+		plan.target_slide_count = 1;
+		const tempProjectDir = await createTempProject(plan);
+
+		await expect(
+			runDeckSpecValidateModule({
+				canonicalSpecPath: resolveCanonicalSpecPath(tempProjectDir),
+			}),
+		).rejects.toThrow("Deck spec validation failed");
+	});
+
+	it("rejects missing canonical spec files", async () => {
+		const tempProjectDir = await createTempProject();
+
+		await expect(
+			runDeckSpecValidateModule({
+				canonicalSpecPath: resolveCanonicalSpecPath(tempProjectDir),
+			}),
+		).rejects.toThrow("deck-spec.json is missing");
+	});
+
+	it("writes an optional validation report", async () => {
+		const tempProjectDir = await createTempProject(await loadFixturePlan());
+		const reportPath = path.join(tempProjectDir, "validate.report.md");
+
+		await expect(
+			runDeckSpecValidateModule({
+				canonicalSpecPath: resolveCanonicalSpecPath(tempProjectDir),
+				reportPath,
+			}),
+		).resolves.toEqual({ ok: true });
+
+		const report = await readFile(reportPath, "utf8");
+		expect(report).toContain("# Deck-Spec Validation");
+		expect(report).toContain("- Status: VALID");
+		expect(report).toContain(resolveCanonicalSpecPath(tempProjectDir));
 	});
 });

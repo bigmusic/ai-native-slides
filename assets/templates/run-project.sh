@@ -77,7 +77,7 @@ case "$ACTION" in
   spec:validate)
     (
       cd "$PROJECT_DIR"
-      DECK_ROOT="$DECK_ROOT" node --import tsx "$DECK_ROOT/packages/deck-spec-module/src/cli/runValidateCli.ts" "$PROJECT_DIR" "$@"
+      pnpm --dir "$DECK_ROOT/packages/deck-spec-module" spec:validate "$PROJECT_DIR" "$@"
     )
     ;;
   spec)
