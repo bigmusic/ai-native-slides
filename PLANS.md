@@ -110,6 +110,7 @@ Current open gaps:
 
 ## Progress
 
+- [x] 2026-03-17 12:16 PDT: confirmed the demo deck root had been cleared back to `.env` only and started a fresh operator-path rerun from clean bootstrap, with this session using the sugarcane-cleaner enterprise-tech prompt as `new_project ai-native-product-deck`.
 - [x] 2026-03-15 12:24 PDT: established the shared runtime as the owner of prompt-to-spec execution.
 - [x] 2026-03-15 14:43 PDT: locked the stateless boundary: caller-owned discovery and path selection, module-owned execution and reporting.
 - [x] 2026-03-15 16:30 PDT: folded media materialization into the same runtime session and removed the separate project-local media path.
@@ -194,6 +195,7 @@ Current open gaps:
 
 ## Surprises and Discoveries
 
+- Clearing the demo deck root after a previously green session is a meaningful regression probe because it exercises the bootstrap assumptions again instead of relying on stale workspace state.
 - Remaining risk is provider/network instability, not local boundary wiring.
 - The main drift class was systematic planner shape aliasing; prompt hardening fixed the current observed case.
 - Live-smoke validation needed to decouple from real project-root assumptions.
