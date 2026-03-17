@@ -130,6 +130,7 @@ Current open gaps:
 - [x] 2026-03-17 17:32 PDT: reran the same sugarcane prompt from the clean demo root through `pnpm spec` and `pnpm spec:validate`; the rerun published canonical spec, generated media, and the fixed artifact bundle successfully.
 - [x] 2026-03-17 18:18 PDT: completed second-stage project authoring for the demo project, then reconfirmed `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, and `pnpm validate`; only expected human-in-the-loop LibreOffice steps remain, and the remaining overlap warnings are limited to the intentional timeline badge treatment on slide 4.
 - [x] 2026-03-17 11:59 PDT: removed the accidental `MY-PLAN.md` resurrection and re-converged the workspace protocol on `PLANS.md` as the only execution-plan document.
+- [x] 2026-03-17 12:06 PDT: audited the final demo deck against the skill repo and confirmed all reusable template-managed, helper, and shared-runtime changes had already been synchronized back into `ai-native-slides`; only deck-specific deliverables remain solely in the demo deck workspace, so clearing that deck will not lose reusable fixes.
 
 ## Plan of Work
 
@@ -212,4 +213,5 @@ Current open gaps:
 - The demo project is reduced to thin integration wrappers plus project content.
 - The skill-side contract is now explicitly two-stage: black-box outputs first, agent-authored project content second, with no new generator added in this slice.
 - Clean-root routing and metadata-contract docs are now aligned with the implemented workflow, and workspace plan governance is back on a single `PLANS.md` document instead of an accidentally restored legacy split.
+- A final template-sync audit confirmed the demo deck no longer carries unrepatriated reusable changes; what remains there is intentionally deck-specific content and artifacts only.
 - This migration slice is complete. Future work should start from project-content authoring automation, overlap-signal quality, or provider triage, not from boundary cleanup.
