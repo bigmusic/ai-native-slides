@@ -137,6 +137,14 @@ function createForcedPassingReview(deckSpec: DeckSpec): SpecReviewResult {
 	};
 }
 
+function createPromptSafetyDriftCandidate(plan: DeckSpec): DeckSpecCandidate {
+	const driftedCandidate = createPlanCandidateFromScenarioPlan(plan);
+	for (const asset of driftedCandidate.asset_manifest.image_assets.slice(0, 2)) {
+		asset.image_prompt_spec.avoid_elements = [];
+	}
+	return driftedCandidate;
+}
+
 describe("deck-spec planning seam", () => {
 	it("includes a canonical JSON example in the planner prompt so model output stays on-contract", () => {
 		const prompt = buildInitialPlannerPrompt(
@@ -268,6 +276,38 @@ describe("deck-spec planning seam", () => {
 				status: "failed",
 			}),
 		]);
+	});
+
+	it("repairs empty avoid-elements arrays before semantic review runs", async () => {
+		const baselinePlan = await loadDeckSpecBaselinePlan();
+		const result = await planDeckSpecRun(
+			"Create a six-slide deck about canonical spec planning with presentation-safe image prompts.",
+			{
+				projectSlug: "test-project",
+				apiKey: "test-key",
+			},
+			{
+				generateDeckSpecCandidate: async () =>
+					createPromptSafetyDriftCandidate(baselinePlan),
+			},
+		);
+
+		expect(result.ok).toBe(true);
+		if (!result.ok) {
+			throw new Error("Expected empty avoid-elements arrays to be normalized.");
+		}
+
+		expect(
+			result.deckSpec.asset_manifest.image_assets[0]?.image_prompt_spec
+				.avoid_elements,
+		).toEqual([
+			"logos",
+			"tiny unreadable text",
+			"UI chrome",
+			"watermarks",
+		]);
+		expect(result.review.status).not.toBe("fail");
+		expect(result.diagnostics.used_fallback).toBe(false);
 	});
 
 	it("returns semantic_review_failed after the repair attempt still fails review", async () => {

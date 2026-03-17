@@ -60,6 +60,12 @@ export type PlanDeckSpecRunResult =
 
 const virtualProjectPrefix = "/virtual";
 const geminiApiKeyEnvName = "GEMINI_API_KEY";
+const defaultImagePromptAvoidElements = [
+	"logos",
+	"tiny unreadable text",
+	"UI chrome",
+	"watermarks",
+] as const;
 
 function createPlanningAttemptDiagnostics(
 	input:
@@ -181,12 +187,65 @@ function normalizeCandidateDeckSpec(
 	options: PlanDeckSpecRunOptions,
 	sourcePrompt: string,
 ): DeckSpec {
-	return normalizeSystemManagedFields(candidateDocument as DeckSpecCandidate, {
-		projectSlug: resolveProjectSlug(options),
-		sourcePrompt,
-		generatedAt: options.generatedAt,
-		specVersion: options.specVersion,
-	});
+	const normalizedDeckSpec = normalizeSystemManagedFields(
+		candidateDocument as DeckSpecCandidate,
+		{
+			projectSlug: resolveProjectSlug(options),
+			sourcePrompt,
+			generatedAt: options.generatedAt,
+			specVersion: options.specVersion,
+		},
+	);
+
+	return hardenPlannerDerivedPromptSpecs(normalizedDeckSpec);
+}
+
+function normalizePromptList(values: readonly string[]): string[] {
+	return [...new Set(values.map((value) => value.trim()).filter(Boolean))];
+}
+
+function ensurePromptSafetyDefaults<
+	T extends {
+		image_prompt_spec?: {
+			avoid_elements?: string[];
+		};
+	},
+>(asset: T): T {
+	if (
+		typeof asset.image_prompt_spec !== "object" ||
+		asset.image_prompt_spec === null ||
+		!Array.isArray(asset.image_prompt_spec.avoid_elements)
+	) {
+		return asset;
+	}
+
+	const avoidElements = normalizePromptList(asset.image_prompt_spec.avoid_elements);
+
+	return {
+		...asset,
+		image_prompt_spec: {
+			...asset.image_prompt_spec,
+			avoid_elements:
+				avoidElements.length > 0
+					? avoidElements
+					: [...defaultImagePromptAvoidElements],
+		},
+	};
+}
+
+function hardenPlannerDerivedPromptSpecs(deckSpec: DeckSpec): DeckSpec {
+	return {
+		...deckSpec,
+		asset_manifest: {
+			...deckSpec.asset_manifest,
+			image_assets: deckSpec.asset_manifest.image_assets.map(
+				ensurePromptSafetyDefaults,
+			),
+			shared_assets: deckSpec.asset_manifest.shared_assets.map(
+				ensurePromptSafetyDefaults,
+			),
+		},
+	};
 }
 
 function validateCanonicalDeckSpec(
