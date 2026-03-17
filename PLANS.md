@@ -110,6 +110,7 @@ Current open gaps:
 
 ## Progress
 
+- [x] 2026-03-17 13:50 PDT: reran the full skill workflow from the truly clean demo deck root (`.env` only) through root bootstrap, project bootstrap, `pnpm spec`, `pnpm spec:validate`, second-stage project authoring, `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, and wrapper-level `pnpm validate`; no new shared-runtime or routing regression surfaced on this pass, and the only issues caught during authoring were local slide-overlap diagnostics in the freshly authored project deck.
 - [x] 2026-03-17 13:28 PDT: reran the sugarcane prompt against the non-empty demo deck root, confirmed `pnpm spec` and `pnpm spec:validate` still succeed, then reproduced a real second-stage workflow bug where the authored demo project hard-coded a previous run's `slide_id` / `asset_id` set and failed as soon as the canonical spec republished a seven-slide structure with renamed assets.
 - [x] 2026-03-17 13:28 PDT: rewrote the demo project's second-stage consumer to map the canonical spec by `layout_intent` plus block-local asset references, refreshed the deck composition for the current seven-slide spec, and reconfirmed `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, and wrapper-level `pnpm validate` (with only the expected human-in-the-loop LibreOffice rerun remaining).
 - [x] 2026-03-17 13:28 PDT: strengthened `SKILL.md` and `references/project-workflow.md` so future second-stage authoring does not assume provider-generated ids remain stable across reruns of the same prompt.
@@ -183,6 +184,7 @@ Current open gaps:
 - 2026-03-16: scaffold/template regression coverage now asserts the two-stage operator wording for `init_deck_project.sh`, `ensure_deck_project.sh`, `run-project.sh`, and `src/main.ts`.
 - 2026-03-16: the demo project stayed green for `pnpm spec:validate`, `pnpm lint`, `pnpm typecheck`, `pnpm test -- projectScaffoldMaintenance.test.ts`, and `pnpm build` after template refresh.
 - 2026-03-17: a fresh clean-root rerun stayed green through root bootstrap, project bootstrap, repaired `pnpm spec`, `pnpm spec:validate`, second-stage authoring, `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, and wrapper-level `pnpm validate`; the only incomplete portion remains the expected local-terminal LibreOffice rerun.
+- 2026-03-17: the latest clean-root verification at 13:50 PDT reconfirmed the same end-to-end path from an `.env`-only deck root; the shared black-box flow remained green, and second-stage slide diagnostics caught shape-on-shape container overlaps before delivery, which were corrected inside the demo project without requiring reusable runtime or scaffold changes.
 - 2026-03-17: the current clean-root pass also reconfirmed the deterministic project loop with a new six-slide demo deck and no remaining overlap/out-of-bounds warnings in `pnpm build`.
 - 2026-03-17: skill docs now explicitly warn second-stage consumers to use `slide_id`, `block_type`, and `asset_manifest.*`, which closes the clean-root contract-drift class observed during authoring.
 - 2026-03-17: the shared package now exposes typed canonical-spec helpers through the project wrapper surface, so second-stage authoring no longer needs ad-hoc JSON parsing just to consume the published contract safely.
@@ -211,6 +213,7 @@ Current open gaps:
 
 ## Surprises and Discoveries
 
+- The overlap diagnostics are valuable even on a "green" deterministic loop because container-style second-stage slide shells can still produce real layout-noise regressions; in this clean-root rerun they caught shape-on-shape summary-row and metrics/timeline collisions before the deck left the demo workspace.
 - A user-reported "cleared" demo workspace can still retain enough project state to change routing and hide bootstrap regressions, so future bug-hunt reruns should explicitly inspect the active project directory before treating the run as clean.
 - Clearing the demo deck root after a previously green session is a meaningful regression probe because it exercises the bootstrap assumptions again instead of relying on stale workspace state.
 - Remaining risk is provider/network instability, not local boundary wiring.
