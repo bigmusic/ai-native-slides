@@ -1,6 +1,81 @@
 // Copyright (c) OpenAI. All rights reserved.
 "use strict";
 
+const DIAGNOSTICS_META_KEY = "__aiNativeSlidesDiagnostics";
+
+function isPlainObject(value) {
+  return !!value && typeof value === "object" && !Array.isArray(value);
+}
+
+function applyBooleanFlag(target, source, key) {
+  if (!isPlainObject(source) || typeof source[key] !== "boolean") return;
+  if (source[key]) {
+    target[key] = true;
+    return;
+  }
+  delete target[key];
+}
+
+function getSlideObjectDiagnosticsOptions(obj) {
+  if (!isPlainObject(obj)) return {};
+  const meta = obj[DIAGNOSTICS_META_KEY];
+  if (!isPlainObject(meta)) return {};
+  const flags = {};
+  applyBooleanFlag(flags, meta, "decorative");
+  applyBooleanFlag(flags, meta, "ignoreOverlap");
+  applyBooleanFlag(flags, meta, "ignoreOutOfBounds");
+  return flags;
+}
+
+function setSlideObjectDiagnosticsOptions(obj, options = {}) {
+  if (!isPlainObject(obj)) {
+    throw new Error(
+      "Invalid slide object passed to setSlideObjectDiagnosticsOptions()"
+    );
+  }
+  const flags = { ...getSlideObjectDiagnosticsOptions(obj) };
+  applyBooleanFlag(flags, options, "decorative");
+  applyBooleanFlag(flags, options, "ignoreOverlap");
+  applyBooleanFlag(flags, options, "ignoreOutOfBounds");
+  if (Object.keys(flags).length === 0) {
+    delete obj[DIAGNOSTICS_META_KEY];
+  } else {
+    obj[DIAGNOSTICS_META_KEY] = flags;
+  }
+  return obj;
+}
+
+function setLastSlideObjectDiagnosticsOptions(slide, options = {}) {
+  if (
+    !slide ||
+    !Array.isArray(slide._slideObjects) ||
+    slide._slideObjects.length === 0
+  ) {
+    throw new Error(
+      "Invalid slide object passed to setLastSlideObjectDiagnosticsOptions()"
+    );
+  }
+  return setSlideObjectDiagnosticsOptions(
+    slide._slideObjects[slide._slideObjects.length - 1],
+    options
+  );
+}
+
+function markLastSlideObjectAsDecorative(slide, options = {}) {
+  const normalizedOptions = isPlainObject(options) ? options : {};
+  return setLastSlideObjectDiagnosticsOptions(slide, {
+    decorative: true,
+    ignoreOverlap:
+      typeof normalizedOptions.ignoreOverlap === "boolean"
+        ? normalizedOptions.ignoreOverlap
+        : true,
+    ignoreOutOfBounds:
+      typeof normalizedOptions.ignoreOutOfBounds === "boolean"
+        ? normalizedOptions.ignoreOutOfBounds
+        : true,
+  });
+}
+
 function inferElementType(obj) {
   if (!obj) return "unknown";
   const data = obj.data || obj.options || {};
@@ -57,6 +132,7 @@ function warnIfSlideHasOverlaps(slide, pptx, options = {}) {
       line,
     } = obj.data || obj.options || {};
     const type = inferElementType(obj);
+    const diagnostics = getSlideObjectDiagnosticsOptions(obj);
     const isDecorative = (() => {
       if (!opts.ignoreDecorativeShapes) return false;
       // Border rectangles used as frames: transparent fill (or fully transparent) with a stroke
@@ -66,7 +142,10 @@ function warnIfSlideHasOverlaps(slide, pptx, options = {}) {
       const fullyTransparent = transparency !== null && transparency >= 99;
       return type === "shape" && hasOnlyBorder && fullyTransparent;
     })();
-    const ignorable = (opts.ignoreLines && type === "line") || isDecorative;
+    const ignorable =
+      diagnostics.ignoreOverlap === true ||
+      (opts.ignoreLines && type === "line") ||
+      isDecorative;
     return { index: i, type, x, y, w, h, ignorable };
   });
   let overlapCount = 0;
@@ -601,6 +680,10 @@ function warnIfSlideElementsOutOfBounds(slide, pptx) {
     return `Element ${idx} (${type}, center_x=${cx}, center_y=${cy})`;
   };
   slide._slideObjects.forEach((obj, index) => {
+    const diagnostics = getSlideObjectDiagnosticsOptions(obj);
+    if (diagnostics.ignoreOutOfBounds === true) {
+      return;
+    }
     const bounds = getElementBounds(obj);
     const type = inferElementType(obj);
     const violations = [];
@@ -633,8 +716,12 @@ function warnIfSlideElementsOutOfBounds(slide, pptx) {
 }
 
 module.exports = {
+  getSlideObjectDiagnosticsOptions,
   inferElementType,
+  markLastSlideObjectAsDecorative,
   compareElementPosition,
+  setLastSlideObjectDiagnosticsOptions,
+  setSlideObjectDiagnosticsOptions,
   warnIfSlideHasOverlaps,
   alignSlideElements,
   distributeSlideElements,

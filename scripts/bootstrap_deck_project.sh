@@ -44,6 +44,7 @@ PROJECT_VITEST_CONFIG_TEMPLATE="${TEMPLATE_ROOT}/vitest.config.ts"
 RUN_PROJECT_TEMPLATE="${TEMPLATE_ROOT}/run-project.sh"
 VALIDATE_TEMPLATE="${TEMPLATE_ROOT}/validate-local.sh"
 PROJECT_SCAFFOLD_TEST_TEMPLATE="${TEMPLATE_ROOT}/tests/projectScaffoldMaintenance.test.ts"
+LAYOUT_DIAGNOSTICS_TEST_TEMPLATE="${TEMPLATE_ROOT}/tests/layoutDiagnosticsMetadata.test.ts"
 MAIN_TEMPLATE="${TEMPLATE_ROOT}/src/main.ts"
 MEDIA_PATHS_TEMPLATE="${TEMPLATE_ROOT}/src/media/generatedImagePaths.ts"
 SPEC_CONTRACT_TEMPLATE="${TEMPLATE_ROOT}/src/spec/contract.ts"
@@ -65,6 +66,7 @@ PROJECT_VITEST_CONFIG_DEST="${DECK_DIR}/vitest.config.ts"
 RUN_PROJECT_DEST="${DECK_DIR}/run-project.sh"
 VALIDATE_DEST="${DECK_DIR}/validate-local.sh"
 PROJECT_SCAFFOLD_TEST_DEST="${DECK_DIR}/tests/projectScaffoldMaintenance.test.ts"
+LAYOUT_DIAGNOSTICS_TEST_DEST="${DECK_DIR}/tests/layoutDiagnosticsMetadata.test.ts"
 MAIN_DEST="${DECK_DIR}/src/main.ts"
 MEDIA_PATHS_DEST="${DECK_DIR}/src/media/generatedImagePaths.ts"
 SPEC_CONTRACT_DEST="${DECK_DIR}/src/spec/contract.ts"
@@ -144,7 +146,7 @@ mkdir -p \
 
 while IFS= read -r template_file; do
   relative_path="${template_file#"${TEMPLATE_ROOT}/"}"
-  if [[ "${relative_path}" == "validate-local.sh" || "${relative_path}" == "run-project.sh" || "${relative_path}" == "package.json" || "${relative_path}" == "tsconfig.json" || "${relative_path}" == "vitest.config.ts" || "${relative_path}" == ".gitignore" || "${relative_path}" == "spec/deck-spec.schema.json" || "${relative_path}" == "tests/projectScaffoldMaintenance.test.ts" || "${relative_path}" == "src/main.ts" || "${relative_path}" == "src/media/generatedImagePaths.ts" || "${relative_path}" == "src/spec/contract.ts" || "${relative_path}" == "src/spec/deriveOutputFileName.ts" || "${relative_path}" == "src/spec/normalizeSystemManagedFields.ts" || "${relative_path}" == "src/spec/runDeckSpec.ts" || "${relative_path}" == "src/spec/readDeckSpec.ts" || "${relative_path}" == "src/spec/rendererContract.ts" || "${relative_path}" == "src/spec/renderSpecReview.ts" || "${relative_path}" == "src/spec/reviewContract.ts" || "${relative_path}" == "src/spec/validateDeckSpec.ts" || "${relative_path}" == "src/spec/validateSpecReview.ts" || "${relative_path}" == "src/spec/writeFileAtomic.ts" ]]; then
+  if [[ "${relative_path}" == "validate-local.sh" || "${relative_path}" == "run-project.sh" || "${relative_path}" == "package.json" || "${relative_path}" == "tsconfig.json" || "${relative_path}" == "vitest.config.ts" || "${relative_path}" == ".gitignore" || "${relative_path}" == "spec/deck-spec.schema.json" || "${relative_path}" == "tests/projectScaffoldMaintenance.test.ts" || "${relative_path}" == "tests/layoutDiagnosticsMetadata.test.ts" || "${relative_path}" == "src/main.ts" || "${relative_path}" == "src/media/generatedImagePaths.ts" || "${relative_path}" == "src/spec/contract.ts" || "${relative_path}" == "src/spec/deriveOutputFileName.ts" || "${relative_path}" == "src/spec/normalizeSystemManagedFields.ts" || "${relative_path}" == "src/spec/runDeckSpec.ts" || "${relative_path}" == "src/spec/readDeckSpec.ts" || "${relative_path}" == "src/spec/rendererContract.ts" || "${relative_path}" == "src/spec/renderSpecReview.ts" || "${relative_path}" == "src/spec/reviewContract.ts" || "${relative_path}" == "src/spec/validateDeckSpec.ts" || "${relative_path}" == "src/spec/validateSpecReview.ts" || "${relative_path}" == "src/spec/writeFileAtomic.ts" ]]; then
     continue
   fi
   copy_if_missing "${template_file}" "${DECK_DIR}/${relative_path}"
@@ -167,6 +169,7 @@ sync_managed_file "${PROJECT_TSCONFIG_TEMPLATE}" "${PROJECT_TSCONFIG_DEST}"
 sync_managed_file "${PROJECT_VITEST_CONFIG_TEMPLATE}" "${PROJECT_VITEST_CONFIG_DEST}"
 sync_managed_file "${RUN_PROJECT_TEMPLATE}" "${RUN_PROJECT_DEST}"
 sync_managed_file "${PROJECT_SCAFFOLD_TEST_TEMPLATE}" "${PROJECT_SCAFFOLD_TEST_DEST}"
+sync_managed_file "${LAYOUT_DIAGNOSTICS_TEST_TEMPLATE}" "${LAYOUT_DIAGNOSTICS_TEST_DEST}"
 sync_managed_file "${MAIN_TEMPLATE}" "${MAIN_DEST}"
 sync_managed_file "${MEDIA_PATHS_TEMPLATE}" "${MEDIA_PATHS_DEST}"
 sync_managed_file "${SPEC_CONTRACT_TEMPLATE}" "${SPEC_CONTRACT_DEST}"

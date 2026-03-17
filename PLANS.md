@@ -113,6 +113,7 @@ Current open gaps:
 - [x] 2026-03-17 12:31 PDT: finished the current clean-root rerun end to end: `pnpm spec`, `pnpm spec:validate`, second-stage authoring, `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, and wrapper-level `pnpm validate` are all green except for the expected human-in-the-loop LibreOffice rerun.
 - [x] 2026-03-17 12:33 PDT: documented the second-stage canonical-contract guardrail in `SKILL.md` and `references/project-workflow.md` after the fresh authoring pass surfaced that consumers must read `slide_id`, `block_type`, and `asset_manifest.*` exactly as published.
 - [x] 2026-03-17 12:43 PDT: added shared typed canonical-spec helpers (`readTypedDeckSpecSync`, `requireSlideById`, and asset accessors), synced them into the demo deck root, refactored the demo project's second-stage model to use them, and reconfirmed shared-package contract tests plus demo `pnpm lint`, `pnpm typecheck`, `pnpm test`, and `pnpm build`.
+- [x] 2026-03-17 12:55 PDT: added explicit diagnostics metadata helpers for intentional decorative elements (`markLastSlideObjectAsDecorative`, `setLastSlideObjectDiagnosticsOptions`), synchronized a template-managed regression test for that API plus the matching scaffold scripts, and reconfirmed demo `ensure_deck_project`, `pnpm lint`, `pnpm typecheck`, `pnpm test`, and `pnpm build`.
 - [x] 2026-03-17 12:16 PDT: confirmed the demo deck root had been cleared back to `.env` only and started a fresh operator-path rerun from clean bootstrap, with this session using the sugarcane-cleaner enterprise-tech prompt as `new_project ai-native-product-deck`.
 - [x] 2026-03-15 12:24 PDT: established the shared runtime as the owner of prompt-to-spec execution.
 - [x] 2026-03-15 14:43 PDT: locked the stateless boundary: caller-owned discovery and path selection, module-owned execution and reporting.
@@ -179,6 +180,7 @@ Current open gaps:
 - 2026-03-17: the current clean-root pass also reconfirmed the deterministic project loop with a new six-slide demo deck and no remaining overlap/out-of-bounds warnings in `pnpm build`.
 - 2026-03-17: skill docs now explicitly warn second-stage consumers to use `slide_id`, `block_type`, and `asset_manifest.*`, which closes the clean-root contract-drift class observed during authoring.
 - 2026-03-17: the shared package now exposes typed canonical-spec helpers through the project wrapper surface, so second-stage authoring no longer needs ad-hoc JSON parsing just to consume the published contract safely.
+- 2026-03-17: the shared helper layer now supports explicit per-object diagnostics metadata, and the scaffold/runtime path excludes template-managed tests from the "content tests exist" check so decorative-noise suppression stays opt-in without weakening second-stage authoring guardrails.
 - Acceptance bar retained: deterministic green plus one successful provider-backed temp-only live smoke.
 
 ## Idempotence and Recovery
@@ -215,12 +217,14 @@ Current open gaps:
 - The fresh 2026-03-17 clean-root rerun exposed a narrower planner/runtime gap: the shared module could still reach semantic review with planner-supplied image prompt specs whose `avoid_elements` arrays were present but empty, which made the run fail even though the caller/bootstrap path was correct.
 - The same rerun showed that raw planner `objectives` are not deck-facing copy. Rendering them directly in second-stage project content created avoidable layout collisions, so project authoring still needs deck-specific copy condensation rather than verbatim planner-note rendering.
 - The same rerun also exposed an easy-to-miss second-stage consumer hazard: a fresh authoring pass breaks immediately if it guesses `slides[].id`, `block.type`, or a flat top-level `assets` array instead of consuming the exact canonical contract keys.
+- Adding a second template-managed regression test surfaced a parallel bootstrap/runtime assumption: every place that asks "do authored content tests exist?" must exclude all template-managed tests, not only the original scaffold maintenance file.
 
 ## Outcomes and Retrospective
 
 - The shared module is now the implemented planner/validator/media boundary.
 - The demo project is reduced to thin integration wrappers plus project content.
 - The skill-side contract is now explicitly two-stage: black-box outputs first, agent-authored project content second, with no new generator added in this slice.
+- Diagnostics-noise suppression is now reusable and explicit: authors can mark only the intentional decorative object instead of loosening overlap/out-of-bounds checks for an entire slide or deck.
 - Clean-root routing and metadata-contract docs are now aligned with the implemented workflow, and workspace plan governance is back on a single `PLANS.md` document instead of an accidentally restored legacy split.
 - A final template-sync audit confirmed the demo deck no longer carries unrepatriated reusable changes; what remains there is intentionally deck-specific content and artifacts only.
 - This migration slice is complete. Future work should start from project-content authoring automation, overlap-signal quality, or provider triage, not from boundary cleanup.

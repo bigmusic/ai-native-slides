@@ -57,6 +57,7 @@ PACKAGE_JSON="${PROJECT_DIR}/package.json"
 TSCONFIG_JSON="${PROJECT_DIR}/tsconfig.json"
 VITEST_CONFIG="${PROJECT_DIR}/vitest.config.ts"
 PROJECT_SCAFFOLD_TEST_TS="${PROJECT_DIR}/tests/projectScaffoldMaintenance.test.ts"
+LAYOUT_DIAGNOSTICS_TEST_TS="${PROJECT_DIR}/tests/layoutDiagnosticsMetadata.test.ts"
 SRC_MAIN_TS="${PROJECT_DIR}/src/main.ts"
 MEDIA_PATHS_TS="${PROJECT_DIR}/src/media/generatedImagePaths.ts"
 SPEC_CONTRACT_TS="${PROJECT_DIR}/src/spec/contract.ts"
@@ -95,6 +96,7 @@ PACKAGE_TEMPLATE="${TEMPLATE_ROOT}/package.json"
 PROJECT_TSCONFIG_TEMPLATE="${TEMPLATE_ROOT}/tsconfig.json"
 PROJECT_VITEST_CONFIG_TEMPLATE="${TEMPLATE_ROOT}/vitest.config.ts"
 PROJECT_SCAFFOLD_TEST_TEMPLATE="${TEMPLATE_ROOT}/tests/projectScaffoldMaintenance.test.ts"
+LAYOUT_DIAGNOSTICS_TEST_TEMPLATE="${TEMPLATE_ROOT}/tests/layoutDiagnosticsMetadata.test.ts"
 RUN_PROJECT_TEMPLATE="${TEMPLATE_ROOT}/run-project.sh"
 VALIDATE_TEMPLATE="${TEMPLATE_ROOT}/validate-local.sh"
 MAIN_TEMPLATE="${TEMPLATE_ROOT}/src/main.ts"
@@ -142,7 +144,7 @@ add_suggestion() {
 
 content_test_files_present() {
   [[ -d "$TESTS_DIR" ]] && \
-    find "$TESTS_DIR" -type f \( -name '*.test.ts' -o -name '*.spec.ts' \) ! -path "$PROJECT_SCAFFOLD_TEST_TS" | grep -q .
+    find "$TESTS_DIR" -type f \( -name '*.test.ts' -o -name '*.spec.ts' \) ! -path "$PROJECT_SCAFFOLD_TEST_TS" ! -path "$LAYOUT_DIAGNOSTICS_TEST_TS" | grep -q .
 }
 
 package_script_present() {
@@ -278,6 +280,11 @@ if [[ -f "$PROJECT_SCAFFOLD_TEST_TS" ]]; then PROJECT_SCAFFOLD_TEST_PRESENT=true
   add_missing "tests/projectScaffoldMaintenance.test.ts is missing"
 fi
 
+LAYOUT_DIAGNOSTICS_TEST_PRESENT=false
+if [[ -f "$LAYOUT_DIAGNOSTICS_TEST_TS" ]]; then LAYOUT_DIAGNOSTICS_TEST_PRESENT=true; else
+  add_missing "tests/layoutDiagnosticsMetadata.test.ts is missing"
+fi
+
 RUNNER_PRESENT=false
 if [[ -x "$RUN_PROJECT_SCRIPT" ]]; then RUNNER_PRESENT=true; else
   add_missing "run-project.sh is missing or not executable"
@@ -398,6 +405,13 @@ if template_file_matches "$PROJECT_SCAFFOLD_TEST_TEMPLATE" "$PROJECT_SCAFFOLD_TE
   PROJECT_SCAFFOLD_TEST_SYNCED=true
 elif [[ "$PROJECT_SCAFFOLD_TEST_PRESENT" == true ]]; then
   add_warning "tests/projectScaffoldMaintenance.test.ts differs from the template-managed version"
+fi
+
+LAYOUT_DIAGNOSTICS_TEST_SYNCED=false
+if template_file_matches "$LAYOUT_DIAGNOSTICS_TEST_TEMPLATE" "$LAYOUT_DIAGNOSTICS_TEST_TS"; then
+  LAYOUT_DIAGNOSTICS_TEST_SYNCED=true
+elif [[ "$LAYOUT_DIAGNOSTICS_TEST_PRESENT" == true ]]; then
+  add_warning "tests/layoutDiagnosticsMetadata.test.ts differs from the template-managed version"
 fi
 
 RUNNER_SYNCED=false
@@ -596,6 +610,8 @@ if [[ "$ROOT_DETECTED" == true ]] && \
    [[ "$VITEST_CONFIG_SYNCED" == true ]] && \
    [[ "$PROJECT_SCAFFOLD_TEST_PRESENT" == true ]] && \
    [[ "$PROJECT_SCAFFOLD_TEST_SYNCED" == true ]] && \
+   [[ "$LAYOUT_DIAGNOSTICS_TEST_PRESENT" == true ]] && \
+   [[ "$LAYOUT_DIAGNOSTICS_TEST_SYNCED" == true ]] && \
    [[ "$RUNNER_PRESENT" == true ]] && \
    [[ "$RUNNER_SYNCED" == true ]] && \
    [[ "$VALIDATE_WRAPPER_PRESENT" == true ]] && \
@@ -644,6 +660,8 @@ if [[ "$PROJECT_GITIGNORE_PRESENT" == true ]] && \
    [[ "$VITEST_CONFIG_SYNCED" == true ]] && \
    [[ "$PROJECT_SCAFFOLD_TEST_PRESENT" == true ]] && \
    [[ "$PROJECT_SCAFFOLD_TEST_SYNCED" == true ]] && \
+   [[ "$LAYOUT_DIAGNOSTICS_TEST_PRESENT" == true ]] && \
+   [[ "$LAYOUT_DIAGNOSTICS_TEST_SYNCED" == true ]] && \
    [[ "$RUNNER_PRESENT" == true ]] && \
    [[ "$RUNNER_SYNCED" == true ]] && \
    [[ "$VALIDATE_WRAPPER_PRESENT" == true ]] && \
@@ -729,6 +747,8 @@ fi
     echo "    \"vitest_config_synced\": ${VITEST_CONFIG_SYNCED},"
     echo "    \"project_scaffold_test_present\": ${PROJECT_SCAFFOLD_TEST_PRESENT},"
     echo "    \"project_scaffold_test_synced\": ${PROJECT_SCAFFOLD_TEST_SYNCED},"
+    echo "    \"layout_diagnostics_test_present\": ${LAYOUT_DIAGNOSTICS_TEST_PRESENT},"
+    echo "    \"layout_diagnostics_test_synced\": ${LAYOUT_DIAGNOSTICS_TEST_SYNCED},"
     echo "    \"runner_present\": ${RUNNER_PRESENT},"
   echo "    \"runner_synced\": ${RUNNER_SYNCED},"
   echo "    \"validate_wrapper_present\": ${VALIDATE_WRAPPER_PRESENT},"

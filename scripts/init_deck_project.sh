@@ -42,8 +42,9 @@ source "${SCRIPT_DIR}/project_lib.sh"
 project_content_tests_present() {
   local project_dir="$1"
   local scaffold_test_path="${project_dir}/tests/projectScaffoldMaintenance.test.ts"
+  local diagnostics_test_path="${project_dir}/tests/layoutDiagnosticsMetadata.test.ts"
   [[ -d "${project_dir}/tests" ]] && \
-    find "${project_dir}/tests" -type f \( -name '*.test.ts' -o -name '*.spec.ts' \) ! -path "$scaffold_test_path" | grep -q .
+    find "${project_dir}/tests" -type f \( -name '*.test.ts' -o -name '*.spec.ts' \) ! -path "$scaffold_test_path" ! -path "$diagnostics_test_path" | grep -q .
 }
 
 mkdir -p "$PROJECT_ROOT"
@@ -111,6 +112,7 @@ Template-managed files:
 - run-project.sh
 - validate-local.sh
 - tests/projectScaffoldMaintenance.test.ts
+- tests/layoutDiagnosticsMetadata.test.ts
 - src/main.ts
 - src/media/generatedImagePaths.ts
 - src/spec/contract.ts

@@ -357,7 +357,7 @@ describe("project scaffold maintenance surfaces", () => {
 		expect(state.status).not.toHaveProperty("legacy_spec_compat_present");
 	});
 
-	it("does not treat the scaffold maintenance test as generated project content", async () => {
+	it("does not treat template-managed tests as generated project content", async () => {
 		const projectDir = await createBootstrappedTempProject();
 
 		await expect(
@@ -365,7 +365,7 @@ describe("project scaffold maintenance surfaces", () => {
 				path.join(projectDir, "run-project.sh"),
 				"test",
 				"--",
-				"projectScaffoldMaintenance.test.ts",
+				"layoutDiagnosticsMetadata.test.ts",
 			]),
 		).rejects.toMatchObject({
 			stderr: expect.stringContaining(

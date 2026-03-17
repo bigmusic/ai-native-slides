@@ -145,7 +145,7 @@ For operator workflows, treat those `pnpm` commands as the stable shared-module 
 - For charts or diagrams that PptxGenJS cannot express well, render SVG externally and place the SVG in the slide.
 - Keep the authoring source under `src/` and the fast regression loop under `tests/`.
 - Include both `warnIfSlideHasOverlaps(slide, pptx)` and `warnIfSlideElementsOutOfBounds(slide, pptx)` in the submitted TypeScript whenever you generate or substantially edit slides.
-- Fix all unintentional overlap and out-of-bounds warnings before delivering. If an overlap is intentional, leave a short code comment near the relevant element.
+- Fix all unintentional overlap and out-of-bounds warnings before delivering. If an overlap or out-of-bounds treatment is intentional decoration, mark that specific object with `markLastSlideObjectAsDecorative(slide)` or `setLastSlideObjectDiagnosticsOptions(slide, ...)` and leave a short code comment near the relevant element instead of muting diagnostics globally.
 
 ## Recreate Or Edit Existing Slides
 

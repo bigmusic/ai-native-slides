@@ -19,6 +19,7 @@ fi
 BUILD_DECK_TS="$PROJECT_DIR/src/buildDeck.ts"
 PRESENTATION_MODEL_TS="$PROJECT_DIR/src/presentationModel.ts"
 PROJECT_SCAFFOLD_TEST_TS="$PROJECT_DIR/tests/projectScaffoldMaintenance.test.ts"
+LAYOUT_DIAGNOSTICS_TEST_TS="$PROJECT_DIR/tests/layoutDiagnosticsMetadata.test.ts"
 PROJECT_SLUG="$(basename "$PROJECT_DIR")"
 
 find_deck_root() {
@@ -59,7 +60,7 @@ project_content_present() {
 
 project_content_tests_present() {
   [[ -d "$PROJECT_DIR/tests" ]] && \
-    find "$PROJECT_DIR/tests" -type f \( -name '*.test.ts' -o -name '*.spec.ts' \) ! -path "$PROJECT_SCAFFOLD_TEST_TS" | grep -q .
+    find "$PROJECT_DIR/tests" -type f \( -name '*.test.ts' -o -name '*.spec.ts' \) ! -path "$PROJECT_SCAFFOLD_TEST_TS" ! -path "$LAYOUT_DIAGNOSTICS_TEST_TS" | grep -q .
 }
 
 case "$ACTION" in

@@ -18,6 +18,9 @@ Read this file when you need helper API details, command examples for the bundle
 - `codeToRuns(source, language)`: Convert source code into rich-text runs for `addText`.
 - `warnIfSlideHasOverlaps(slide, pptx)`: Emit overlap warnings for diagnostics.
 - `warnIfSlideElementsOutOfBounds(slide, pptx)`: Emit boundary warnings for diagnostics.
+- `setSlideObjectDiagnosticsOptions(obj, flags)`: Attach explicit diagnostics metadata to one slide object.
+- `setLastSlideObjectDiagnosticsOptions(slide, flags)`: Attach diagnostics metadata to the most recently added slide object.
+- `markLastSlideObjectAsDecorative(slide, flags?)`: Mark the most recently added object as intentional decoration so diagnostics can ignore only that object.
 - `alignSlideElements(slide, indices, alignment)`: Align selected elements precisely.
 - `distributeSlideElements(slide, indices, direction)`: Evenly space selected elements.
 
@@ -62,3 +65,4 @@ System tools used by the Python scripts:
 - Treat LibreOffice render success as necessary but not sufficient. A deck can render and still trigger PowerPoint repair if the generated Open XML contains invalid geometry.
 - Prefer native PowerPoint charts over rendered images when the chart is simple and likely to be edited later.
 - Use SVG instead of PNG for diagrams whenever possible.
+- Leave overlap and out-of-bounds diagnostics enabled by default. If a background frame, glow, or other intentional decoration is creating noise, mark that specific object with `markLastSlideObjectAsDecorative(slide)` or `setLastSlideObjectDiagnosticsOptions(slide, { ignoreOutOfBounds: true })` instead of disabling diagnostics globally.
