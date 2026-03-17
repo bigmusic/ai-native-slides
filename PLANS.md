@@ -122,6 +122,8 @@ Current open gaps:
 - [x] 2026-03-16 18:35 PDT: repaired the clean-bootstrap template lint drift and the validation-report PPTX header wording in the skill repo, synchronized both fixes into the demo workspace, and reconfirmed the local loop through `pnpm validate`.
 - [x] 2026-03-16 18:58 PDT: aligned skill docs, scaffold guardrails, and template tests around the two-stage operator flow so `pnpm spec` stops at spec/media/artifacts and project-content authoring remains skill-owned.
 - [x] 2026-03-16 19:11 PDT: refreshed the demo project's template-managed files and reconfirmed the aligned contract through `pnpm spec:validate`, `pnpm lint`, `pnpm typecheck`, targeted scaffold tests, and `pnpm build`.
+- [x] 2026-03-16 19:43 PDT: fixed the shared package's fixed-bundle artifact drift so primary-success runs now emit `candidate.fallback.json` as a placeholder artifact and always surface both candidate artifact paths in `result.json`.
+- [x] 2026-03-16 19:51 PDT: synced the shared package fix into the clean demo deck root, reconfirmed `deckSpecModule.test.ts`, reran `pnpm spec` with the sugarcane-cleaner prompt, and revalidated the fast loop through `pnpm spec:validate`, `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, and human-in-the-loop `pnpm validate`.
 
 ## Plan of Work
 
@@ -191,6 +193,8 @@ Current open gaps:
 - Minor docs/runtime state drift remains and should be treated as documentation cleanup, not hidden behavior.
 - A clean-root operator rerun showed the second gap was not black-box ownership but skill-side contract clarity: the same session still needed a more explicit prompt -> black-box artifacts -> agent-authored content sequence.
 - The validation wrapper originally wrote a header line that permanently said the PPTX was still pending even after a fresh artifact existed later in the same report; the template wording is now corrected, but the larger remaining workflow gap is still project-content authoring automation and better overlap-signal quality.
+- A fresh end-to-end rerun exposed a contract drift in the shared black box: primary-success runs still skipped `candidate.fallback.json`, even though the execution plan says the artifact bundle is fixed on every `pnpm spec` / `pnpm spec:live` run.
+- The same prompt can still produce different slide IDs, asset IDs, and step counts on a later provider-backed rerun, so second-stage project authoring must bind to `layout_intent` and `content_blocks` instead of assuming stable planner-generated identifiers.
 
 ## Outcomes and Retrospective
 

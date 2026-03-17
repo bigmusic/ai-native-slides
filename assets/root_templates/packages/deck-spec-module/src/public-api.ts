@@ -176,9 +176,9 @@ type ModuleRunArtifactManifest = {
 		media_failures: string;
 		report: string;
 		canonical_spec?: string;
-		candidate_primary?: string;
-		candidate_fallback?: string;
-		review_final?: string;
+		candidate_primary: string;
+		candidate_fallback: string;
+		review_final: string;
 	};
 };
 
@@ -200,6 +200,13 @@ function createArtifactManifest(input: {
 	const artifactFiles: ModuleRunArtifactManifest["artifact_files"] = {
 		result: resolveModuleResultPath(input.paths.artifactRootDir),
 		diagnostics: resolveModuleDiagnosticsPath(input.paths.artifactRootDir),
+		candidate_primary: resolveModulePrimaryCandidatePath(
+			input.paths.artifactRootDir,
+		),
+		candidate_fallback: resolveModuleFallbackCandidatePath(
+			input.paths.artifactRootDir,
+		),
+		review_final: resolveModuleReviewPath(input.paths.artifactRootDir),
 		generated_assets_manifest: resolveModuleGeneratedAssetsManifestPath(
 			input.paths.artifactRootDir,
 		),
@@ -210,24 +217,6 @@ function createArtifactManifest(input: {
 
 	if (input.canonicalSpecPublished) {
 		artifactFiles.canonical_spec = input.paths.canonicalSpecPath;
-	}
-
-	if (input.attempts.some((attempt) => attempt.strategy === "primary")) {
-		artifactFiles.candidate_primary = resolveModulePrimaryCandidatePath(
-			input.paths.artifactRootDir,
-		);
-	}
-
-	if (input.attempts.some((attempt) => attempt.strategy === "fallback")) {
-		artifactFiles.candidate_fallback = resolveModuleFallbackCandidatePath(
-			input.paths.artifactRootDir,
-		);
-	}
-
-	if (input.review) {
-		artifactFiles.review_final = resolveModuleReviewPath(
-			input.paths.artifactRootDir,
-		);
 	}
 
 	return {
@@ -249,24 +238,17 @@ async function writeAttemptArtifacts(
 	artifactRootDir: string,
 	attempts: PlanningAttemptArtifact[],
 ): Promise<void> {
-	for (const attempt of attempts) {
-		if (!attempt.candidateDeckSpec) {
-			continue;
-		}
+	const primaryAttempt = attempts.find((attempt) => attempt.strategy === "primary");
+	const fallbackAttempt = attempts.find((attempt) => attempt.strategy === "fallback");
 
-		if (attempt.strategy === "primary") {
-			await writeJsonFileAtomic(
-				resolveModulePrimaryCandidatePath(artifactRootDir),
-				attempt.candidateDeckSpec,
-			);
-			continue;
-		}
-
-		await writeJsonFileAtomic(
-			resolveModuleFallbackCandidatePath(artifactRootDir),
-			attempt.candidateDeckSpec,
-		);
-	}
+	await writeJsonFileAtomic(
+		resolveModulePrimaryCandidatePath(artifactRootDir),
+		primaryAttempt?.candidateDeckSpec ?? null,
+	);
+	await writeJsonFileAtomic(
+		resolveModuleFallbackCandidatePath(artifactRootDir),
+		fallbackAttempt?.candidateDeckSpec ?? null,
+	);
 }
 
 async function writeRunArtifacts(input: {
@@ -303,12 +285,10 @@ async function writeRunArtifacts(input: {
 		input.diagnostics,
 	);
 
-	if (input.review) {
-		await writeJsonFileAtomic(
-			resolveModuleReviewPath(input.paths.artifactRootDir),
-			input.review,
-		);
-	}
+	await writeJsonFileAtomic(
+		resolveModuleReviewPath(input.paths.artifactRootDir),
+		input.review ?? null,
+	);
 
 	await writeJsonFileAtomic(
 		resolveModuleGeneratedAssetsManifestPath(input.paths.artifactRootDir),

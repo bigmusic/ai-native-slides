@@ -22,12 +22,14 @@ import {
 import type { DeckSpec } from "../src/spec/contract.js";
 import { normalizeSystemManagedFields } from "../src/spec/normalizeSystemManagedFields.js";
 import {
+	resolveModuleFallbackCandidatePath,
 	resolveModuleGeneratedAssetsManifestPath,
 	resolveModuleMediaFailuresPath,
 	resolveModuleMediaResultPath,
 	resolveModulePrimaryCandidatePath,
 	resolveModuleReportPath,
 	resolveModuleResultPath,
+	resolveModuleReviewPath,
 } from "../src/spec/readDeckSpec.js";
 import { validateDeckSpecDocument } from "../src/spec/validateDeckSpec.js";
 import {
@@ -308,11 +310,12 @@ describe("deck-spec-module public API", () => {
 			"Create a six-slide deck about canonical spec planning, semantic review, media generation, and deterministic build delivery.";
 		const tempPaths = await createModulePaths();
 		const { mediaOutputDir: _unusedMediaOutputDir, ...paths } = tempPaths;
-		const fakePlanDeckSpecRun = vi.fn<FakePlanDeckSpecRun>(async () =>
-			createSuccessfulPlanRun({
-				plan: baselinePlan,
-				prompt,
-			}),
+		const successfulPlanRun = createSuccessfulPlanRun({
+			plan: baselinePlan,
+			prompt,
+		});
+		const fakePlanDeckSpecRun = vi.fn<FakePlanDeckSpecRun>(
+			async () => successfulPlanRun,
 		);
 		const fakeMaterializeDeckSpecMedia = vi.fn<FakeMaterializeDeckSpecMedia>();
 
@@ -347,6 +350,16 @@ describe("deck-spec-module public API", () => {
 			),
 		).toMatchObject({ status: "planned" });
 		expect(
+			await readJsonFile<null>(
+				resolveModuleFallbackCandidatePath(paths.artifactRootDir),
+			),
+		).toBeNull();
+		expect(
+			await readJsonFile<{ status: string }>(
+				resolveModuleReviewPath(paths.artifactRootDir),
+			),
+		).toMatchObject({ status: successfulPlanRun.review.status });
+		expect(
 			await readJsonFile<{ status: string; enabled: boolean }>(
 				resolveModuleMediaResultPath(paths.artifactRootDir),
 			),
@@ -358,6 +371,25 @@ describe("deck-spec-module public API", () => {
 		expect(
 			await readFile(resolveModuleReportPath(paths.artifactRootDir), "utf8"),
 		).toContain("Deck-Spec Module Run");
+		expect(
+			await readJsonFile<{
+				artifact_files: {
+					candidate_primary: string;
+					candidate_fallback: string;
+					review_final: string;
+				};
+			}>(resolveModuleResultPath(paths.artifactRootDir)),
+		).toMatchObject({
+			artifact_files: {
+				candidate_primary: resolveModulePrimaryCandidatePath(
+					paths.artifactRootDir,
+				),
+				candidate_fallback: resolveModuleFallbackCandidatePath(
+					paths.artifactRootDir,
+				),
+				review_final: resolveModuleReviewPath(paths.artifactRootDir),
+			},
+		});
 	});
 
 	it("writes media-ready canonical output and media artifacts when materialization succeeds", async () => {
@@ -464,6 +496,19 @@ describe("deck-spec-module public API", () => {
 				code: "semantic_review_failed",
 			},
 		});
+		expect(
+			await readJsonFile<null>(
+				resolveModulePrimaryCandidatePath(paths.artifactRootDir),
+			),
+		).toBeNull();
+		expect(
+			await readJsonFile<null>(
+				resolveModuleFallbackCandidatePath(paths.artifactRootDir),
+			),
+		).toBeNull();
+		expect(
+			await readJsonFile<null>(resolveModuleReviewPath(paths.artifactRootDir)),
+		).toBeNull();
 	});
 
 	it("keeps the canonical spec published at reviewed when later media generation fails", async () => {
