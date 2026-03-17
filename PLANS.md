@@ -124,6 +124,7 @@ Current open gaps:
 - [x] 2026-03-16 19:11 PDT: refreshed the demo project's template-managed files and reconfirmed the aligned contract through `pnpm spec:validate`, `pnpm lint`, `pnpm typecheck`, targeted scaffold tests, and `pnpm build`.
 - [x] 2026-03-16 19:43 PDT: fixed the shared package's fixed-bundle artifact drift so primary-success runs now emit `candidate.fallback.json` as a placeholder artifact and always surface both candidate artifact paths in `result.json`.
 - [x] 2026-03-16 19:51 PDT: synced the shared package fix into the clean demo deck root, reconfirmed `deckSpecModule.test.ts`, reran `pnpm spec` with the sugarcane-cleaner prompt, and revalidated the fast loop through `pnpm spec:validate`, `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, and human-in-the-loop `pnpm validate`.
+- [ ] 2026-03-17 15:46 PDT: started a fresh clean-root bug-hunt session against `/Volumes/BiGROG/skills-test/ai-education-deck`, treating the natural-language sugarcane prompt as `new_project ai-native-product-deck` and re-running the full skill workflow from bootstrap through validation to capture any remaining routing, bootstrap, authoring, or validation regressions.
 
 ## Plan of Work
 
@@ -195,6 +196,7 @@ Current open gaps:
 - The validation wrapper originally wrote a header line that permanently said the PPTX was still pending even after a fresh artifact existed later in the same report; the template wording is now corrected, but the larger remaining workflow gap is still project-content authoring automation and better overlap-signal quality.
 - A fresh end-to-end rerun exposed a contract drift in the shared black box: primary-success runs still skipped `candidate.fallback.json`, even though the execution plan says the artifact bundle is fixed on every `pnpm spec` / `pnpm spec:live` run.
 - The same prompt can still produce different slide IDs, asset IDs, and step counts on a later provider-backed rerun, so second-stage project authoring must bind to `layout_intent` and `content_blocks` instead of assuming stable planner-generated identifiers.
+- A brand-new demo deck root still needs one more real rerun after the latest doc/template changes so we can separate documentation drift from an actual operator-path failure.
 
 ## Outcomes and Retrospective
 
