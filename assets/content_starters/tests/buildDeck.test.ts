@@ -1,5 +1,4 @@
-import { mkdtemp, rm, stat } from "node:fs/promises";
-import os from "node:os";
+import { mkdir, mkdtemp, rm, stat } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -24,6 +23,12 @@ afterEach(async () => {
 	}
 	tempDirs.length = 0;
 });
+
+async function createStarterTempDir(prefix: string): Promise<string> {
+	const tempBaseDir = path.join(projectRoot, "tmp", "vitest");
+	await mkdir(tempBaseDir, { recursive: true });
+	return mkdtemp(path.join(tempBaseDir, `${prefix}-`));
+}
 
 describe("createStarterDeckModel", () => {
 	it("defines a stable starter narrative", () => {
@@ -52,7 +57,7 @@ describe("buildPresentation", () => {
 	});
 
 	it("writes a non-empty pptx artifact", async () => {
-		const tempDir = await mkdtemp(path.join(os.tmpdir(), "ai-native-slides-"));
+		const tempDir = await createStarterTempDir("build-deck");
 		const outputFile = path.join(tempDir, "starter-deck.pptx");
 		tempDirs.push(tempDir);
 
