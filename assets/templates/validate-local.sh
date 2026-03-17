@@ -128,7 +128,7 @@ cat <<REPORT > "$REPORT_PATH"
 - Project dir: $PROJECT_DIR
 - TMPDIR: $TMPDIR
 - Skill dir: $SKILL_DIR
-- PPTX: pending fresh build output
+- PPTX: see the "Fresh Build Artifact" section below after the build step runs
 - Root state: $ROOT_STATE_FILE
 - Project state: $PROJECT_STATE_FILE
 - Human-in-the-loop note: LibreOffice-backed steps are intentionally blocked inside Codex and must be rerun from a local terminal.
