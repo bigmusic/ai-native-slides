@@ -124,7 +124,11 @@ Current open gaps:
 - [x] 2026-03-16 19:11 PDT: refreshed the demo project's template-managed files and reconfirmed the aligned contract through `pnpm spec:validate`, `pnpm lint`, `pnpm typecheck`, targeted scaffold tests, and `pnpm build`.
 - [x] 2026-03-16 19:43 PDT: fixed the shared package's fixed-bundle artifact drift so primary-success runs now emit `candidate.fallback.json` as a placeholder artifact and always surface both candidate artifact paths in `result.json`.
 - [x] 2026-03-16 19:51 PDT: synced the shared package fix into the clean demo deck root, reconfirmed `deckSpecModule.test.ts`, reran `pnpm spec` with the sugarcane-cleaner prompt, and revalidated the fast loop through `pnpm spec:validate`, `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, and human-in-the-loop `pnpm validate`.
-- [ ] 2026-03-17 15:46 PDT: started a fresh clean-root bug-hunt session against `/Volumes/BiGROG/skills-test/ai-education-deck`, treating the natural-language sugarcane prompt as `new_project ai-native-product-deck` and re-running the full skill workflow from bootstrap through validation to capture any remaining routing, bootstrap, authoring, or validation regressions.
+- [x] 2026-03-17 15:46 PDT: started a fresh clean-root bug-hunt session against `/Volumes/BiGROG/skills-test/ai-education-deck`, treating the natural-language sugarcane prompt as `new_project ai-native-product-deck` and re-running the full skill workflow from bootstrap through validation to capture any remaining routing, bootstrap, authoring, or validation regressions.
+- [x] 2026-03-17 16:21 PDT: reproduced a clean-root provider-backed failure where `pnpm spec` exited `semantic_review_failed` because planner-produced image prompt specs reached semantic review with empty `avoid_elements` arrays on a fresh rerun.
+- [x] 2026-03-17 16:47 PDT: hardened the shared deck-spec template by repairing empty `image_prompt_spec.avoid_elements` arrays before semantic review, tightening planner prompt instructions so deck-safety exclusions are required, syncing the reusable fix into the demo deck root, and reconfirming the shared deterministic tests.
+- [x] 2026-03-17 17:32 PDT: reran the same sugarcane prompt from the clean demo root through `pnpm spec` and `pnpm spec:validate`; the rerun published canonical spec, generated media, and the fixed artifact bundle successfully.
+- [x] 2026-03-17 18:18 PDT: completed second-stage project authoring for the demo project, then reconfirmed `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, and `pnpm validate`; only expected human-in-the-loop LibreOffice steps remain, and the remaining overlap warnings are limited to the intentional timeline badge treatment on slide 4.
 
 ## Plan of Work
 
@@ -165,6 +169,7 @@ Current open gaps:
 - 2026-03-16: one provider-backed temp live-smoke run succeeded with validated temp spec, generated temp media, full artifacts, primary-path success, and no canonical project mutation.
 - 2026-03-16: scaffold/template regression coverage now asserts the two-stage operator wording for `init_deck_project.sh`, `ensure_deck_project.sh`, `run-project.sh`, and `src/main.ts`.
 - 2026-03-16: the demo project stayed green for `pnpm spec:validate`, `pnpm lint`, `pnpm typecheck`, `pnpm test -- projectScaffoldMaintenance.test.ts`, and `pnpm build` after template refresh.
+- 2026-03-17: a fresh clean-root rerun stayed green through root bootstrap, project bootstrap, repaired `pnpm spec`, `pnpm spec:validate`, second-stage authoring, `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, and wrapper-level `pnpm validate`; the only incomplete portion remains the expected local-terminal LibreOffice rerun.
 - Acceptance bar retained: deterministic green plus one successful provider-backed temp-only live smoke.
 
 ## Idempotence and Recovery
@@ -197,10 +202,13 @@ Current open gaps:
 - A fresh end-to-end rerun exposed a contract drift in the shared black box: primary-success runs still skipped `candidate.fallback.json`, even though the execution plan says the artifact bundle is fixed on every `pnpm spec` / `pnpm spec:live` run.
 - The same prompt can still produce different slide IDs, asset IDs, and step counts on a later provider-backed rerun, so second-stage project authoring must bind to `layout_intent` and `content_blocks` instead of assuming stable planner-generated identifiers.
 - A brand-new demo deck root still needs one more real rerun after the latest doc/template changes so we can separate documentation drift from an actual operator-path failure.
+- The fresh 2026-03-17 clean-root rerun exposed a narrower planner/runtime gap: the shared module could still reach semantic review with planner-supplied image prompt specs whose `avoid_elements` arrays were present but empty, which made the run fail even though the caller/bootstrap path was correct.
+- The same rerun showed that raw planner `objectives` are not deck-facing copy. Rendering them directly in second-stage project content created avoidable layout collisions, so project authoring still needs deck-specific copy condensation rather than verbatim planner-note rendering.
 
 ## Outcomes and Retrospective
 
 - The shared module is now the implemented planner/validator/media boundary.
 - The demo project is reduced to thin integration wrappers plus project content.
 - The skill-side contract is now explicitly two-stage: black-box outputs first, agent-authored project content second, with no new generator added in this slice.
+- Clean-root routing, metadata-contract docs, and the short-term `MY-PLAN.md` pointer are now aligned with the implemented workflow instead of relying on an absent file or implicit active-project state.
 - This migration slice is complete. Future work should start from project-content authoring automation, overlap-signal quality, or provider triage, not from boundary cleanup.

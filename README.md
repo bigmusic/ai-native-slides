@@ -84,8 +84,15 @@ Routing rules:
 
 - Prefer explicit project naming in the prompt.
 - If the session is already scoped to one project, use `.ai-native-slides/project.json` and `.ai-native-slides/state.json` to confirm the active project before editing.
+- In this workspace, if the deck root has been initialized but no active project metadata exists yet, treat a natural-language deck-creation prompt as `new_project ai-native-product-deck`.
 - If the prompt is ambiguous and could hit the wrong deck, clarify whether the user wants a new project or a revision run.
 - Post-deliverable review feedback is not a special internal phase. It is just another prompt that re-enters this routing step.
+
+Scaffold metadata contract:
+
+- Deck root metadata lives at `.ai-native-slides/root.json`.
+- Project metadata lives at `.ai-native-slides/project.json`.
+- Root and project preflight/bootstrap both write `.ai-native-slides/state.json`.
 
 ## Prompt Guide
 

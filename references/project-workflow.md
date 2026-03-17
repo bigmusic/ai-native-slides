@@ -32,6 +32,7 @@ Routing rules:
 - Prefer explicit prompt wording first. `Create project <slug>` is `new_project`. `Revise project <slug>` or `Update project <slug>` is `revise_existing_project`.
 - If the session is already scoped to one project, confirm the active project with `.ai-native-slides/project.json` and `.ai-native-slides/state.json` before editing.
 - In this workspace's maintenance loop, the default revision target is `ai-native-product-deck` unless the user explicitly asks for a different project or a fresh one.
+- In this workspace, if the deck root has already been initialized but there is no active project metadata yet, treat a natural-language deck-creation prompt as `new_project ai-native-product-deck`.
 - If the prompt is ambiguous and project selection is risky, stop and ask whether the user wants a new project or a revision run.
 - Post-deliverable feedback is not a separate workflow phase. It becomes a new prompt that re-enters this routing step.
 
@@ -69,6 +70,8 @@ Use one shared deck root and one project directory per deck:
   tsconfig.base.json
   assets/pptxgenjs_helpers/
   .ai-native-slides/
+    root.json
+    state.json
   projects/
     <slug>/
       spec/
@@ -77,7 +80,9 @@ Use one shared deck root and one project directory per deck:
       tests/
       output/
       tmp/
-      .ai-native-slides/project.json
+      .ai-native-slides/
+        project.json
+        state.json
       package.json
       tsconfig.json
       vitest.config.ts
@@ -91,8 +96,8 @@ The deck-root `package.json` also links `@ai-native-slides/deck-spec-module` fro
 
 ## Script Roles
 
-- `scripts/init_deck_root.sh <deck-root>`: preferred idempotent entrypoint for creating or refreshing the shared deck root before each new project depends on it.
-- `scripts/init_deck_project.sh <deck-root> <project-name>`: preferred idempotent entrypoint for creating or refreshing one project's template-managed scaffold without overwriting prompt-generated deck content.
+- `scripts/init_deck_root.sh <deck-root>`: preferred idempotent entrypoint for creating or refreshing the shared deck root before each new project depends on it. It converges `.ai-native-slides/root.json` and updates root `.ai-native-slides/state.json`.
+- `scripts/init_deck_project.sh <deck-root> <project-name>`: preferred idempotent entrypoint for creating or refreshing one project's template-managed scaffold without overwriting prompt-generated deck content. It converges `.ai-native-slides/project.json` and updates project `.ai-native-slides/state.json`.
 - `scripts/create_deck_project.sh <deck-root> <project-name>`: compatibility create-oriented alias; prefer `init_deck_project.sh` for initialize-or-refresh behavior.
 - `scripts/ensure_deck_root.sh <deck-root>`: cheap shared-runtime preflight.
 - `scripts/ensure_deck_project.sh <project-dir>`: cheap project preflight and state refresh; it reports gaps but does not repair them.
