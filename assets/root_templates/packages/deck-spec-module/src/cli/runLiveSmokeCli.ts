@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
@@ -5,6 +6,7 @@ import { pathToFileURL } from "node:url";
 
 import { resolveGeminiApiKey } from "../deck-spec-module/media/providerEnv.js";
 import {
+	DeckSpecPlanningError,
 	type DeckSpecPlanningErrorCode,
 	isDeckSpecPlanningError,
 	runDeckSpecModule,
@@ -28,6 +30,13 @@ type ParsedArgs = {
 	tmpRootDir?: string;
 	label?: string;
 	mediaEnabled: boolean;
+};
+
+type RunRootPaths = {
+	canonicalSpecPath: string;
+	artifactRootDir: string;
+	mediaOutputDir: string;
+	reportPath: string;
 };
 
 const defaultCliIo: CliIo = {
@@ -150,6 +159,51 @@ function getErrorMessage(error: unknown): string {
 	return error instanceof Error ? error.message : `Unknown error: ${String(error)}`;
 }
 
+function resolveRunRootPaths(runRootDir: string): RunRootPaths {
+	return {
+		canonicalSpecPath: path.join(runRootDir, "spec", "deck-spec.json"),
+		artifactRootDir: path.join(runRootDir, "artifacts"),
+		mediaOutputDir: path.join(runRootDir, "media", "generated-images"),
+		reportPath: path.join(runRootDir, "validate.report.md"),
+	};
+}
+
+function normalizeValidatePhaseFailure(error: unknown): DeckSpecPlanningError {
+	if (isDeckSpecPlanningError(error)) {
+		return error;
+	}
+
+	return new DeckSpecPlanningError({
+		code: "contract_validation_failed",
+		message: getErrorMessage(error),
+	});
+}
+
+function reportExistingRunArtifacts(
+	io: CliIo,
+	runRootPaths: RunRootPaths,
+	failureKind: DeckSpecPlanningErrorCode | "unexpected_error",
+): void {
+	if (existsSync(runRootPaths.canonicalSpecPath)) {
+		io.stderr(`Canonical spec: ${runRootPaths.canonicalSpecPath}`);
+	}
+
+	if (existsSync(runRootPaths.artifactRootDir)) {
+		io.stderr(`Artifact bundle: ${runRootPaths.artifactRootDir}`);
+	}
+
+	if (existsSync(runRootPaths.reportPath)) {
+		io.stderr(`Validation report: ${runRootPaths.reportPath}`);
+	}
+
+	if (
+		failureKind === "media_generation_failed" ||
+		existsSync(runRootPaths.mediaOutputDir)
+	) {
+		io.stderr(`Media output dir: ${runRootPaths.mediaOutputDir}`);
+	}
+}
+
 export async function runLiveSmokeCli(
 	args: string[],
 	io: CliIo = defaultCliIo,
@@ -194,55 +248,52 @@ export async function runLiveSmokeCli(
 	const executeRunDeckSpecValidateModule =
 		deps.runDeckSpecValidateModule ?? runDeckSpecValidateModule;
 	let runRootDir = parsedArgs.tmpRootDir;
+	let runRootPaths = resolveRunRootPaths(runRootDir);
 
 	try {
 		runRootDir = await reserveRunRootDir(parsedArgs.tmpRootDir, parsedArgs.label);
-		const canonicalSpecPath = path.join(runRootDir, "spec", "deck-spec.json");
-		const artifactRootDir = path.join(runRootDir, "artifacts");
-		const mediaOutputDir = path.join(runRootDir, "media", "generated-images");
-		const reportPath = path.join(runRootDir, "validate.report.md");
+		runRootPaths = resolveRunRootPaths(runRootDir);
 		const apiKey = await resolveGeminiApiKey(projectDir);
 		const result = await executeRunDeckSpecModule({
 			prompt: parsedArgs.prompt,
 			apiKey: apiKey.apiKey,
 			projectSlug,
 			paths: {
-				canonicalSpecPath,
-				artifactRootDir,
-				mediaOutputDir,
+				canonicalSpecPath: runRootPaths.canonicalSpecPath,
+				artifactRootDir: runRootPaths.artifactRootDir,
+				mediaOutputDir: runRootPaths.mediaOutputDir,
 			},
 			media: {
 				enabled: parsedArgs.mediaEnabled,
 			},
 		});
 
-		await executeRunDeckSpecValidateModule({
-			canonicalSpecPath: result.canonicalSpecPath,
-			reportPath,
-		});
+		try {
+			await executeRunDeckSpecValidateModule({
+				canonicalSpecPath: result.canonicalSpecPath,
+				reportPath: runRootPaths.reportPath,
+			});
+		} catch (error) {
+			throw normalizeValidatePhaseFailure(error);
+		}
 
 		io.stdout(`Live smoke passed for project: ${projectSlug}`);
 		io.stdout(`Canonical spec: ${result.canonicalSpecPath}`);
 		io.stdout(`Artifact bundle: ${result.artifactRootDir}`);
 		if (parsedArgs.mediaEnabled) {
-			io.stdout(`Generated media dir: ${mediaOutputDir}`);
+			io.stdout(`Generated media dir: ${runRootPaths.mediaOutputDir}`);
 		} else {
 			io.stdout("Media phase skipped.");
 		}
-		io.stdout(`Validation report: ${reportPath}`);
+		io.stdout(`Validation report: ${runRootPaths.reportPath}`);
 		io.stdout(`Used fallback: ${result.usedFallback ? "yes" : "no"}`);
 		return 0;
 	} catch (error) {
+		const failureKind = getFailureKind(error);
 		io.stderr(`Live smoke failed for project: ${projectSlug}`);
-		io.stderr(`Failure kind: ${getFailureKind(error)}`);
+		io.stderr(`Failure kind: ${failureKind}`);
 		io.stderr(`Run root: ${runRootDir}`);
-		if (getFailureKind(error) === "media_generation_failed") {
-			io.stderr(`Canonical spec: ${path.join(runRootDir, "spec", "deck-spec.json")}`);
-			io.stderr(`Artifact bundle: ${path.join(runRootDir, "artifacts")}`);
-			io.stderr(
-				`Media output dir: ${path.join(runRootDir, "media", "generated-images")}`,
-			);
-		}
+		reportExistingRunArtifacts(io, runRootPaths, failureKind);
 		io.stderr(getErrorMessage(error));
 		return 1;
 	}

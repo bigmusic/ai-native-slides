@@ -183,6 +183,93 @@ describe("deck-spec live smoke", () => {
 			).toBe(false);
 		});
 
+	it("reports published temp outputs when validation fails after canonical publish", async () => {
+		const tempProject = await createTempProject();
+		const stdout: string[] = [];
+		const stderr: string[] = [];
+		const fakeRunDeckSpecModule = vi.fn(
+			async ({
+				paths,
+			}: {
+				paths: {
+					canonicalSpecPath: string;
+					artifactRootDir: string;
+					mediaOutputDir?: string;
+				};
+			}) => {
+				await writeJsonFile(paths.canonicalSpecPath, {
+					ok: true,
+				});
+				await writeJsonFile(path.join(paths.artifactRootDir, "result.json"), {
+					ok: true,
+				});
+				if (typeof paths.mediaOutputDir === "string") {
+					await mkdir(paths.mediaOutputDir, { recursive: true });
+				}
+
+				return {
+					canonicalSpecPath: paths.canonicalSpecPath,
+					artifactRootDir: paths.artifactRootDir,
+					usedFallback: false,
+				};
+			},
+		);
+		const fakeRunDeckSpecValidateModule = vi.fn(
+			async ({
+				reportPath,
+			}: {
+				canonicalSpecPath: string;
+				reportPath?: string;
+			}) => {
+				if (typeof reportPath === "string") {
+					await writeTextFile(reportPath, "# Deck-Spec Validation");
+				}
+
+				throw new Error("Mock validation failure after publish.");
+			},
+		);
+
+		const exitCode = await runLiveSmokeCli(
+			[
+				tempProject.projectDir,
+				"--tmp-root-dir",
+				tempProject.tmpRootDir,
+				"--prompt",
+				"Create a simple six-slide deck about canonical deck-spec planning, structural validation, semantic review, media generation, and deterministic build delivery.",
+				"--label",
+				"validate-after-publish",
+			],
+			{
+				stdout: (message) => stdout.push(message),
+				stderr: (message) => stderr.push(message),
+			},
+			{
+				runDeckSpecModule: fakeRunDeckSpecModule,
+				runDeckSpecValidateModule: fakeRunDeckSpecValidateModule,
+			},
+		);
+
+		expect(exitCode).toBe(1);
+		expect(stdout).toEqual([]);
+		expect(fakeRunDeckSpecModule).toHaveBeenCalledTimes(1);
+		expect(fakeRunDeckSpecValidateModule).toHaveBeenCalledTimes(1);
+
+		const runDirs = await readdir(tempProject.tmpRootDir);
+		expect(runDirs).toHaveLength(1);
+		const runRootDir = path.join(tempProject.tmpRootDir, runDirs[0] ?? "");
+
+		expect(stderr).toEqual([
+			"Live smoke failed for project: test-project",
+			"Failure kind: contract_validation_failed",
+			`Run root: ${runRootDir}`,
+			`Canonical spec: ${path.join(runRootDir, "spec", "deck-spec.json")}`,
+			`Artifact bundle: ${path.join(runRootDir, "artifacts")}`,
+			`Validation report: ${path.join(runRootDir, "validate.report.md")}`,
+			`Media output dir: ${path.join(runRootDir, "media", "generated-images")}`,
+			"Mock validation failure after publish.",
+		]);
+	});
+
 	it("reserves a unique temp run root when repeated live-smoke labels collide", async () => {
 		const tempProject = await createTempProject();
 		vi.useFakeTimers();
