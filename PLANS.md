@@ -115,6 +115,7 @@ Current open gaps:
 - [x] 2026-03-17 12:43 PDT: added shared typed canonical-spec helpers (`readTypedDeckSpecSync`, `requireSlideById`, and asset accessors), synced them into the demo deck root, refactored the demo project's second-stage model to use them, and reconfirmed shared-package contract tests plus demo `pnpm lint`, `pnpm typecheck`, `pnpm test`, and `pnpm build`.
 - [x] 2026-03-17 12:55 PDT: added explicit diagnostics metadata helpers for intentional decorative elements (`markLastSlideObjectAsDecorative`, `setLastSlideObjectDiagnosticsOptions`), synchronized a template-managed regression test for that API plus the matching scaffold scripts, and reconfirmed demo `ensure_deck_project`, `pnpm lint`, `pnpm typecheck`, `pnpm test`, and `pnpm build`.
 - [x] 2026-03-17 13:00 PDT: completed a post-change code review of the typed canonical-spec helpers plus diagnostics-metadata scaffold changes, found no remaining functional regressions, and repaired a follow-up docs drift in `references/project-workflow.md` so the template-managed file inventory now includes `tests/layoutDiagnosticsMetadata.test.ts`.
+- [x] 2026-03-17 13:05 PDT: completed a clean-template smoke in workspace-local scratch root `/Volumes/BiGROG/skills-test/.tmp/template-double-check-20260317-130325`, reconfirming `init_deck_root.sh`, `init_deck_project.sh`, `ensure_deck_project.sh`, shared deck-spec contract tests, project template `pnpm lint`, `pnpm typecheck`, and direct scaffold regression tests before the next real deck-root reset.
 - [x] 2026-03-17 12:16 PDT: confirmed the demo deck root had been cleared back to `.env` only and started a fresh operator-path rerun from clean bootstrap, with this session using the sugarcane-cleaner enterprise-tech prompt as `new_project ai-native-product-deck`.
 - [x] 2026-03-15 12:24 PDT: established the shared runtime as the owner of prompt-to-spec execution.
 - [x] 2026-03-15 14:43 PDT: locked the stateless boundary: caller-owned discovery and path selection, module-owned execution and reporting.
@@ -183,6 +184,7 @@ Current open gaps:
 - 2026-03-17: the shared package now exposes typed canonical-spec helpers through the project wrapper surface, so second-stage authoring no longer needs ad-hoc JSON parsing just to consume the published contract safely.
 - 2026-03-17: the shared helper layer now supports explicit per-object diagnostics metadata, and the scaffold/runtime path excludes template-managed tests from the "content tests exist" check so decorative-noise suppression stays opt-in without weakening second-stage authoring guardrails.
 - 2026-03-17: the only additional issue surfaced by the post-change review was documentation drift: `references/project-workflow.md` needed to list the new template-managed diagnostics regression test so operator docs matched bootstrap/ensure behavior again.
+- 2026-03-17: a fresh scratch-root smoke outside the demo workspace now reconfirms the template layer can bootstrap from zero and reach `project_ready: true` without relying on existing demo-root state.
 - Acceptance bar retained: deterministic green plus one successful provider-backed temp-only live smoke.
 
 ## Idempotence and Recovery
@@ -220,6 +222,7 @@ Current open gaps:
 - The same rerun showed that raw planner `objectives` are not deck-facing copy. Rendering them directly in second-stage project content created avoidable layout collisions, so project authoring still needs deck-specific copy condensation rather than verbatim planner-note rendering.
 - The same rerun also exposed an easy-to-miss second-stage consumer hazard: a fresh authoring pass breaks immediately if it guesses `slides[].id`, `block.type`, or a flat top-level `assets` array instead of consuming the exact canonical contract keys.
 - Adding a second template-managed regression test surfaced a parallel bootstrap/runtime assumption: every place that asks "do authored content tests exist?" must exclude all template-managed tests, not only the original scaffold maintenance file.
+- A clean scratch-root smoke is worth keeping as a separate checkpoint from demo-project validation because it catches template/bootstrap regressions without any accidental help from previously generated demo artifacts.
 
 ## Outcomes and Retrospective
 
