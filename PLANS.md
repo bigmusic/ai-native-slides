@@ -110,6 +110,8 @@ Current open gaps:
 
 ## Progress
 
+- [x] 2026-03-17 12:31 PDT: finished the current clean-root rerun end to end: `pnpm spec`, `pnpm spec:validate`, second-stage authoring, `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, and wrapper-level `pnpm validate` are all green except for the expected human-in-the-loop LibreOffice rerun.
+- [x] 2026-03-17 12:33 PDT: documented the second-stage canonical-contract guardrail in `SKILL.md` and `references/project-workflow.md` after the fresh authoring pass surfaced that consumers must read `slide_id`, `block_type`, and `asset_manifest.*` exactly as published.
 - [x] 2026-03-17 12:16 PDT: confirmed the demo deck root had been cleared back to `.env` only and started a fresh operator-path rerun from clean bootstrap, with this session using the sugarcane-cleaner enterprise-tech prompt as `new_project ai-native-product-deck`.
 - [x] 2026-03-15 12:24 PDT: established the shared runtime as the owner of prompt-to-spec execution.
 - [x] 2026-03-15 14:43 PDT: locked the stateless boundary: caller-owned discovery and path selection, module-owned execution and reporting.
@@ -173,6 +175,8 @@ Current open gaps:
 - 2026-03-16: scaffold/template regression coverage now asserts the two-stage operator wording for `init_deck_project.sh`, `ensure_deck_project.sh`, `run-project.sh`, and `src/main.ts`.
 - 2026-03-16: the demo project stayed green for `pnpm spec:validate`, `pnpm lint`, `pnpm typecheck`, `pnpm test -- projectScaffoldMaintenance.test.ts`, and `pnpm build` after template refresh.
 - 2026-03-17: a fresh clean-root rerun stayed green through root bootstrap, project bootstrap, repaired `pnpm spec`, `pnpm spec:validate`, second-stage authoring, `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, and wrapper-level `pnpm validate`; the only incomplete portion remains the expected local-terminal LibreOffice rerun.
+- 2026-03-17: the current clean-root pass also reconfirmed the deterministic project loop with a new six-slide demo deck and no remaining overlap/out-of-bounds warnings in `pnpm build`.
+- 2026-03-17: skill docs now explicitly warn second-stage consumers to use `slide_id`, `block_type`, and `asset_manifest.*`, which closes the clean-root contract-drift class observed during authoring.
 - Acceptance bar retained: deterministic green plus one successful provider-backed temp-only live smoke.
 
 ## Idempotence and Recovery
@@ -208,6 +212,7 @@ Current open gaps:
 - A brand-new demo deck root still needs one more real rerun after the latest doc/template changes so we can separate documentation drift from an actual operator-path failure.
 - The fresh 2026-03-17 clean-root rerun exposed a narrower planner/runtime gap: the shared module could still reach semantic review with planner-supplied image prompt specs whose `avoid_elements` arrays were present but empty, which made the run fail even though the caller/bootstrap path was correct.
 - The same rerun showed that raw planner `objectives` are not deck-facing copy. Rendering them directly in second-stage project content created avoidable layout collisions, so project authoring still needs deck-specific copy condensation rather than verbatim planner-note rendering.
+- The same rerun also exposed an easy-to-miss second-stage consumer hazard: a fresh authoring pass breaks immediately if it guesses `slides[].id`, `block.type`, or a flat top-level `assets` array instead of consuming the exact canonical contract keys.
 
 ## Outcomes and Retrospective
 
