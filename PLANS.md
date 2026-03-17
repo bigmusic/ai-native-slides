@@ -43,10 +43,11 @@ The operator path must become:
 2. converge the deck root and target project scaffold
 3. run `pnpm spec -- --prompt "<prompt>"`
 4. run `pnpm spec:validate`
-5. run `pnpm lint`, `pnpm typecheck`, `pnpm test`, and `pnpm build`
-6. optionally run `pnpm spec:live -- <project-dir> --tmp-root-dir "<path>" --prompt "<prompt>" [--label "<name>"]`
-7. run `pnpm validate` in a local terminal when LibreOffice-backed checks are required
-8. use `--no-media` only when a deterministic or debug loop must skip image generation explicitly
+5. author or revise `src/buildDeck.ts`, `src/presentationModel.ts`, and project tests from the original prompt plus canonical spec, generated media, and the module artifact bundle
+6. run `pnpm lint`, `pnpm typecheck`, `pnpm test`, and `pnpm build`
+7. optionally run `pnpm spec:live -- <project-dir> --tmp-root-dir "<path>" --prompt "<prompt>" [--label "<name>"]`
+8. run `pnpm validate` in a local terminal when LibreOffice-backed checks are required
+9. use `--no-media` only when a deterministic or debug loop must skip image generation explicitly
 
 Session rules that remain in scope:
 
@@ -55,6 +56,7 @@ Session rules that remain in scope:
 - if the session is already scoped, confirm the active project with `.ai-native-slides/project.json` and `.ai-native-slides/state.json` when those records exist
 - for the current maintenance loop, revision prompts default to `ai-native-product-deck` unless the user explicitly asks for another project or a fresh one
 - deterministic CLI commands are guardrails inside the same session, not approval checkpoints
+- after `pnpm spec` succeeds, the same session still owns second-stage project-content authoring from the original prompt plus black-box artifacts
 - human review begins only after deliverables exist; revision feedback re-enters as a new prompt
 
 The target runtime contract must be:
@@ -116,8 +118,10 @@ Current open gaps:
 - [x] 2026-03-16 16:55 PDT: converged operator, public-boundary, and test-boundary surfaces onto the shared package with thin wrappers.
 - [x] 2026-03-16 17:39 PDT: closed remaining CLI/reporting edge cases around explicit scope, unique temp runs, and post-publish validation failure handling.
 - [x] 2026-03-16 17:50 PDT: compressed this plan into a low-context handoff form without dropping boundary or acceptance state.
-- [ ] 2026-03-16 18:23 PDT: reran the skill from a clean demo deck root; `pnpm spec` and media generation succeeded, but the end-to-end operator path still broke on missing project-content authoring files and template-managed lint drift. Follow-up is in progress in the demo workspace and must be synchronized back into the skill repo.
+- [x] 2026-03-16 18:23 PDT: reran the skill from a clean demo deck root; `pnpm spec` and media generation succeeded, and that rerun confirmed the remaining gap lived in skill-side project-content authoring rather than in the shared black-box boundary.
 - [x] 2026-03-16 18:35 PDT: repaired the clean-bootstrap template lint drift and the validation-report PPTX header wording in the skill repo, synchronized both fixes into the demo workspace, and reconfirmed the local loop through `pnpm validate`.
+- [x] 2026-03-16 18:58 PDT: aligned skill docs, scaffold guardrails, and template tests around the two-stage operator flow so `pnpm spec` stops at spec/media/artifacts and project-content authoring remains skill-owned.
+- [x] 2026-03-16 19:11 PDT: refreshed the demo project's template-managed files and reconfirmed the aligned contract through `pnpm spec:validate`, `pnpm lint`, `pnpm typecheck`, targeted scaffold tests, and `pnpm build`.
 
 ## Plan of Work
 
@@ -136,6 +140,11 @@ Current open gaps:
 - Deterministic package/project checks stay green.
 - One provider-backed `pnpm spec:live` succeeded with temp-only outputs and no canonical project mutation.
 
+### Milestone 4: Skill-Side Two-Stage Contract `[done]`
+
+- Skill docs and scaffold guardrails describe `pnpm spec` as black-box spec/media/artifact publication only.
+- Second-stage authoring of `src/buildDeck.ts`, `src/presentationModel.ts`, and tests remains outside the black box and is explicitly skill-owned.
+
 ## Concrete Steps
 
 - [x] Unified planning, review, publish, and media under one shared runtime boundary.
@@ -143,6 +152,7 @@ Current open gaps:
 - [x] Reduced the project layer to thin boundary adapters around the shared module.
 - [x] Kept operator, public, and test surfaces narrow and intentional rather than implementation-driven.
 - [x] Kept live-smoke execution explicit, temp-only, and non-mutating to canonical project outputs.
+- [x] Rewrote the skill-side flow so prompt -> black-box artifacts -> agent-authored project content -> deterministic build is explicit across docs, scripts, and tests.
 
 ## Validation and Acceptance
 
@@ -150,6 +160,8 @@ Current open gaps:
 - 2026-03-15: integrated deterministic validation went green for the shared runtime and demo project.
 - 2026-03-16: boundary-specific regressions stayed green across operator flow, public contract, test seam, and post-publish reporting.
 - 2026-03-16: one provider-backed temp live-smoke run succeeded with validated temp spec, generated temp media, full artifacts, primary-path success, and no canonical project mutation.
+- 2026-03-16: scaffold/template regression coverage now asserts the two-stage operator wording for `init_deck_project.sh`, `ensure_deck_project.sh`, `run-project.sh`, and `src/main.ts`.
+- 2026-03-16: the demo project stayed green for `pnpm spec:validate`, `pnpm lint`, `pnpm typecheck`, `pnpm test -- projectScaffoldMaintenance.test.ts`, and `pnpm build` after template refresh.
 - Acceptance bar retained: deterministic green plus one successful provider-backed temp-only live smoke.
 
 ## Idempotence and Recovery
@@ -168,6 +180,7 @@ Current open gaps:
 - 2026-03-16: validation and public integration boundaries remain package-owned, curated, and non-internal.
 - 2026-03-16: artifact validation must always target outputs from the current build.
 - 2026-03-16: live smoke remains explicit-project, temp-only, and phase-aware in failure normalization.
+- 2026-03-16: the shared black box stops at canonical spec, generated media, and run artifacts; second-stage authoring of `src/buildDeck.ts`, `src/presentationModel.ts`, and tests remains skill-owned and may use content starters only as baseline references.
 
 ## Surprises and Discoveries
 
@@ -176,11 +189,12 @@ Current open gaps:
 - Live-smoke validation needed to decouple from real project-root assumptions.
 - Failure classes still need to stay split between external/provider failure and contract/reporting failure.
 - Minor docs/runtime state drift remains and should be treated as documentation cleanup, not hidden behavior.
-- A clean-root operator rerun showed a second gap outside the shared module: the happy-path docs still describe one end-to-end session, but template-managed project files do not currently converge to a lint-clean state and no automated/project-authored bridge exists yet from canonical spec + media into `src/buildDeck.ts`, `src/presentationModel.ts`, and content tests.
+- A clean-root operator rerun showed the second gap was not black-box ownership but skill-side contract clarity: the same session still needed a more explicit prompt -> black-box artifacts -> agent-authored content sequence.
 - The validation wrapper originally wrote a header line that permanently said the PPTX was still pending even after a fresh artifact existed later in the same report; the template wording is now corrected, but the larger remaining workflow gap is still project-content authoring automation and better overlap-signal quality.
 
 ## Outcomes and Retrospective
 
 - The shared module is now the implemented planner/validator/media boundary.
 - The demo project is reduced to thin integration wrappers plus project content.
-- This migration slice is complete. Future work should start from new scope or provider triage, not from boundary cleanup.
+- The skill-side contract is now explicitly two-stage: black-box outputs first, agent-authored project content second, with no new generator added in this slice.
+- This migration slice is complete. Future work should start from project-content authoring automation, overlap-signal quality, or provider triage, not from boundary cleanup.

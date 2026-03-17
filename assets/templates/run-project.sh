@@ -65,8 +65,9 @@ project_content_tests_present() {
 case "$ACTION" in
   build)
     if ! project_content_present; then
-      echo "Project scaffold is ready, but deck content has not been generated yet." >&2
-      echo "Create src/buildDeck.ts and src/presentationModel.ts from the user's prompt first." >&2
+      echo "Project scaffold is ready, but second-stage deck authoring has not finished yet." >&2
+      echo "Run \`pnpm spec -- --prompt \"<prompt>\"\` first if canonical spec, generated media, or module artifacts are still missing." >&2
+      echo "Then author src/buildDeck.ts and src/presentationModel.ts from the original prompt plus those artifacts before rerunning \`pnpm build\`." >&2
       exit 1
     fi
     (
@@ -97,8 +98,9 @@ case "$ACTION" in
     ;;
   test)
     if ! project_content_tests_present; then
-      echo "Project scaffold is ready, but no TypeScript tests exist yet." >&2
-      echo "Generate tests under $PROJECT_DIR/tests before running 'pnpm test'." >&2
+      echo "Project scaffold is ready, but second-stage project tests have not been authored yet." >&2
+      echo "Run \`pnpm spec -- --prompt \"<prompt>\"\` first if canonical spec, generated media, or module artifacts are still missing." >&2
+      echo "Then author tests under $PROJECT_DIR/tests from the original prompt plus those artifacts before running \`pnpm test\`." >&2
       exit 1
     fi
     (
@@ -108,8 +110,9 @@ case "$ACTION" in
     ;;
   test:watch)
     if ! project_content_tests_present; then
-      echo "Project scaffold is ready, but no TypeScript tests exist yet." >&2
-      echo "Generate tests under $PROJECT_DIR/tests before running 'pnpm test:watch'." >&2
+      echo "Project scaffold is ready, but second-stage project tests have not been authored yet." >&2
+      echo "Run \`pnpm spec -- --prompt \"<prompt>\"\` first if canonical spec, generated media, or module artifacts are still missing." >&2
+      echo "Then author tests under $PROJECT_DIR/tests from the original prompt plus those artifacts before running \`pnpm test:watch\`." >&2
       exit 1
     fi
     (

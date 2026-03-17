@@ -26,7 +26,7 @@ Use it only when you are deliberately repairing or re-validating the scaffold la
 - a change to the skill templates needs to be propagated into an existing project while exercising the explicit recovery path
 - you are validating that the maintainer recovery path itself still works
 
-Do not use it as the normal way to regenerate deck content. It does not rebuild prompt-generated business files such as `src/buildDeck.ts` or `src/presentationModel.ts`; normal operator flow should still use `init_deck_project.sh`.
+Do not use it as the normal way to regenerate deck content. It does not rebuild second-stage project content such as `src/buildDeck.ts` or `src/presentationModel.ts`; normal operator flow should still use `init_deck_project.sh`, then `pnpm spec`, then skill-agent authoring from the resulting artifacts.
 
 ## What "Clean" Means
 
@@ -93,16 +93,18 @@ Do not commit deck outputs or local runtime artifacts here:
 2. Create or identify a project directory under `projects/<slug>/`. For a new deck, prefer `scripts/init_deck_project.sh <deck-root> <project-name>`.
 3. Run `scripts/init_deck_root.sh <deck-root>` whenever the shared runtime root needs initialization or refresh, especially before spinning up a new project. This flow converges the shared root config and restores the deck-root `.npmrc` that pins `store-dir=.pnpm-store`.
 4. Run `scripts/bootstrap_deck_project.sh <project-dir>` only when you are maintaining template-managed project files directly; normal operator flow should go through `scripts/init_deck_project.sh`.
-5. Generate project content (`src/buildDeck.ts`, `src/presentationModel.ts`, tests) from the user's prompt after scaffold init succeeds.
-6. Run `scripts/ensure_deck_root.sh <deck-root>` and `scripts/ensure_deck_project.sh <project-dir>` for cheap preflight checks and refreshed state.
-7. If the shared root is missing runtime dependencies or shared config, rerun `scripts/init_deck_root.sh <deck-root>`. If the project is missing project-scaffold files or template-managed files have drifted during edit work, rerun `scripts/init_deck_project.sh <deck-root> <project-name>` so the operator path stays idempotent and deterministic. Use `scripts/maintenance/repair_deck_project.sh <project-dir>` only for maintainer-oriented scaffold recovery on an already identified project directory. In Codex sessions, `init_deck_root.sh` restores the deck-root `.npmrc` and runs `pnpm install` directly so the shared store stays inside `<deck-root>/.pnpm-store`. The same init flow keeps `uv` cache inside `<deck-root>/.uv-cache`.
-8. If project preflight reports legacy generated directories such as `rendered/` or `node_modules/.vite*`, remove them with `scripts/maintenance/clean_deck_project.sh <project-dir>`.
-9. If you are working with an older single-workspace deck, migrate it with `scripts/maintenance/migrate_single_workspace_to_project.sh <legacy-deck> <project-name>`.
-10. Validate behavior using a separate project directory.
-11. If your installed skill path is not already a symlink to this repository, sync this repository into the local Codex skills directory with `scripts/maintenance/sync_to_codex.sh`.
-12. Restart Codex so the updated installed skill is reloaded.
-13. Run a real deck task with `$ai-native-slides`.
-14. If the workflow is correct, commit and push this repository.
+5. Run `pnpm spec -- --prompt "<prompt>"` in the target project so the shared black box publishes canonical `spec/deck-spec.json`, generated media, and the module artifact bundle.
+6. Run `pnpm spec:validate` against the published canonical spec before second-stage authoring.
+7. Generate project content (`src/buildDeck.ts`, `src/presentationModel.ts`, tests) from the user's prompt plus the canonical spec, generated media, and module artifacts. Use `assets/content_starters/` as the default baseline when a starter skeleton helps, but do not copy it automatically into the project.
+8. Run `scripts/ensure_deck_root.sh <deck-root>` and `scripts/ensure_deck_project.sh <project-dir>` for cheap preflight checks and refreshed state.
+9. If the shared root is missing runtime dependencies or shared config, rerun `scripts/init_deck_root.sh <deck-root>`. If the project is missing project-scaffold files or template-managed files have drifted during edit work, rerun `scripts/init_deck_project.sh <deck-root> <project-name>` so the operator path stays idempotent and deterministic. Use `scripts/maintenance/repair_deck_project.sh <project-dir>` only for maintainer-oriented scaffold recovery on an already identified project directory. In Codex sessions, `init_deck_root.sh` restores the deck-root `.npmrc` and runs `pnpm install` directly so the shared store stays inside `<deck-root>/.pnpm-store`. The same init flow keeps `uv` cache inside `<deck-root>/.uv-cache`.
+10. If project preflight reports legacy generated directories such as `rendered/` or `node_modules/.vite*`, remove them with `scripts/maintenance/clean_deck_project.sh <project-dir>`.
+11. If you are working with an older single-workspace deck, migrate it with `scripts/maintenance/migrate_single_workspace_to_project.sh <legacy-deck> <project-name>`.
+12. Validate behavior using a separate project directory.
+13. If your installed skill path is not already a symlink to this repository, sync this repository into the local Codex skills directory with `scripts/maintenance/sync_to_codex.sh`.
+14. Restart Codex so the updated installed skill is reloaded.
+15. Run a real deck task with `$ai-native-slides`.
+16. If the workflow is correct, commit and push this repository.
 
 ## Example Validation Loop
 
@@ -114,18 +116,20 @@ Typical loop:
 2. Run `scripts/init_deck_project.sh <deck-root> <project-name>` for a fresh or existing project, or pick an existing `projects/<slug>/` directory.
 3. Run `scripts/init_deck_root.sh <deck-root>` so the shared runtime root gets the current helper assets, shared config, runtime dependencies when possible, and deck-root `.npmrc`.
 4. Run `scripts/bootstrap_deck_project.sh <project-dir>` only when you are explicitly validating template refresh behavior; normal project setup should still go through `scripts/init_deck_project.sh`.
-5. Generate project content (`src/buildDeck.ts`, `src/presentationModel.ts`, tests) from the user's prompt.
-6. Run `scripts/ensure_deck_root.sh <deck-root>` and `scripts/ensure_deck_project.sh <project-dir>` to refresh state and spot missing dependencies quickly.
-7. If the shared root is missing runtime dependencies, rerun `scripts/init_deck_root.sh <deck-root>`. If the project is missing project-scaffold files or template-managed files have drifted during edit work, rerun `scripts/init_deck_project.sh <deck-root> <project-name>`. Use `scripts/maintenance/repair_deck_project.sh <project-dir>` only when you are deliberately exercising the maintainer recovery path. In Codex sessions, `init_deck_root.sh` restores the deck-root `.npmrc` and runs the root-local-store `pnpm install` directly. Its `uv` steps use `<deck-root>/.uv-cache`.
-8. If project preflight reports legacy generated directories such as `rendered/` or `node_modules/.vite*`, remove them with `scripts/maintenance/clean_deck_project.sh <project-dir>`.
-9. If you are validating an older single-workspace deck, migrate it with `scripts/maintenance/migrate_single_workspace_to_project.sh <legacy-deck> <project-name>`.
-10. Use the current project directory to run `pnpm lint`, `pnpm typecheck`, `pnpm test`, and `pnpm build`.
-11. Run render-dependent validation (`render_slides.py`, `slides_test.py`, `create_montage.py`, `detect_font.py`).
-12. In Codex sessions, LibreOffice-backed validation is intentionally blocked before `soffice` launches. Treat that part as human-in-the-loop and have the user run it in their own terminal.
-13. Fix any gaps in skill instructions or bundled resources.
-14. If your installed skill path is not already a symlink to this repository, run `scripts/maintenance/sync_to_codex.sh`.
-15. Restart Codex.
-16. Trigger `$ai-native-slides` on the next deck task and confirm the new behavior.
+5. Run `pnpm spec -- --prompt "<prompt>"` in the target project so the shared black box publishes canonical `spec/deck-spec.json`, generated media, and the module artifact bundle.
+6. Run `pnpm spec:validate` against the published canonical spec.
+7. Generate project content (`src/buildDeck.ts`, `src/presentationModel.ts`, tests) from the user's prompt plus the canonical spec, generated media, and module artifacts. Use `assets/content_starters/` as the default baseline when useful, but do not copy it automatically into the project.
+8. Run `scripts/ensure_deck_root.sh <deck-root>` and `scripts/ensure_deck_project.sh <project-dir>` to refresh state and spot missing dependencies quickly.
+9. If the shared root is missing runtime dependencies, rerun `scripts/init_deck_root.sh <deck-root>`. If the project is missing project-scaffold files or template-managed files have drifted during edit work, rerun `scripts/init_deck_project.sh <deck-root> <project-name>`. Use `scripts/maintenance/repair_deck_project.sh <project-dir>` only when you are deliberately exercising the maintainer recovery path. In Codex sessions, `init_deck_root.sh` restores the deck-root `.npmrc` and runs the root-local-store `pnpm install` directly. Its `uv` steps use `<deck-root>/.uv-cache`.
+10. If project preflight reports legacy generated directories such as `rendered/` or `node_modules/.vite*`, remove them with `scripts/maintenance/clean_deck_project.sh <project-dir>`.
+11. If you are validating an older single-workspace deck, migrate it with `scripts/maintenance/migrate_single_workspace_to_project.sh <legacy-deck> <project-name>`.
+12. Use the current project directory to run `pnpm lint`, `pnpm typecheck`, `pnpm test`, and `pnpm build`.
+13. Run render-dependent validation (`render_slides.py`, `slides_test.py`, `create_montage.py`, `detect_font.py`).
+14. In Codex sessions, LibreOffice-backed validation is intentionally blocked before `soffice` launches. Treat that part as human-in-the-loop and have the user run it in their own terminal.
+15. Fix any gaps in skill instructions or bundled resources.
+16. If your installed skill path is not already a symlink to this repository, run `scripts/maintenance/sync_to_codex.sh`.
+17. Restart Codex.
+18. Trigger `$ai-native-slides` on the next deck task and confirm the new behavior.
 
 ## Local Install / Update
 

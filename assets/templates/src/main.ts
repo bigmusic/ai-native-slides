@@ -10,10 +10,13 @@ const presentationModelSource = fileURLToPath(
 
 if (!existsSync(buildDeckSource) || !existsSync(presentationModelSource)) {
 	console.error(
-		"Project scaffold is ready, but deck content has not been generated yet.",
+		"Project scaffold is ready, but second-stage deck authoring has not finished yet.",
 	);
 	console.error(
-		"Create src/buildDeck.ts and src/presentationModel.ts from the user's prompt, then rerun `pnpm build`.",
+		'Run `pnpm spec -- --prompt "<prompt>"` first if canonical spec, generated media, or module artifacts are still missing.',
+	);
+	console.error(
+		"Then author src/buildDeck.ts and src/presentationModel.ts from the original prompt plus those artifacts before rerunning `pnpm build`.",
 	);
 	process.exit(1);
 }

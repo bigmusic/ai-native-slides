@@ -45,8 +45,8 @@ Within that same session, the skill agent is expected to:
 - resolve the target project before changing files
 - converge the root and project scaffold
 - run `pnpm spec -- --prompt "<prompt>"`
-- generate media
-- author or revise `src/buildDeck.ts`, `src/presentationModel.ts`, and project tests
+- run `pnpm spec:validate`
+- author or revise `src/buildDeck.ts`, `src/presentationModel.ts`, and project tests from the prompt plus canonical spec, generated media, and the module artifact bundle
 - run `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, and when needed `pnpm validate`
 - produce deliverables
 
@@ -123,14 +123,19 @@ Template-managed files are copied from `assets/templates/` and can be refreshed 
 - `src/spec/validateSpecReview.ts`
 - `src/spec/writeFileAtomic.ts`
 
-Prompt-generated project content is created after scaffold initialization, based on the user's deck request:
+Black-box runtime outputs are created after scaffold initialization by `pnpm spec`:
 
 - `spec/deck-spec.json`
+- `media/generated-images/`
+- `<deck-root>/tmp/deck-spec-module/<project-slug>/`
+
+Agent-authored project content is created after the black-box stage from the user's prompt plus those artifacts:
+
 - `src/buildDeck.ts`
 - `src/presentationModel.ts`
 - `tests/buildDeck.test.ts`
 
-Optional content starter references live under `assets/content_starters/`. They are not copied automatically during scaffold initialization.
+Optional content starter references live under `assets/content_starters/`. They act as baseline references for the second-stage authoring step and are not copied automatically during scaffold initialization.
 
 Project metadata records these boundaries in `.ai-native-slides/project.json`.
 
@@ -169,6 +174,8 @@ pnpm install
 cd /Volumes/BiGROG/skills-test/ai-education-deck/projects/ai-native-product-deck
 pnpm spec -- --prompt "Summarize the requested deck"
 pnpm spec:validate
+# Then author or revise src/buildDeck.ts, src/presentationModel.ts, and tests
+# from the original prompt plus spec/media/artifacts before running:
 pnpm lint
 pnpm typecheck
 pnpm test
@@ -177,7 +184,7 @@ pnpm build
 
 Before running that loop, resolve whether the prompt is creating a new project or revising an existing one. For operator-facing prompt wording, prefer explicit phrasing such as `Create project <slug>` or `Revise project <slug>`.
 
-`pnpm spec -- --prompt "<prompt>"` is now the single happy-path provider-backed command. The project wrapper forwards into the shared package at `<deck-root>/packages/deck-spec-module/` with explicit canonical-spec, artifact-root, and media-output paths. The shared CLI fails fast if those output paths are omitted. Treat the shared module as a stateless black box: wrappers own project discovery and default path selection, while the module consumes explicit inputs, owns normalization, structural validation, semantic review, one internal repair retry, canonical publish, media generation, and artifact-bundle writes. On pre-publish failure it leaves the canonical target untouched; on post-publish media failure it keeps the canonical spec at `reviewed` and reports a stable failure kind. Use `--no-media` only when you explicitly want to skip the image phase.
+`pnpm spec -- --prompt "<prompt>"` is now the single happy-path provider-backed command for the black-box stage. The project wrapper forwards into the shared package at `<deck-root>/packages/deck-spec-module/` with explicit canonical-spec, artifact-root, and media-output paths. The shared CLI fails fast if those output paths are omitted. Treat the shared module as a stateless black box: wrappers own project discovery and default path selection, while the module consumes explicit inputs, owns normalization, structural validation, semantic review, one internal repair retry, canonical publish, media generation, and artifact-bundle writes. On pre-publish failure it leaves the canonical target untouched; on post-publish media failure it keeps the canonical spec at `reviewed` and reports a stable failure kind. Use `--no-media` only when you explicitly want to skip the image phase. A successful `pnpm spec` run stops at canonical spec, generated media, and the artifact bundle; it does not author `src/buildDeck.ts`, `src/presentationModel.ts`, project tests, or a `.pptx`.
 
 `pnpm spec:validate` performs structural validation only. The project wrapper routes it through the shared package's `pnpm spec:validate` CLI, which checks the canonical `spec/deck-spec.json` against `spec/deck-spec.schema.json` plus local rule validation without mutating project files.
 
@@ -197,9 +204,9 @@ Every `pnpm spec -- --prompt "<prompt>"` run writes the same fixed artifact bund
 
 `pnpm spec:live -- <project-dir> --tmp-root-dir "<path>" --prompt "<prompt>" [--label "<name>"] [--no-media]` is the opt-in provider-backed smoke from the deck root. It writes only to the caller-selected temp root and does not mutate the project canonical spec.
 
-`pnpm spec` is now also the only image-generation step. It reads `GEMINI_API_KEY` from the current shell or from `<deck-root>/.env`, writes canonical deck-ready files into `media/generated-images/`, and supports `--no-media` when you need to skip that phase explicitly.
+`pnpm spec` is now also the only image-generation step. It reads `GEMINI_API_KEY` from the current shell or from `<deck-root>/.env`, writes canonical deck-ready files into `media/generated-images/`, and supports `--no-media` when you need to skip that phase explicitly. After that stage succeeds, the skill agent uses the original prompt plus canonical spec, generated media, the module artifact bundle, and optional content starters to author the project TypeScript files and tests.
 
-The expected fast loop from `pnpm spec` through `pnpm build` runs without human intervention. Human review starts after those artifacts exist.
+The intended fast loop is one skill-owned two-stage session: run `pnpm spec`, author project content from the resulting artifacts, then run the deterministic checks through `pnpm build`. Human review starts after those deliverables exist.
 
 ```bash
 # Full validation wrapper

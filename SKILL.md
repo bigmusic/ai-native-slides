@@ -52,7 +52,7 @@ Routing rules:
 - `scripts/ensure_deck_root.sh` and `scripts/ensure_deck_project.sh`: cheap preflight checks.
 - `assets/pptxgenjs_helpers/`: shared helper code copied into the deck root.
 - `assets/templates/`: project-scaffold templates and wrappers copied into each project.
-- `assets/content_starters/`: optional reference starters for prompt-generated deck content.
+- `assets/content_starters/`: default baseline references for second-stage agent-authored deck content. They are not copied automatically into projects.
 - `pnpm spec -- --prompt "<prompt>"`: main happy-path entrypoint. The project wrapper forwards into the shared `deck-spec-module` with explicit canonical-spec, artifact-root, and media-output paths, and the module itself writes canonical `spec/deck-spec.json`, generated media, and a fixed artifact bundle after module-internal validation/eval succeeds.
 - `pnpm spec:validate`: validates the canonical `spec/deck-spec.json` by forwarding into the shared package's `pnpm spec:validate` CLI without mutating project files.
 - `pnpm spec:live -- <project-dir> --tmp-root-dir "<path>" --prompt "<prompt>" [--label "<name>"] [--no-media]`: opt-in provider-backed smoke from the deck root. It writes only to the caller-selected temp root and does not mutate the project canonical spec.
@@ -64,6 +64,7 @@ For operator workflows, treat those `pnpm` commands as the stable shared-module 
 - Skill agent owns:
   - TypeScript deck authoring and edits
   - command orchestration and validation interpretation
+  - the two-stage session: black-box spec/materialization first, then project-content authoring from the prompt plus resulting artifacts
   - the end-to-end session from prompt intake through deliverable generation
 - Stateless deck-spec module owns:
   - a stateless black-box boundary behind explicit caller inputs
@@ -71,12 +72,14 @@ For operator workflows, treat those `pnpm` commands as the stable shared-module 
   - internal asset planning and filename derivation
   - module-internal validation/eval and one repair retry prior to publish
   - canonical spec file writes
+  - generated media writes
   - fixed artifact-bundle writes
 - Stateless deck-spec module does not own:
   - deck-root / project-root discovery
   - default runtime path selection
   - project-local mutable state
   - hidden package-local output directories
+  - `src/buildDeck.ts`, `src/presentationModel.ts`, or project tests
 - Maintainer/test boundary:
   - the operator CLI boundary and project wrapper TypeScript boundary route through curated package scripts and exports
   - package-maintainer deterministic tests use the explicit `@ai-native-slides/deck-spec-module/testing` seam; `packages/deck-spec-module/src/*` is not a supported consumer entrypoint
@@ -110,17 +113,18 @@ For operator workflows, treat those `pnpm` commands as the stable shared-module 
 6. Treat `.ai-native-slides/state.json` as the machine-readable record of scaffold state, not as project content.
 7. Let `scripts/init_deck_root.sh` restore the deck-root `.npmrc` and run `pnpm install` in Codex so the shared store stays inside `<deck-root>/.pnpm-store`. LibreOffice-backed validation is still human-in-the-loop in Codex and requires a local-terminal rerun.
 8. Set the slide size up front. Default to 16:9 (`LAYOUT_WIDE`) unless the source material clearly uses another aspect ratio.
-9. Generate or revise project content only after both root and project scaffolds are ready. Write `src/buildDeck.ts`, `src/presentationModel.ts`, and project tests from the routed prompt and the target project's current state.
-10. Treat `spec/deck-spec.schema.json`, `src/spec/*`, and `src/media/generatedImagePaths.ts` as template-managed contract files. Treat `spec/deck-spec.json` as canonical project input when it exists.
-11. Use `pnpm spec -- --prompt "<prompt>"` as the main happy-path command. The project wrapper must pass explicit canonical-spec, artifact-root, and media-output paths into the shared CLI. That CLI fails fast if the required output paths are omitted, and then invokes the stateless deck-spec module. Treat that module as a black box: it consumes explicit inputs, does not discover project context on its own, does not infer output paths, and writes canonical `spec/deck-spec.json` plus media only on success or recoverable post-publish media failure.
-12. Every `pnpm spec` run writes the module artifact bundle under the selected artifact root. For the default project wrapper, that path is `<deck-root>/tmp/deck-spec-module/<project-slug>/`.
-13. If `pnpm spec` exits with failure, inspect the emitted module artifact bundle, then revise the prompt or rerun the command. Do not manually patch canonical `spec/deck-spec.json` as a substitute for rerunning the prompt-driven flow.
-14. Put `GEMINI_API_KEY` in the current shell or in `<deck-root>/.env`. `pnpm spec` and `pnpm spec:live` may require that key in v1, and they do not read project-level `.env` files.
-15. When maintaining this skill, develop and validate the behavior in the demo project first, then sync reusable template, script, and doc changes back into the skill repo before considering the work complete.
-16. Use `pnpm spec -- --prompt "<prompt>"`, `pnpm spec:validate`, `pnpm lint`, `pnpm typecheck`, `pnpm test`, and `pnpm build` as the fast local loop. `pnpm spec:live -- <project-dir> --tmp-root-dir "<path>" --prompt "<prompt>" [--no-media]` is the opt-in provider-backed smoke. The intended operator path is prompt in -> route to a project -> one skill-owned session runs `pnpm spec -- --prompt "<prompt>"` -> canonical publish plus artifact bundle plus generated media -> deliverables out. `pnpm spec:validate` remains structural validation through the shared package CLI, `pnpm spec` runs the Gemini-backed media phase by default, `--no-media` is the only supported skip switch, and `pnpm build` remains deterministic and offline. Prefer `pnpm validate` only when you need full render, font, and overflow checks; it now validates only the `.pptx` produced by the current build run and never falls back to older output artifacts. Inside Codex, a blocked validation run should print the local rerun command plus the raw `soffice` command blocks in terminal output, not only in the markdown report.
-17. Build the deck in TypeScript with explicit fonts, stable spacing, and editable PowerPoint-native elements when practical. `build` remains deterministic and does not call Gemini.
-18. Deliver the `.pptx`, the authoring `.ts`, and any generated media required to rebuild the deck.
-19. Post-deliverable review feedback is handled as a new prompt. Resolve the target project again and rerun the end-to-end workflow there instead of manually editing intermediate candidate files.
+9. Treat `spec/deck-spec.schema.json`, `src/spec/*`, and `src/media/generatedImagePaths.ts` as template-managed contract files. Treat `assets/content_starters/` as baseline references for second-stage authoring only; they are not generated by the black box and are not copied automatically.
+10. Use `pnpm spec -- --prompt "<prompt>"` as the main happy-path command. The project wrapper must pass explicit canonical-spec, artifact-root, and media-output paths into the shared CLI. That CLI fails fast if the required output paths are omitted, and then invokes the stateless deck-spec module. Treat that module as a black box: it consumes explicit inputs, does not discover project context on its own, does not infer output paths, and writes canonical `spec/deck-spec.json`, generated media, and the module artifact bundle only on success or recoverable post-publish media failure.
+11. Every `pnpm spec` run writes the module artifact bundle under the selected artifact root. For the default project wrapper, that path is `<deck-root>/tmp/deck-spec-module/<project-slug>/`.
+12. If `pnpm spec` exits with failure, inspect the emitted module artifact bundle, then revise the prompt or rerun the command. Do not manually patch canonical `spec/deck-spec.json` as a substitute for rerunning the prompt-driven flow.
+13. After `pnpm spec` succeeds, run `pnpm spec:validate` as the structural guardrail on the published canonical spec before second-stage deck authoring.
+14. Author or revise `src/buildDeck.ts`, `src/presentationModel.ts`, and project tests from the original prompt plus the target project's current state, canonical `spec/deck-spec.json`, generated media, and the module artifact bundle. Use `assets/content_starters/` as the default baseline when a starter skeleton helps, but do not treat those files as generated output.
+15. Put `GEMINI_API_KEY` in the current shell or in `<deck-root>/.env`. `pnpm spec` and `pnpm spec:live` may require that key in v1, and they do not read project-level `.env` files.
+16. When maintaining this skill, develop and validate the behavior in the demo project first, then sync reusable template, script, and doc changes back into the skill repo before considering the work complete.
+17. Use `pnpm spec -- --prompt "<prompt>"`, `pnpm spec:validate`, `pnpm lint`, `pnpm typecheck`, `pnpm test`, and `pnpm build` as the fast local loop. `pnpm spec:live -- <project-dir> --tmp-root-dir "<path>" --prompt "<prompt>" [--no-media]` is the opt-in provider-backed smoke. The intended operator path is prompt in -> route to a project -> one skill-owned session runs `pnpm spec -- --prompt "<prompt>"` -> canonical publish plus artifact bundle plus generated media -> author project content from the prompt plus those artifacts -> run `pnpm spec:validate`, `pnpm lint`, `pnpm typecheck`, `pnpm test`, and `pnpm build` -> deliverables out. `pnpm spec` does not author TypeScript deck files or produce a `.pptx` on its own. `pnpm spec:validate` remains structural validation through the shared package CLI, `pnpm spec` runs the Gemini-backed media phase by default, `--no-media` is the only supported skip switch, and `pnpm build` remains deterministic and offline. Prefer `pnpm validate` only when you need full render, font, and overflow checks; it now validates only the `.pptx` produced by the current build run and never falls back to older output artifacts. Inside Codex, a blocked validation run should print the local rerun command plus the raw `soffice` command blocks in terminal output, not only in the markdown report.
+18. Build the deck in TypeScript with explicit fonts, stable spacing, and editable PowerPoint-native elements when practical. `build` remains deterministic and does not call Gemini.
+19. Deliver the `.pptx`, the authoring `.ts`, and any generated media required to rebuild the deck.
+20. Post-deliverable review feedback is handled as a new prompt. Resolve the target project again and rerun the end-to-end workflow there instead of manually editing intermediate candidate files.
 
 ## Load Next
 

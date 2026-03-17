@@ -689,8 +689,8 @@ if [[ "$BUILD_DECK_PRESENT" == true ]] && \
    [[ "$CONTENT_TESTS_PRESENT" == true ]]; then
   CONTENT_READY=true
 else
-  add_warning "project content files have not been generated yet"
-  add_suggestion "Generate \`src/buildDeck.ts\`, \`src/presentationModel.ts\`, and at least one \`tests/*.test.ts\` file from the user's prompt before running the full build/test/validate loop."
+  add_warning "second-stage project content is incomplete"
+  add_suggestion "Run \`pnpm spec -- --prompt \"<prompt>\"\` if canonical spec, generated media, or module artifacts are still missing, then author \`src/buildDeck.ts\`, \`src/presentationModel.ts\`, and at least one \`tests/*.test.ts\` file from the original prompt plus those artifacts before running the full build/test/validate loop."
 fi
 
 {

@@ -61,6 +61,62 @@ async function createTempWorkspaceDir(prefix: string): Promise<string> {
 	return tempDir;
 }
 
+async function writeDeckRootMetadata(deckRootDir: string): Promise<void> {
+	const metadataDir = path.join(deckRootDir, ".ai-native-slides");
+	await mkdir(metadataDir, { recursive: true });
+	await writeFile(
+		path.join(metadataDir, "root.json"),
+		`${JSON.stringify(
+			{
+				layout_version: 2,
+				deck_root: deckRootDir,
+				managed_by: "ai-native-slides",
+				created_at: "2026-03-16T18:58:00-0700",
+			},
+			null,
+			2,
+		)}\n`,
+		"utf8",
+	);
+}
+
+async function initializeTempProject(
+	projectName = "two-stage-contract",
+): Promise<{
+	deckRootDir: string;
+	projectDir: string;
+	skillRoot: string;
+	stdout: string;
+	stderr: string;
+}> {
+	const skillRoot = await resolveSkillRoot();
+	const deckRootDir = await createTempWorkspaceDir("two-stage-deck-root-");
+	await writeDeckRootMetadata(deckRootDir);
+	await mkdir(path.join(deckRootDir, "node_modules", ".bin"), {
+		recursive: true,
+	});
+
+	const result = await execFileAsync(
+		"bash",
+		[
+			path.join(skillRoot, "scripts", "init_deck_project.sh"),
+			deckRootDir,
+			projectName,
+		],
+		{
+			cwd: deckRootDir,
+		},
+	);
+
+	return {
+		deckRootDir,
+		projectDir: path.join(deckRootDir, "projects", projectName),
+		skillRoot,
+		stdout: result.stdout,
+		stderr: result.stderr,
+	};
+}
+
 async function writeExecutable(
 	filePath: string,
 	source: string,
@@ -235,6 +291,40 @@ async function runValidateLocalScript(
 	}
 }
 
+async function runExecFile(
+	file: string,
+	args: string[],
+	options?: {
+		cwd?: string;
+		env?: NodeJS.ProcessEnv;
+	},
+): Promise<{
+	exitCode: number;
+	stdout: string;
+	stderr: string;
+}> {
+	try {
+		const result = await execFileAsync(file, args, options);
+		return {
+			exitCode: 0,
+			stdout: String(result.stdout),
+			stderr: String(result.stderr),
+		};
+	} catch (error) {
+		const execError = error as Error & {
+			code?: number;
+			stdout?: string;
+			stderr?: string;
+		};
+
+		return {
+			exitCode: typeof execError.code === "number" ? execError.code : 1,
+			stdout: String(execError.stdout ?? ""),
+			stderr: String(execError.stderr ?? ""),
+		};
+	}
+}
+
 afterEach(async () => {
 	for (const projectDir of tempProjectDirs) {
 		await rm(projectDir, { recursive: true, force: true });
@@ -278,8 +368,80 @@ describe("project scaffold maintenance surfaces", () => {
 				"projectScaffoldMaintenance.test.ts",
 			]),
 		).rejects.toMatchObject({
-			stderr: expect.stringContaining("no TypeScript tests exist yet"),
+			stderr: expect.stringContaining(
+				"second-stage project tests have not been authored yet",
+			),
 		});
+	});
+
+	it("describes the two-stage follow-up in init_deck_project output", async () => {
+		const result = await initializeTempProject();
+
+		expect(result.stdout).toContain("Finish project content in this order:");
+		expect(result.stdout).toContain(
+			'Run `pnpm spec -- --prompt "<prompt>"` if canonical spec, generated media, or module artifacts are still missing.',
+		);
+		expect(result.stdout).toContain(
+			"Use the original prompt plus those artifacts to author any remaining project files:",
+		);
+		expect(result.stdout).toContain("- src/buildDeck.ts");
+		expect(result.stdout).toContain("- src/presentationModel.ts");
+		expect(result.stdout).toContain("- tests/buildDeck.test.ts");
+	});
+
+	it("describes the two-stage follow-up in ensure_deck_project output", async () => {
+		const { projectDir, skillRoot } = await initializeTempProject();
+		const result = await runExecFile("bash", [
+			path.join(skillRoot, "scripts", "ensure_deck_project.sh"),
+			projectDir,
+		]);
+
+		expect(result.exitCode).toBe(1);
+		expect(result.stdout).toContain(
+			"second-stage project content is incomplete",
+		);
+		expect(result.stdout).toContain(
+			'Run `pnpm spec -- --prompt "<prompt>"` if canonical spec, generated media, or module artifacts are still missing, then author `src/buildDeck.ts`, `src/presentationModel.ts`, and at least one `tests/*.test.ts` file from the original prompt plus those artifacts before running the full build/test/validate loop.',
+		);
+	});
+
+	it("explains the two-stage flow when build runs before authored content exists", async () => {
+		const { projectDir } = await initializeTempProject();
+		const result = await runExecFile("bash", [
+			path.join(projectDir, "run-project.sh"),
+			"build",
+		]);
+
+		expect(result.exitCode).toBe(1);
+		expect(result.stderr).toContain(
+			"second-stage deck authoring has not finished yet",
+		);
+		expect(result.stderr).toContain(
+			'Run `pnpm spec -- --prompt "<prompt>"` first if canonical spec, generated media, or module artifacts are still missing.',
+		);
+		expect(result.stderr).toContain(
+			"Then author src/buildDeck.ts and src/presentationModel.ts from the original prompt plus those artifacts before rerunning `pnpm build`.",
+		);
+	});
+
+	it("explains the two-stage flow when project tests are still missing", async () => {
+		const { projectDir } = await initializeTempProject();
+		const result = await runExecFile("bash", [
+			path.join(projectDir, "run-project.sh"),
+			"test",
+		]);
+
+		expect(result.exitCode).toBe(1);
+		expect(result.stderr).toContain(
+			"second-stage project tests have not been authored yet",
+		);
+		expect(result.stderr).toContain(
+			'Run `pnpm spec -- --prompt "<prompt>"` first if canonical spec, generated media, or module artifacts are still missing.',
+		);
+		expect(result.stderr).toContain("Then author tests under");
+		expect(result.stderr).toContain(
+			"from the original prompt plus those artifacts before running `pnpm test`.",
+		);
 	});
 
 	it("routes operator CLI entrypoints through package pnpm scripts", async () => {
@@ -294,6 +456,10 @@ describe("project scaffold maintenance surfaces", () => {
 		);
 		const contractWrapperSource = await readFile(
 			path.join(projectDir, "src", "spec", "contract.ts"),
+			"utf8",
+		);
+		const mainSource = await readFile(
+			path.join(projectDir, "src", "main.ts"),
 			"utf8",
 		);
 		const deckRootPackage = JSON.parse(
@@ -325,6 +491,12 @@ describe("project scaffold maintenance surfaces", () => {
 		expect(deckRootPackage.scripts).toMatchObject({
 			"spec:live": "pnpm --dir packages/deck-spec-module spec:live",
 		});
+		expect(mainSource).toContain(
+			"second-stage deck authoring has not finished yet",
+		);
+		expect(mainSource).toContain(
+			'Run `pnpm spec -- --prompt "<prompt>"` first if canonical spec, generated media, or module artifacts are still missing.',
+		);
 	});
 
 	it("stops validation before artifact checks when build fails", async () => {

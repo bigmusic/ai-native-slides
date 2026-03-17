@@ -50,8 +50,9 @@ The expected workflow is:
 2. Create or refresh a separate deck workspace.
 3. Let the same skill-owned session classify the prompt as either `new_project` or `revise_existing_project`.
 4. If the prompt targets an existing deck, rerun that project's end-to-end workflow in place. If it asks for a new deck, create or refresh the requested project scaffold first.
-5. Let that same skill-owned session take the prompt from planning through deck generation and validation-oriented checks in the routed project workspace.
-6. Review the produced deliverables and submit revision feedback only after the skill finishes the session.
+5. Let that same skill-owned session first run the shared black box so it publishes canonical spec, generated media, and the module artifact bundle in the routed project workspace.
+6. In that same session, author or revise `src/buildDeck.ts`, `src/presentationModel.ts`, and project tests from the original prompt plus those artifacts, then run the validation-oriented checks.
+7. Review the produced deliverables and submit revision feedback only after the skill finishes the session.
 
 In practice, Codex is used for both the implementation work and the iteration loop. The skill provides the reusable instructions, helpers, templates, and validation scripts that keep the work consistent.
 
@@ -105,6 +106,7 @@ The skill exists to keep orchestration and deck authoring outside the planning m
   - call the shared `deck-spec-module` entrypoints through thin project wrappers
   - author and edit TypeScript deck code
   - run validation commands and interpret the results
+  - own the second-stage authoring step that turns prompt + artifacts into `src/buildDeck.ts`, `src/presentationModel.ts`, and project tests
   - own the end-to-end session until deliverables exist
 - Shared `deck-spec-module` responsibilities:
   - behave as a stateless black box behind explicit inputs
@@ -114,6 +116,7 @@ The skill exists to keep orchestration and deck authoring outside the planning m
   - run semantic review
   - perform one internal repair retry
   - write canonical `spec/deck-spec.json`
+  - write generated media
   - write the fixed artifact bundle for every run
 - Project wrapper responsibilities:
   - discover deck-root and project-root context
@@ -154,6 +157,9 @@ The current workflow hard-cuts planning and contract validation into the shared 
   - `media.failures.json`
   - `report.md`
 - On success, the module publishes the canonical spec plus artifacts. On pre-publish failure, the canonical target stays untouched. On post-publish media failure, the canonical spec remains published at `reviewed` and the failure is reported through typed error codes plus artifact diagnostics.
+- A successful `pnpm spec` run stops at canonical `spec/deck-spec.json`, generated media, and the module artifact bundle. It does not author `src/buildDeck.ts`, `src/presentationModel.ts`, project tests, or a `.pptx`.
+- Second-stage project content is skill-agent-owned. The agent authors `src/buildDeck.ts`, `src/presentationModel.ts`, and project tests from the original prompt plus the current project state, canonical spec, generated media, and the module artifact bundle.
+- `assets/content_starters/` provides the default baseline references for that second-stage authoring step. Those files are not copied automatically and are not black-box outputs.
 - The project scaffold keeps only thin wrappers plus project-specific content:
   - `src/spec/*`
   - `src/media/generatedImagePaths.ts`
@@ -170,7 +176,7 @@ Current independence status:
 - the project-wrapper TypeScript boundary is now isolated through the package exports `@ai-native-slides/deck-spec-module`, `@ai-native-slides/deck-spec-module/spec`, and `@ai-native-slides/deck-spec-module/review`.
 - package-maintainer deterministic tests now use the curated `@ai-native-slides/deck-spec-module/testing` seam instead of deep-importing planner/media/reviewing implementation files under `packages/deck-spec-module/src/*`.
 
-Human review is intentionally late in the loop: inspect the final `.pptx`, the source, the generated media, and the validation outputs after the skill finishes, then send revision feedback as a new `Revise project <slug>` prompt if another run is needed.
+Human review is intentionally late in the loop: inspect the final `.pptx`, the source, the generated media, and the validation outputs after the skill finishes the two-stage session, then send revision feedback as a new `Revise project <slug>` prompt if another run is needed.
 
 ## Notes On The Current Setup
 

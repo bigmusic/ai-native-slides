@@ -137,7 +137,9 @@ Project content already exists. Existing prompt-generated files were left untouc
 EOF
 else
   echo
-  echo "Generate these remaining project-content files next from the user's prompt:"
+  echo "Finish project content in this order:"
+  echo "1. Run \`pnpm spec -- --prompt \"<prompt>\"\` if canonical spec, generated media, or module artifacts are still missing."
+  echo "2. Use the original prompt plus those artifacts to author any remaining project files:"
   for path in "${missing_project_content[@]}"; do
     echo "- ${path}"
   done
