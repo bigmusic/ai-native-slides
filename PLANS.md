@@ -110,6 +110,7 @@ Current open gaps:
 
 ## Progress
 
+- [x] 2026-03-17 13:11 PDT: started a new skill-workflow bug-hunt session for the sugarcane-cleaner prompt and confirmed the current demo deck root is not actually empty: `/Volumes/BiGROG/skills-test/ai-education-deck/projects/ai-native-product-deck` still contains active project metadata, canonical spec, authored sources, artifacts, and rendered outputs, so this rerun must treat stale state as a possible masking factor instead of assuming a true clean bootstrap.
 - [x] 2026-03-17 12:31 PDT: finished the current clean-root rerun end to end: `pnpm spec`, `pnpm spec:validate`, second-stage authoring, `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, and wrapper-level `pnpm validate` are all green except for the expected human-in-the-loop LibreOffice rerun.
 - [x] 2026-03-17 12:33 PDT: documented the second-stage canonical-contract guardrail in `SKILL.md` and `references/project-workflow.md` after the fresh authoring pass surfaced that consumers must read `slide_id`, `block_type`, and `asset_manifest.*` exactly as published.
 - [x] 2026-03-17 12:43 PDT: added shared typed canonical-spec helpers (`readTypedDeckSpecSync`, `requireSlideById`, and asset accessors), synced them into the demo deck root, refactored the demo project's second-stage model to use them, and reconfirmed shared-package contract tests plus demo `pnpm lint`, `pnpm typecheck`, `pnpm test`, and `pnpm build`.
@@ -207,6 +208,7 @@ Current open gaps:
 
 ## Surprises and Discoveries
 
+- A user-reported "cleared" demo workspace can still retain enough project state to change routing and hide bootstrap regressions, so future bug-hunt reruns should explicitly inspect the active project directory before treating the run as clean.
 - Clearing the demo deck root after a previously green session is a meaningful regression probe because it exercises the bootstrap assumptions again instead of relying on stale workspace state.
 - Remaining risk is provider/network instability, not local boundary wiring.
 - The main drift class was systematic planner shape aliasing; prompt hardening fixed the current observed case.
