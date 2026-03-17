@@ -114,6 +114,7 @@ Current open gaps:
 - [x] 2026-03-17 12:33 PDT: documented the second-stage canonical-contract guardrail in `SKILL.md` and `references/project-workflow.md` after the fresh authoring pass surfaced that consumers must read `slide_id`, `block_type`, and `asset_manifest.*` exactly as published.
 - [x] 2026-03-17 12:43 PDT: added shared typed canonical-spec helpers (`readTypedDeckSpecSync`, `requireSlideById`, and asset accessors), synced them into the demo deck root, refactored the demo project's second-stage model to use them, and reconfirmed shared-package contract tests plus demo `pnpm lint`, `pnpm typecheck`, `pnpm test`, and `pnpm build`.
 - [x] 2026-03-17 12:55 PDT: added explicit diagnostics metadata helpers for intentional decorative elements (`markLastSlideObjectAsDecorative`, `setLastSlideObjectDiagnosticsOptions`), synchronized a template-managed regression test for that API plus the matching scaffold scripts, and reconfirmed demo `ensure_deck_project`, `pnpm lint`, `pnpm typecheck`, `pnpm test`, and `pnpm build`.
+- [x] 2026-03-17 13:00 PDT: completed a post-change code review of the typed canonical-spec helpers plus diagnostics-metadata scaffold changes, found no remaining functional regressions, and repaired a follow-up docs drift in `references/project-workflow.md` so the template-managed file inventory now includes `tests/layoutDiagnosticsMetadata.test.ts`.
 - [x] 2026-03-17 12:16 PDT: confirmed the demo deck root had been cleared back to `.env` only and started a fresh operator-path rerun from clean bootstrap, with this session using the sugarcane-cleaner enterprise-tech prompt as `new_project ai-native-product-deck`.
 - [x] 2026-03-15 12:24 PDT: established the shared runtime as the owner of prompt-to-spec execution.
 - [x] 2026-03-15 14:43 PDT: locked the stateless boundary: caller-owned discovery and path selection, module-owned execution and reporting.
@@ -181,6 +182,7 @@ Current open gaps:
 - 2026-03-17: skill docs now explicitly warn second-stage consumers to use `slide_id`, `block_type`, and `asset_manifest.*`, which closes the clean-root contract-drift class observed during authoring.
 - 2026-03-17: the shared package now exposes typed canonical-spec helpers through the project wrapper surface, so second-stage authoring no longer needs ad-hoc JSON parsing just to consume the published contract safely.
 - 2026-03-17: the shared helper layer now supports explicit per-object diagnostics metadata, and the scaffold/runtime path excludes template-managed tests from the "content tests exist" check so decorative-noise suppression stays opt-in without weakening second-stage authoring guardrails.
+- 2026-03-17: the only additional issue surfaced by the post-change review was documentation drift: `references/project-workflow.md` needed to list the new template-managed diagnostics regression test so operator docs matched bootstrap/ensure behavior again.
 - Acceptance bar retained: deterministic green plus one successful provider-backed temp-only live smoke.
 
 ## Idempotence and Recovery

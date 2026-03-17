@@ -114,6 +114,7 @@ Template-managed files are copied from `assets/templates/` and can be refreshed 
 - `run-project.sh`
 - `validate-local.sh`
 - `tests/projectScaffoldMaintenance.test.ts`
+- `tests/layoutDiagnosticsMetadata.test.ts`
 - `src/main.ts`
 - `src/media/generatedImagePaths.ts`
 - `src/spec/contract.ts`
