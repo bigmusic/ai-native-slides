@@ -1,6 +1,13 @@
 import { execFile } from "node:child_process";
 import { existsSync } from "node:fs";
-import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import {
+	chmod,
+	mkdir,
+	mkdtemp,
+	readFile,
+	rm,
+	writeFile,
+} from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
 
@@ -300,7 +307,7 @@ describe("project scaffold maintenance surfaces", () => {
 			'pnpm --dir "$DECK_ROOT/packages/deck-spec-module" spec "$PROJECT_DIR"',
 		);
 		expect(runProjectSource).not.toContain(
-			'packages/deck-spec-module/src/cli/runSpecCli.ts',
+			"packages/deck-spec-module/src/cli/runSpecCli.ts",
 		);
 		expect(runDeckSpecSource).toContain("@ai-native-slides/deck-spec-module");
 		expect(runDeckSpecSource).not.toContain(
@@ -320,9 +327,7 @@ describe("project scaffold maintenance surfaces", () => {
 		});
 	});
 
-	it(
-		"stops validation before artifact checks when build fails",
-		async () => {
+	it("stops validation before artifact checks when build fails", async () => {
 		const projectDir = await createBootstrappedTempProject();
 		const result = await runValidateLocalScript(projectDir, {
 			buildMode: "fail",
@@ -339,13 +344,9 @@ describe("project scaffold maintenance surfaces", () => {
 		);
 		expect(report).not.toContain("## Fresh Build Artifact");
 		expect(existsSync(result.unzipLogPath)).toBe(false);
-		},
-		20_000,
-	);
+	}, 20_000);
 
-	it(
-		"uses the fresh build artifact instead of older output files",
-		async () => {
+	it("uses the fresh build artifact instead of older output files", async () => {
 		const projectDir = await createBootstrappedTempProject();
 		const outputDir = path.join(projectDir, "output");
 		const oldArtifactA = path.join(outputDir, "old-a.pptx");
@@ -373,7 +374,5 @@ describe("project scaffold maintenance surfaces", () => {
 
 		const unzipLog = await readFile(result.unzipLogPath, "utf8");
 		expect(unzipLog).toContain(freshArtifact);
-		},
-		20_000,
-	);
+	}, 20_000);
 });

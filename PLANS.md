@@ -116,6 +116,7 @@ Current open gaps:
 - [x] 2026-03-16 16:55 PDT: converged operator, public-boundary, and test-boundary surfaces onto the shared package with thin wrappers.
 - [x] 2026-03-16 17:39 PDT: closed remaining CLI/reporting edge cases around explicit scope, unique temp runs, and post-publish validation failure handling.
 - [x] 2026-03-16 17:50 PDT: compressed this plan into a low-context handoff form without dropping boundary or acceptance state.
+- [ ] 2026-03-16 18:23 PDT: reran the skill from a clean demo deck root; `pnpm spec` and media generation succeeded, but the end-to-end operator path still broke on missing project-content authoring files and template-managed lint drift. Follow-up is in progress in the demo workspace and must be synchronized back into the skill repo.
 
 ## Plan of Work
 
@@ -174,6 +175,7 @@ Current open gaps:
 - Live-smoke validation needed to decouple from real project-root assumptions.
 - Failure classes still need to stay split between external/provider failure and contract/reporting failure.
 - Minor docs/runtime state drift remains and should be treated as documentation cleanup, not hidden behavior.
+- A clean-root operator rerun showed a second gap outside the shared module: the happy-path docs still describe one end-to-end session, but template-managed project files do not currently converge to a lint-clean state and no automated/project-authored bridge exists yet from canonical spec + media into `src/buildDeck.ts`, `src/presentationModel.ts`, and content tests.
 
 ## Outcomes and Retrospective
 
