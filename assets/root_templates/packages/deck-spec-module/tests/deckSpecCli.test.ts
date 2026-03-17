@@ -151,6 +151,29 @@ describe("deck-spec-module CLI guardrails", () => {
 		expect(stderr[1]).toContain("--tmp-root-dir");
 	});
 
+	it("requires an explicit project dir for live smoke runs", async () => {
+		const stdout: string[] = [];
+		const stderr: string[] = [];
+
+		const exitCode = await runLiveSmokeCli(
+			[
+				"--tmp-root-dir",
+				"/virtual/tmp",
+				"--prompt",
+				"Create a six-slide deck about canonical spec planning.",
+			],
+			{
+				stdout: (message) => stdout.push(message),
+				stderr: (message) => stderr.push(message),
+			},
+		);
+
+		expect(exitCode).toBe(1);
+		expect(stdout).toEqual([]);
+		expect(stderr[0]).toBe("Missing required <project-dir> argument.");
+		expect(stderr[1]).toContain("<project-dir>");
+	});
+
 	it("allows no-media runs without an explicit media output path", async () => {
 		const stdout: string[] = [];
 		const stderr: string[] = [];
@@ -236,7 +259,56 @@ describe("deck-spec-module CLI guardrails", () => {
 			"Canonical deck spec written: /virtual/project/spec/deck-spec.json",
 			"Artifact bundle written: /virtual/project/tmp/deck-spec-module",
 			"Generated media dir: /virtual/project/media/generated-images",
-		]);
+			]);
+	});
+
+	it("reports a published canonical spec when an unexpected failure happens after the spec write", async () => {
+		process.env.GEMINI_API_KEY = "test-key";
+		const stdout: string[] = [];
+		const stderr: string[] = [];
+		const tempRoot = await createProjectTempDir(
+			packageRoot,
+			"deck-spec-cli-post-publish",
+		);
+		tempDirs.push(tempRoot);
+		const canonicalSpecPath = path.join(tempRoot, "spec", "deck-spec.json");
+		const artifactRootDir = path.join(tempRoot, "artifacts");
+
+		const exitCode = await runSpecCli(
+			[
+				"/virtual/project",
+				"--prompt",
+				"Create a six-slide deck about canonical spec planning.",
+				"--canonical-spec-path",
+				canonicalSpecPath,
+				"--artifact-root-dir",
+				artifactRootDir,
+				"--no-media",
+			],
+			{
+				stdout: (message) => stdout.push(message),
+				stderr: (message) => stderr.push(message),
+			},
+			{
+				runDeckSpecModule: async (input) => {
+					await mkdir(path.dirname(input.paths.canonicalSpecPath), {
+						recursive: true,
+					});
+					await writeFile(input.paths.canonicalSpecPath, "{}\n", "utf8");
+					throw new Error("late failure after publish");
+				},
+			},
+		);
+
+		expect(exitCode).toBe(1);
+		expect(stdout).toEqual([]);
+		expect(stderr[0]).toBe("Prompt-driven deck-spec run failed.");
+		expect(stderr[1]).toBe(
+			`Canonical deck spec published: ${canonicalSpecPath}`,
+		);
+		expect(stderr[2]).toBe("Failure kind: unexpected_error");
+		expect(stderr[3]).toBe(`Artifact bundle: ${artifactRootDir}`);
+		expect(await readFile(canonicalSpecPath, "utf8")).toBe("{}\n");
 	});
 
 	it("allows tests to inject live-smoke module and validation runners without touching internal planner or media modules", async () => {

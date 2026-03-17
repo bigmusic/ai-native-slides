@@ -1,3 +1,4 @@
+import { mkdir } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
 import { pathToFileURL } from "node:url";
@@ -22,7 +23,7 @@ type RunLiveSmokeCliDependencies = {
 };
 
 type ParsedArgs = {
-	projectDir: string;
+	projectDir?: string;
 	prompt?: string;
 	tmpRootDir?: string;
 	label?: string;
@@ -93,7 +94,8 @@ function parseLiveSmokeArgs(
 	}
 
 	return {
-		projectDir: resolveProjectDir(projectDir),
+		projectDir:
+			typeof projectDir === "string" ? resolveProjectDir(projectDir) : undefined,
 		prompt,
 		tmpRootDir:
 			typeof tmpRootDir === "string" ? path.resolve(tmpRootDir) : undefined,
@@ -102,8 +104,8 @@ function parseLiveSmokeArgs(
 	};
 }
 
-function createRunLabel(label?: string): string {
-	const isoStamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\..+/, "Z");
+function createRunLabelBase(label?: string): string {
+	const isoStamp = new Date().toISOString().replace(/[-:.]/g, "");
 	if (typeof label !== "string" || label.trim() === "") {
 		return isoStamp;
 	}
@@ -115,6 +117,29 @@ function createRunLabel(label?: string): string {
 		.replace(/^-+|-+$/g, "");
 
 	return normalizedLabel === "" ? isoStamp : `${isoStamp}-${normalizedLabel}`;
+}
+
+async function reserveRunRootDir(
+	tmpRootDir: string,
+	label?: string,
+): Promise<string> {
+	await mkdir(tmpRootDir, { recursive: true });
+	const baseLabel = createRunLabelBase(label);
+
+	for (let attemptIndex = 0; ; attemptIndex += 1) {
+		const runLabel =
+			attemptIndex === 0 ? baseLabel : `${baseLabel}-${attemptIndex + 1}`;
+		const runRootDir = path.join(tmpRootDir, runLabel);
+		try {
+			await mkdir(runRootDir);
+			return runRootDir;
+		} catch (error) {
+			if ((error as NodeJS.ErrnoException).code === "EEXIST") {
+				continue;
+			}
+			throw error;
+		}
+	}
 }
 
 function getFailureKind(error: unknown): DeckSpecPlanningErrorCode | "unexpected_error" {
@@ -147,6 +172,14 @@ export async function runLiveSmokeCli(
 		return 1;
 	}
 
+	if (typeof parsedArgs.projectDir !== "string") {
+		io.stderr("Missing required <project-dir> argument.");
+		io.stderr(
+			'Usage: pnpm spec:live -- <project-dir> --tmp-root-dir "<path>" --prompt "<prompt>" [--label "<name>"] [--no-media]',
+		);
+		return 1;
+	}
+
 	if (typeof parsedArgs.tmpRootDir !== "string") {
 		io.stderr("Missing required --tmp-root-dir value.");
 		io.stderr(
@@ -157,17 +190,17 @@ export async function runLiveSmokeCli(
 
 	const projectDir = parsedArgs.projectDir;
 	const projectSlug = path.basename(projectDir);
-	const runLabel = createRunLabel(parsedArgs.label);
-	const runRootDir = path.join(parsedArgs.tmpRootDir, runLabel);
-	const canonicalSpecPath = path.join(runRootDir, "spec", "deck-spec.json");
-	const artifactRootDir = path.join(runRootDir, "artifacts");
-	const mediaOutputDir = path.join(runRootDir, "media", "generated-images");
-	const reportPath = path.join(runRootDir, "validate.report.md");
 	const executeRunDeckSpecModule = deps.runDeckSpecModule ?? runDeckSpecModule;
 	const executeRunDeckSpecValidateModule =
 		deps.runDeckSpecValidateModule ?? runDeckSpecValidateModule;
+	let runRootDir = parsedArgs.tmpRootDir;
 
 	try {
+		runRootDir = await reserveRunRootDir(parsedArgs.tmpRootDir, parsedArgs.label);
+		const canonicalSpecPath = path.join(runRootDir, "spec", "deck-spec.json");
+		const artifactRootDir = path.join(runRootDir, "artifacts");
+		const mediaOutputDir = path.join(runRootDir, "media", "generated-images");
+		const reportPath = path.join(runRootDir, "validate.report.md");
 		const apiKey = await resolveGeminiApiKey(projectDir);
 		const result = await executeRunDeckSpecModule({
 			prompt: parsedArgs.prompt,
@@ -204,9 +237,11 @@ export async function runLiveSmokeCli(
 		io.stderr(`Failure kind: ${getFailureKind(error)}`);
 		io.stderr(`Run root: ${runRootDir}`);
 		if (getFailureKind(error) === "media_generation_failed") {
-			io.stderr(`Canonical spec: ${canonicalSpecPath}`);
-			io.stderr(`Artifact bundle: ${artifactRootDir}`);
-			io.stderr(`Media output dir: ${mediaOutputDir}`);
+			io.stderr(`Canonical spec: ${path.join(runRootDir, "spec", "deck-spec.json")}`);
+			io.stderr(`Artifact bundle: ${path.join(runRootDir, "artifacts")}`);
+			io.stderr(
+				`Media output dir: ${path.join(runRootDir, "media", "generated-images")}`,
+			);
 		}
 		io.stderr(getErrorMessage(error));
 		return 1;

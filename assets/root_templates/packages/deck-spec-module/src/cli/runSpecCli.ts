@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
 import { pathToFileURL } from "node:url";
@@ -29,6 +30,11 @@ type ParsedSpecCliArgs = {
 	artifactRootDir?: string;
 	mediaOutputDir?: string;
 	mediaEnabled: boolean;
+};
+
+type FileSnapshot = {
+	exists: boolean;
+	content?: string;
 };
 
 const defaultCliIo: CliIo = {
@@ -130,6 +136,37 @@ function getFailureKind(error: unknown): DeckSpecPlanningErrorCode | "unexpected
 	return isDeckSpecPlanningError(error) ? error.code : "unexpected_error";
 }
 
+async function readFileSnapshot(filePath: string): Promise<FileSnapshot> {
+	try {
+		return {
+			exists: true,
+			content: await readFile(filePath, "utf8"),
+		};
+	} catch (error) {
+		if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+			return {
+				exists: false,
+			};
+		}
+		throw error;
+	}
+}
+
+function didFileSnapshotChange(
+	before: FileSnapshot,
+	after: FileSnapshot,
+): boolean {
+	if (!before.exists) {
+		return after.exists;
+	}
+
+	if (!after.exists) {
+		return false;
+	}
+
+	return before.content !== after.content;
+}
+
 async function resolvePromptPlanningApiKey(
 	projectDir: string,
 ): Promise<string> {
@@ -195,6 +232,7 @@ export async function runSpecCli(
 	const mediaOutputDir = parsedArgs.mediaOutputDir;
 	const executeRunDeckSpecModule =
 		deps.runDeckSpecModule ?? runDeckSpecModule;
+	const initialSpecSnapshot = await readFileSnapshot(specPath);
 
 	try {
 		const apiKey = await resolvePromptPlanningApiKey(projectDir);
@@ -222,8 +260,15 @@ export async function runSpecCli(
 		return 0;
 	} catch (error) {
 		const failureKind = getFailureKind(error);
+		const finalSpecSnapshot = await readFileSnapshot(specPath).catch(
+			() => initialSpecSnapshot,
+		);
+		const canonicalTargetChanged = didFileSnapshotChange(
+			initialSpecSnapshot,
+			finalSpecSnapshot,
+		);
 		io.stderr("Prompt-driven deck-spec run failed.");
-		if (failureKind === "media_generation_failed") {
+		if (failureKind === "media_generation_failed" || canonicalTargetChanged) {
 			io.stderr(`Canonical deck spec published: ${specPath}`);
 			if (typeof mediaOutputDir === "string") {
 				io.stderr(`Media output dir: ${mediaOutputDir}`);

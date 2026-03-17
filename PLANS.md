@@ -133,6 +133,8 @@ Current open gaps:
 - [x] 2026-03-16 15:42 PDT: completed the TypeScript public-boundary isolation slice. Added root-linked deck-root dependency wiring for `@ai-native-slides/deck-spec-module`, introduced curated package exports for `"."`, `"./spec"`, and `"./review"`, rewired template wrappers onto those exports, refreshed the demo deck root/project, and kept planner/media/reviewing test deep imports explicitly deferred to the later seam-injection slice.
 - [x] 2026-03-16 16:06 PDT: completed the deck-root black-box test seam slice. Added a test-only `runSpecCli(..., io?, deps?)` runner override at the package CLI boundary, added a package regression that injects a fake black-box module runner, converted the demo project's prompt-driven workflow test to inject a fake `runDeckSpecModule(...)` and assert only prompt/artifact behavior, removed the demo project's leftover reviewing deep-import fixture code, refreshed the demo deck root/project, and reran the targeted deterministic validation set successfully.
 - [x] 2026-03-16 16:55 PDT: completed the package-internal test boundary isolation slice. Added the curated `"./testing"` maintainer export plus injected planning/module/live-smoke seams, rewrote package tests off `src/deck-spec-module/*` deep imports, refreshed the demo deck root, confirmed the package test tree has zero remaining `src/deck-spec-module/` imports, and reran the affected deterministic package/project validation set successfully.
+- [x] 2026-03-16 17:19 PDT: opened a review-driven CLI hardening pass for three operator-facing edge cases: generic post-publish `spec` failures misreporting the canonical target as unchanged, `spec:live` silently defaulting to `cwd` when `<project-dir>` is omitted, and same-label live-smoke runs colliding inside one timestamp bucket.
+- [x] 2026-03-16 17:23 PDT: closed the review-driven CLI hardening pass. `runSpecCli(...)` now snapshots the canonical target so generic late failures no longer misreport a post-publish write as unchanged, `runLiveSmokeCli(...)` now rejects missing `<project-dir>` explicitly, and live-smoke run roots are reserved uniquely even when the timestamp and label collide. Refreshed the demo deck root/project, reran targeted package `tsc` plus package/project regression suites, and kept the operator-facing CLI boundary green.
 
 ## Plan of Work
 
@@ -266,6 +268,14 @@ Package test-support boundary deterministic validation verified on 2026-03-16:
 - `cd /Volumes/BiGROG/skills-test/ai-education-deck/projects/ai-native-product-deck && pnpm typecheck`
 - `cd /Volumes/BiGROG/skills-test/ai-education-deck/projects/ai-native-product-deck && pnpm exec vitest run tests/promptSpecWorkflow.test.ts tests/projectScaffoldMaintenance.test.ts tests/deckSpecContract.test.ts`
 
+Review-driven CLI hardening deterministic validation verified on 2026-03-16:
+
+- `bash /Volumes/BiGROG/skills-test/ai-native-slides/scripts/init_deck_root.sh /Volumes/BiGROG/skills-test/ai-education-deck`
+- `bash /Volumes/BiGROG/skills-test/ai-native-slides/scripts/init_deck_project.sh /Volumes/BiGROG/skills-test/ai-education-deck ai-native-product-deck`
+- `cd /Volumes/BiGROG/skills-test/ai-education-deck/packages/deck-spec-module && pnpm exec tsc --noEmit -p tsconfig.json`
+- `cd /Volumes/BiGROG/skills-test/ai-education-deck/packages/deck-spec-module && pnpm exec vitest run tests/deckSpecCli.test.ts tests/deckSpecLiveSmoke.test.ts`
+- `cd /Volumes/BiGROG/skills-test/ai-education-deck/projects/ai-native-product-deck && pnpm exec vitest run tests/promptSpecWorkflow.test.ts tests/projectScaffoldMaintenance.test.ts`
+
 Provider-backed acceptance status for the current contract:
 
 - guarded live-smoke command:
@@ -337,6 +347,7 @@ Acceptance status:
 - 2026-03-16: `pnpm validate` must validate only the `.pptx` produced by the current build run; if build fails or does not report a fresh artifact path, downstream artifact checks must stop immediately.
 - 2026-03-16: after the TypeScript public-boundary isolation slice, project wrappers should be described as package-export consumers rather than `packages/deck-spec-module/src/*` deep-import clients; deterministic package tests should move to a curated `./testing` export instead of targeting implementation files directly.
 - 2026-03-16: `deck-spec-module` runtime exports must stay limited to `"."`, `"./spec"`, and `"./review"`; `"./testing"` is an explicit maintainer/test seam only and must not become a dumping ground for raw planner/media/reviewing provider modules.
+- 2026-03-16: `pnpm spec:live` requires an explicit `<project-dir>` operand and must reserve a unique run root before execution; do not silently fall back to `cwd`, and do not allow same-label temp runs to overwrite each other inside one time bucket.
 
 ## Surprises and Discoveries
 

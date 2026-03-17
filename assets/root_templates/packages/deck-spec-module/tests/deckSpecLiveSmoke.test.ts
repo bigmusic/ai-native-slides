@@ -53,6 +53,7 @@ async function createTempProject(): Promise<{
 }
 
 afterEach(async () => {
+	vi.useRealTimers();
 	for (const tempDir of tempDirs) {
 		await rm(tempDir, { recursive: true, force: true });
 	}
@@ -179,6 +180,109 @@ describe("deck-spec live smoke", () => {
 					"generated-images",
 				),
 			),
-		).toBe(false);
+			).toBe(false);
+		});
+
+	it("reserves a unique temp run root when repeated live-smoke labels collide", async () => {
+		const tempProject = await createTempProject();
+		vi.useFakeTimers();
+		vi.setSystemTime(new Date("2026-03-16T17:00:00.000Z"));
+		const stdout: string[] = [];
+		const stderr: string[] = [];
+		const fakeRunDeckSpecModule = vi.fn(
+			async ({
+				paths,
+			}: {
+				paths: {
+					canonicalSpecPath: string;
+					artifactRootDir: string;
+					mediaOutputDir?: string;
+				};
+			}) => {
+				await writeJsonFile(paths.canonicalSpecPath, {
+					ok: true,
+				});
+				await writeJsonFile(path.join(paths.artifactRootDir, "result.json"), {
+					ok: true,
+				});
+				if (typeof paths.mediaOutputDir === "string") {
+					await mkdir(paths.mediaOutputDir, { recursive: true });
+				}
+
+				return {
+					canonicalSpecPath: paths.canonicalSpecPath,
+					artifactRootDir: paths.artifactRootDir,
+					usedFallback: false,
+				};
+			},
+		);
+		const fakeRunDeckSpecValidateModule = vi.fn(
+			async ({
+				reportPath,
+			}: {
+				canonicalSpecPath: string;
+				reportPath?: string;
+			}) => {
+				if (typeof reportPath === "string") {
+					await writeTextFile(reportPath, "# Deck-Spec Validation");
+				}
+
+				return { ok: true as const };
+			},
+		);
+		const args = [
+			tempProject.projectDir,
+			"--tmp-root-dir",
+			tempProject.tmpRootDir,
+			"--prompt",
+			"Create a simple six-slide deck about canonical deck-spec planning, structural validation, semantic review, media generation, and deterministic build delivery.",
+			"--label",
+			"collision",
+		];
+
+		const firstExitCode = await runLiveSmokeCli(
+			args,
+			{
+				stdout: (message) => stdout.push(message),
+				stderr: (message) => stderr.push(message),
+			},
+			{
+				runDeckSpecModule: fakeRunDeckSpecModule,
+				runDeckSpecValidateModule: fakeRunDeckSpecValidateModule,
+			},
+		);
+		const secondExitCode = await runLiveSmokeCli(
+			args,
+			{
+				stdout: (message) => stdout.push(message),
+				stderr: (message) => stderr.push(message),
+			},
+			{
+				runDeckSpecModule: fakeRunDeckSpecModule,
+				runDeckSpecValidateModule: fakeRunDeckSpecValidateModule,
+			},
+		);
+
+		expect(firstExitCode).toBe(0);
+		expect(secondExitCode).toBe(0);
+		expect(stderr).toEqual([]);
+		expect(fakeRunDeckSpecModule).toHaveBeenCalledTimes(2);
+		expect(fakeRunDeckSpecValidateModule).toHaveBeenCalledTimes(2);
+
+		const runDirs = (await readdir(tempProject.tmpRootDir)).sort();
+		expect(runDirs).toEqual([
+			"20260316T170000000Z-collision",
+			"20260316T170000000Z-collision-2",
+		]);
+		for (const runDir of runDirs) {
+			const runRootDir = path.join(tempProject.tmpRootDir, runDir);
+			expect(existsSync(path.join(runRootDir, "spec", "deck-spec.json"))).toBe(
+				true,
+			);
+			expect(existsSync(path.join(runRootDir, "artifacts", "result.json"))).toBe(
+				true,
+			);
+			expect(existsSync(path.join(runRootDir, "validate.report.md"))).toBe(true);
+		}
 	});
 });
