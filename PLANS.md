@@ -129,6 +129,7 @@ Current open gaps:
 - [x] 2026-03-17 16:47 PDT: hardened the shared deck-spec template by repairing empty `image_prompt_spec.avoid_elements` arrays before semantic review, tightening planner prompt instructions so deck-safety exclusions are required, syncing the reusable fix into the demo deck root, and reconfirming the shared deterministic tests.
 - [x] 2026-03-17 17:32 PDT: reran the same sugarcane prompt from the clean demo root through `pnpm spec` and `pnpm spec:validate`; the rerun published canonical spec, generated media, and the fixed artifact bundle successfully.
 - [x] 2026-03-17 18:18 PDT: completed second-stage project authoring for the demo project, then reconfirmed `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, and `pnpm validate`; only expected human-in-the-loop LibreOffice steps remain, and the remaining overlap warnings are limited to the intentional timeline badge treatment on slide 4.
+- [x] 2026-03-17 11:59 PDT: removed the accidental `MY-PLAN.md` resurrection and re-converged the workspace protocol on `PLANS.md` as the only execution-plan document.
 
 ## Plan of Work
 
@@ -210,5 +211,5 @@ Current open gaps:
 - The shared module is now the implemented planner/validator/media boundary.
 - The demo project is reduced to thin integration wrappers plus project content.
 - The skill-side contract is now explicitly two-stage: black-box outputs first, agent-authored project content second, with no new generator added in this slice.
-- Clean-root routing, metadata-contract docs, and the short-term `MY-PLAN.md` pointer are now aligned with the implemented workflow instead of relying on an absent file or implicit active-project state.
+- Clean-root routing and metadata-contract docs are now aligned with the implemented workflow, and workspace plan governance is back on a single `PLANS.md` document instead of an accidentally restored legacy split.
 - This migration slice is complete. Future work should start from project-content authoring automation, overlap-signal quality, or provider triage, not from boundary cleanup.
