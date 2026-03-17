@@ -8,6 +8,14 @@ import type { DeckSpec } from "../src/spec/contract.js";
 import { deriveOutputFileName } from "../src/spec/deriveOutputFileName.js";
 import { normalizeSystemManagedFields } from "../src/spec/normalizeSystemManagedFields.js";
 import {
+	assertDeckSpecShape,
+	readTypedDeckSpec,
+	readTypedDeckSpecSync,
+	requireBulletListAssetContent,
+	requirePlainTextAssetContent,
+	requireSlideById,
+} from "../src/spec/readDeckSpec.js";
+import {
 	runDeckSpecValidateModule,
 	runSpecValidateCli,
 	validateDeckSpecDocument,
@@ -99,6 +107,37 @@ describe("deck-spec contract", () => {
 
 		expect(result.ok).toBe(true);
 		expect(result.errors).toEqual([]);
+	});
+
+	it("reads the canonical deck-spec through typed accessors", async () => {
+		const fixturePlan = await loadFixturePlan();
+		const tempProjectDir = await createTempProject(fixturePlan);
+		const deckSpec = await readTypedDeckSpec(tempProjectDir);
+
+		expect(requireSlideById(deckSpec, "overview_hero").layout_intent).toBe(
+			"hero",
+		);
+		expect(requirePlainTextAssetContent(deckSpec, "hero_message")).toContain(
+			"validated spec",
+		);
+		expect(
+			requireBulletListAssetContent(deckSpec, "review_message_bullets"),
+		).toHaveLength(3);
+		expect(readTypedDeckSpecSync(tempProjectDir).slides[0]?.slide_id).toBe(
+			"overview_hero",
+		);
+	});
+
+	it("rejects consumer-side aliases that drift from the canonical contract", async () => {
+		const invalidPlan = clonePlan(await loadFixturePlan()) as unknown as {
+			slides: Array<Record<string, unknown>>;
+		};
+		invalidPlan.slides[0].id = invalidPlan.slides[0].slide_id;
+		delete invalidPlan.slides[0].slide_id;
+
+		expect(() =>
+			assertDeckSpecShape(invalidPlan, "fixture deck-spec"),
+		).toThrow(/slide_id/);
 	});
 
 	it("normalizes system-managed fields without mutating the input", async () => {
