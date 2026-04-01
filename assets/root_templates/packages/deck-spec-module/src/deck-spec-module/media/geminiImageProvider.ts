@@ -1,6 +1,7 @@
 import { GoogleGenAI } from "@google/genai";
 
 import type { AspectRatio } from "../../spec/contract.js";
+import { createGeminiHttpOptions } from "../providerRequestConfig.js";
 
 export const DEFAULT_GEMINI_IMAGE_MODEL = "gemini-2.5-flash-image";
 
@@ -59,6 +60,7 @@ export async function generateImageWithGemini(
 		model,
 		contents: request.prompt,
 		config: {
+			httpOptions: createGeminiHttpOptions(),
 			responseModalities: ["Image"],
 			imageConfig: {
 				aspectRatio: request.aspectRatio,

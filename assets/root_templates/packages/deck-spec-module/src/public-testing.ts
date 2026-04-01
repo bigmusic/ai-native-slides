@@ -6,6 +6,16 @@ export type {
 } from "./deck-spec-module/canonicalization/finalizeDeckSpec.js";
 export { planDeckSpecRun } from "./deck-spec-module/canonicalization/finalizeDeckSpec.js";
 export { buildInitialPlannerPrompt } from "./deck-spec-module/planning/plannerPrompt.js";
+export {
+	DEFAULT_GEMINI_PLANNER_MODEL,
+	DEFAULT_GEMINI_PLANNER_SYSTEM_INSTRUCTION,
+	generateDeckSpecCandidateWithGemini,
+} from "./deck-spec-module/planning/geminiPlannerModel.js";
+export {
+	DEFAULT_GEMINI_PROVIDER_RETRY_ATTEMPTS,
+	DEFAULT_GEMINI_PROVIDER_TIMEOUT_MS,
+	createGeminiHttpOptions,
+} from "./deck-spec-module/providerRequestConfig.js";
 
 export { createDeterministicSemanticReview } from "./deck-spec-module/review-bridge/createSemanticReview.js";
 export type {
@@ -65,6 +75,10 @@ export {
 	parseDotEnv,
 	resolveGeminiApiKey,
 } from "./deck-spec-module/media/providerEnv.js";
+export {
+	DEFAULT_GEMINI_IMAGE_MODEL,
+	generateImageWithGemini,
+} from "./deck-spec-module/media/geminiImageProvider.js";
 export type {
 	NormalizeGeneratedImageInput,
 	ResizeStrategy,

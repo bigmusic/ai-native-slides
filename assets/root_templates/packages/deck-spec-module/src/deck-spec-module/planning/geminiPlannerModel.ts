@@ -1,5 +1,7 @@
 import { GoogleGenAI } from "@google/genai";
 
+import { createGeminiHttpOptions } from "../providerRequestConfig.js";
+
 export const DEFAULT_GEMINI_PLANNER_MODEL = "gemini-3-flash-preview";
 export const DEFAULT_GEMINI_PLANNER_SYSTEM_INSTRUCTION =
 	"You are a deck-spec planner. Return exactly one valid JSON object that follows the requested contract. Do not emit markdown, prose, comments, code fences, aliases, null placeholders, or extra top-level keys. Prefer strict schema compliance and complete required fields over stylistic variation.";
@@ -27,6 +29,7 @@ export async function generateDeckSpecCandidateWithGemini(
 		config: {
 			systemInstruction: DEFAULT_GEMINI_PLANNER_SYSTEM_INSTRUCTION,
 			responseMimeType: "application/json",
+			httpOptions: createGeminiHttpOptions(),
 			seed: request.seed,
 		},
 	})) as GenerateContentResponseLike;
