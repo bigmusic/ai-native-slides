@@ -65,4 +65,5 @@ System tools used by the Python scripts:
 - Treat LibreOffice render success as necessary but not sufficient. A deck can render and still trigger PowerPoint repair if the generated Open XML contains invalid geometry.
 - Prefer native PowerPoint charts over rendered images when the chart is simple and likely to be edited later.
 - Use SVG instead of PNG for diagrams whenever possible.
+- `imageSizingCrop()` and `imageSizingContain()` return geometry only. When placing an image, still pass `path` or `data` into `slide.addImage()`, for example `slide.addImage({ path: imagePath, ...imageSizingContain(imagePath, x, y, w, h) })`.
 - Leave overlap and out-of-bounds diagnostics enabled by default. If a background frame, glow, or other intentional decoration is creating noise, mark that specific object with `markLastSlideObjectAsDecorative(slide)` or `setLastSlideObjectDiagnosticsOptions(slide, { ignoreOutOfBounds: true })` instead of disabling diagnostics globally.

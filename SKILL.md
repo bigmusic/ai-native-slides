@@ -139,7 +139,7 @@ For operator workflows, treat those `pnpm` commands as the stable shared-module 
 - Never generate negative geometry. Any derived `x`, `y`, `w`, `h`, or equivalent DrawingML extents must remain positive after padding, inset, and offset math. Clamp computed sizes with `Math.max(...)`, and if a text area becomes too small, shrink text with `autoFontSize()` or enlarge the container instead of emitting a negative text-box height.
 - Do not treat LibreOffice render success as sufficient proof that the deck is PowerPoint-safe. Invalid Open XML geometry can still trigger macOS PowerPoint repair even when LibreOffice renders the deck.
 - Use bullet options, not literal `•` characters.
-- Use `imageSizingCrop` or `imageSizingContain` instead of PptxGenJS built-in image sizing.
+- Use `imageSizingCrop` or `imageSizingContain` instead of PptxGenJS built-in image sizing. Those helpers return geometry only, so still pass the image source explicitly, for example `slide.addImage({ path: imagePath, ...imageSizingContain(imagePath, x, y, w, h) })`.
 - Use `latexToSvgDataUri()` for equations and `codeToRuns()` for syntax-highlighted code blocks.
 - Prefer native PowerPoint charts for simple bar/line/pie/histogram style visuals so reviewers can edit them later.
 - For charts or diagrams that PptxGenJS cannot express well, render SVG externally and place the SVG in the slide.
