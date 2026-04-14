@@ -56,6 +56,7 @@ BIOME_TEMPLATE="${SKILL_ROOT}/biome.jsonc"
 BIOME_DEST="${DECK_ROOT}/biome.jsonc"
 TSCONFIG_BASE_TEMPLATE="${SKILL_ROOT}/tsconfig.base.json"
 TSCONFIG_BASE_DEST="${DECK_ROOT}/tsconfig.base.json"
+RSYNC_SYNC_ARGS=(-a --delete --checksum)
 
 sync_managed_file() {
   local src="$1"
@@ -106,9 +107,9 @@ if [[ -f "$TSCONFIG_BASE_TEMPLATE" ]]; then
   sync_managed_file "$TSCONFIG_BASE_TEMPLATE" "$TSCONFIG_BASE_DEST"
 fi
 
-rsync -a --delete "${HELPERS_SRC}/" "${HELPERS_DEST}/"
+rsync "${RSYNC_SYNC_ARGS[@]}" "${HELPERS_SRC}/" "${HELPERS_DEST}/"
 if [[ -d "$ROOT_PACKAGES_SRC" ]]; then
-  rsync -a --delete "${ROOT_PACKAGES_SRC}/" "${ROOT_PACKAGES_DEST}/"
+  rsync "${RSYNC_SYNC_ARGS[@]}" "${ROOT_PACKAGES_SRC}/" "${ROOT_PACKAGES_DEST}/"
 fi
 write_root_metadata "$DECK_ROOT"
 
